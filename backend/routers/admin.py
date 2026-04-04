@@ -1,0 +1,1582 @@
+"""
+FP Finance Admin Router
+=================
+Endpoints: dashboard stats, payment approval/rejection, batch/student/teacher
+CRUD, monthly payment generation, all-payments listing, PDF backup, default admin init.
+"""
+
+import io
+from datetime import datetime
+from typing import Optional
+
+import cloudinary.uploader
+
+from fastapi import APIRouter, Depends, HTTPException
+from firebase_admin import auth as firebase_auth
+
+from config import DEFAULT_FEE_AMOUNT
+from database import db
+from firebase_admin import firestore
+from schemas import (
+    RegisterRequest, BatchCreate, StudentCreate, TeacherCreate,
+    StudentUpdate, TeacherUpdate, GenerateMonthly, UndoMonthly, FeeOverride,
+    SettleDistribution, AdminSeed, to_firebase_email,
+)
+from dependencies import require_role
+from utils import ts_now, serialize_doc
+from notifications import notify_user, notify_users, notify_admins
+
+router = APIRouter(prefix="/api/admin", tags=["Admin"])
+
+
+# ══════════════════════════════════════════════
+#  DASHBOARD
+# ══════════════════════════════════════════════
+
+@router.get("/stats")
+async def admin_stats(user=Depends(require_role("admin"))):
+    """Dashboard stats: total students, pending, monthly revenue."""
+    # Count students
+    students = list(db.collection("users").where("role", "==", "student").stream())
+    total_students = len(students)
+
+    # Count teachers
+    teachers = list(db.collection("users").where("role", "==", "teacher").stream())
+    total_teachers = len(teachers)
+
+    # Count batches
+    batches = list(db.collection("batches").stream())
+    total_batches = len(batches)
+
+    # Count pending payments
+    pending = list(db.collection("payments").where("status", "==", "Pending_Verification").stream())
+    total_pending = len(pending)
+
+    return {
+        "total_students": total_students,
+        "total_teachers": total_teachers,
+        "total_batches": total_batches,
+        "total_pending": total_pending,
+    }
+
+
+# ══════════════════════════════════════════════
+#  PAYMENT REVIEW
+# ══════════════════════════════════════════════
+
+@router.get("/pending")
+async def admin_get_pending(user=Depends(require_role("admin"))):
+    """Get all payments with Pending_Verification status."""
+    payments = db.collection("payments") \
+        .where("status", "==", "Pending_Verification") \
+        .stream()
+
+    results = []
+    for p in payments:
+        data = serialize_doc(p)
+        # Fetch student info
+        student_doc = db.collection("users").document(data["student_id"]).get()
+        if student_doc.exists:
+            s = student_doc.to_dict()
+            data["student_name"] = s.get("name", "")
+            data["student_email"] = s.get("email", "")
+        # Fetch batch info
+        if data.get("batch_id"):
+            batch_doc = db.collection("batches").document(data["batch_id"]).get()
+            if batch_doc.exists:
+                data["batch_name"] = batch_doc.to_dict().get("batch_name", "")
+        # Fetch teacher info if offline
+        if data.get("requested_by_teacher"):
+            teacher_doc = db.collection("users").document(data["requested_by_teacher"]).get()
+            if teacher_doc.exists:
+                data["teacher_name"] = teacher_doc.to_dict().get("name", "")
+        results.append(data)
+
+    return results
+
+
+@router.put("/approve/{payment_id}")
+async def admin_approve(payment_id: str, user=Depends(require_role("admin"))):
+    """Approve a pending payment — sets status to Paid and deletes the screenshot from Cloudinary."""
+    payment_ref = db.collection("payments").document(payment_id)
+    payment_doc = payment_ref.get()
+
+    if not payment_doc.exists:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    payment = payment_doc.to_dict()
+    if payment["status"] == "Paid":
+        raise HTTPException(status_code=400, detail="Already approved")
+
+    # Delete the screenshot from Cloudinary
+    public_id = payment.get("screenshot_public_id", "")
+    if public_id:
+        try:
+            cloudinary.uploader.destroy(public_id)
+        except Exception as e:
+            print(f"Cloudinary delete failed (approve): {e}")
+
+    payment_ref.update({
+        "status": "Paid",
+        "approved_by": user["uid"],
+        "screenshot_url": None,
+        "screenshot_public_id": None,
+        "updated_at": ts_now(),
+    })
+
+    # Notify student
+    student_id = payment.get("student_id")
+    if student_id:
+        notify_user(student_id, "Success! Your payment has been approved.", "payment_approved")
+
+    return {"message": "Payment approved", "payment_id": payment_id}
+
+
+@router.put("/reject/{payment_id}")
+async def admin_reject(payment_id: str, user=Depends(require_role("admin"))):
+    """Reject a pending payment — resets status to Unpaid and deletes the screenshot from Cloudinary."""
+    payment_ref = db.collection("payments").document(payment_id)
+    payment_doc = payment_ref.get()
+
+    if not payment_doc.exists:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    payment = payment_doc.to_dict()
+
+    # Delete the screenshot from Cloudinary
+    public_id = payment.get("screenshot_public_id", "")
+    if public_id:
+        try:
+            cloudinary.uploader.destroy(public_id)
+        except Exception as e:
+            print(f"Cloudinary delete failed (reject): {e}")
+
+    payment_ref.update({
+        "status": "Unpaid",
+        "mode": None,
+        "rejected_by": user["uid"],
+        "screenshot_url": None,
+        "screenshot_public_id": None,
+        "updated_at": ts_now(),
+    })
+
+    # Notify student
+    student_id = payment.get("student_id")
+    if student_id:
+        notify_user(student_id, "Payment rejected. Please contact your teacher for details.", "payment_rejected")
+
+    return {"message": "Payment rejected", "payment_id": payment_id}
+
+
+# ══════════════════════════════════════════════
+#  PROFILE PIC (ADMIN)
+# ══════════════════════════════════════════════
+
+@router.delete("/user/{uid}/profile-pic")
+async def admin_delete_user_profile_pic(uid: str, user=Depends(require_role("admin"))):
+    """Admin-only: Remove any user's profile picture."""
+    target_doc = db.collection("users").document(uid).get()
+    if not target_doc.exists:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    try:
+        cloudinary.uploader.destroy(f"fpfinance/profile_pics/{uid}")
+    except Exception as e:
+        print(f"Cloudinary delete failed: {e}")
+
+    db.collection("users").document(uid).update({
+        "profile_pic_url": None,
+        "pic_version": None,
+    })
+
+    return {"message": f"Profile picture removed for user {uid}"}
+
+
+# ══════════════════════════════════════════════
+#  ACTIVE SESSIONS (ADMIN)
+# ══════════════════════════════════════════════
+
+@router.delete("/users/{uid}/sessions/{session_id}")
+async def admin_delete_user_session(uid: str, session_id: str, user=Depends(require_role("admin"))):
+    """Admin-only: Forcefully delete a specific active session from any user."""
+    target_doc = db.collection("users").document(uid).get()
+    if not target_doc.exists:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    data = target_doc.to_dict()
+    active_sessions = data.get("active_sessions", [])
+    updated_sessions = [s for s in active_sessions if s.get("session_id") != session_id]
+
+    db.collection("users").document(uid).update({
+        "active_sessions": updated_sessions
+    })
+
+    return {"message": "Session forcefully terminated"}
+
+
+# ══════════════════════════════════════════════
+#  BATCH MANAGEMENT
+# ══════════════════════════════════════════════
+
+@router.get("/batches")
+async def admin_list_batches(user=Depends(require_role("admin"))):
+    """List all batches."""
+    batches = db.collection("batches").stream()
+    results = []
+    for b in batches:
+        data = serialize_doc(b)
+        # Count students
+        students = db.collection("users") \
+            .where("batch_id", "==", b.id) \
+            .where("role", "==", "student") \
+            .stream()
+        data["student_count"] = sum(1 for _ in students)
+        # Get teacher names
+        teacher_names = []
+        for tid in data.get("teacher_ids", []):
+            tdoc = db.collection("users").document(tid).get()
+            if tdoc.exists:
+                teacher_names.append(tdoc.to_dict().get("name", tid))
+        data["teacher_names"] = teacher_names
+        results.append(data)
+    return results
+
+
+@router.post("/batches")
+async def admin_create_batch(req: BatchCreate, user=Depends(require_role("admin"))):
+    """Create a new batch."""
+    batch_data = {
+        "batch_name": req.batch_name,
+        "teacher_ids": req.teacher_ids,
+        "created_at": ts_now(),
+    }
+    if req.batch_fee is not None:
+        batch_data["batch_fee"] = req.batch_fee
+    _, doc_ref = db.collection("batches").add(batch_data)
+    return {"id": doc_ref.id, "message": f"Batch '{req.batch_name}' created"}
+
+
+@router.put("/batches/{batch_id}")
+async def admin_update_batch(batch_id: str, req: BatchCreate, user=Depends(require_role("admin"))):
+    """Update a batch."""
+    batch_ref = db.collection("batches").document(batch_id)
+    if not batch_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    update_data = {
+        "batch_name": req.batch_name,
+        "teacher_ids": req.teacher_ids,
+    }
+    if req.batch_fee is not None:
+        update_data["batch_fee"] = req.batch_fee
+    else:
+        update_data["batch_fee"] = firestore.DELETE_FIELD
+    batch_ref.update(update_data)
+    return {"message": f"Batch '{req.batch_name}' updated"}
+
+
+@router.delete("/batches/{batch_id}")
+async def admin_delete_batch(batch_id: str, user=Depends(require_role("admin"))):
+    """Delete a batch."""
+    batch_ref = db.collection("batches").document(batch_id)
+    if not batch_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    batch_ref.delete()
+    return {"message": "Batch deleted"}
+
+
+# ══════════════════════════════════════════════
+#  STUDENT MANAGEMENT
+# ══════════════════════════════════════════════
+
+def _auto_generate_for_student(student_id: str, student_name: str, batch_id: str) -> int:
+    """Auto-generate unpaid payment records for a student by looking at
+    which (month, year) combos already exist for other students in the same batch.
+    Returns the number of records created."""
+    if not batch_id:
+        return 0
+
+    # Don't auto-generate if batch has no teachers assigned
+    batch_doc = db.collection("batches").document(batch_id).get()
+    if not batch_doc.exists:
+        return 0
+    batch_data = batch_doc.to_dict()
+    if not batch_data.get("teacher_ids"):
+        return 0
+
+    # Find all unique (month, year) combos that exist for this batch
+    batch_payments = db.collection("payments") \
+        .where("batch_id", "==", batch_id) \
+        .stream()
+
+    existing_months = set()
+    for p in batch_payments:
+        pd = p.to_dict()
+        existing_months.add((pd.get("month"), pd.get("year")))
+
+    if not existing_months:
+        return 0
+
+    # Determine the fee for this student
+    student_doc = db.collection("users").document(student_id).get()
+    student_data = student_doc.to_dict() if student_doc.exists else {}
+    student_custom_fee = student_data.get("custom_fee")
+
+    if student_custom_fee is not None:
+        fee = student_custom_fee
+    else:
+        batch_doc = db.collection("batches").document(batch_id).get()
+        batch_fee = batch_doc.to_dict().get("batch_fee") if batch_doc.exists else None
+        fee = batch_fee if batch_fee is not None else DEFAULT_FEE_AMOUNT
+
+    created = 0
+    for (month, year) in existing_months:
+        # Skip if this student already has a record for this month
+        existing = list(
+            db.collection("payments")
+            .where("student_id", "==", student_id)
+            .where("month", "==", month)
+            .where("year", "==", year)
+            .limit(1)
+            .stream()
+        )
+        if existing:
+            continue
+
+        db.collection("payments").add({
+            "student_id": student_id,
+            "student_name": student_name,
+            "batch_id": batch_id,
+            "month": month,
+            "year": year,
+            "amount": fee,
+            "mode": None,
+            "screenshot_url": None,
+            "requested_by_teacher": None,
+            "status": "Unpaid",
+            "created_at": ts_now(),
+            "updated_at": ts_now(),
+        })
+        created += 1
+
+    return created
+
+
+@router.get("/students")
+async def admin_list_students(
+    batch_id: Optional[str] = None,
+    user=Depends(require_role("admin")),
+):
+    """List all students, optionally filtered by batch."""
+    query = db.collection("users").where("role", "==", "student")
+    if batch_id:
+        query = query.where("batch_id", "==", batch_id)
+
+    students = query.stream()
+    results = []
+    for s in students:
+        data = serialize_doc(s)
+        data["uid"] = s.id
+        # Get batch name
+        if data.get("batch_id"):
+            batch_doc = db.collection("batches").document(data["batch_id"]).get()
+            if batch_doc.exists:
+                data["batch_name"] = batch_doc.to_dict().get("batch_name", "")
+        results.append(data)
+
+    # Sort students alphabetically by name
+    results.sort(key=lambda x: x.get("name", "").lower())
+    
+    return results
+
+
+@router.post("/students")
+async def admin_add_student(req: StudentCreate, user=Depends(require_role("admin"))):
+    """Create a new student user."""
+    email = to_firebase_email(req.username)
+    try:
+        fb_user = firebase_auth.create_user(
+            email=email,
+            password=req.password,
+            display_name=req.name,
+        )
+    except firebase_auth.EmailAlreadyExistsError:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    firebase_auth.set_custom_user_claims(fb_user.uid, {"role": "student"})
+
+    user_doc = {
+        "name": req.name,
+        "username": req.username.strip().lower(),
+        "email": email,
+        "role": "student",
+        "batch_id": req.batch_id,
+        "created_at": ts_now(),
+    }
+    db.collection("users").document(fb_user.uid).set(user_doc)
+
+    # Auto-generate payment records for months already generated in this batch
+    auto_created = _auto_generate_for_student(fb_user.uid, req.name, req.batch_id)
+
+    msg = f"Student '{req.name}' added"
+    if auto_created > 0:
+        msg += f" — {auto_created} payment record(s) auto-generated for existing months."
+    return {"uid": fb_user.uid, "message": msg}
+
+
+@router.put("/students/{uid}")
+async def admin_update_student(uid: str, req: StudentUpdate, user=Depends(require_role("admin"))):
+    """Update a student's details. Optionally reset their password.
+    When custom_fee changes, all Unpaid payment records are synced automatically."""
+    user_ref = db.collection("users").document(uid)
+    user_doc = user_ref.get()
+    if not user_doc.exists:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    student_data = user_doc.to_dict()
+
+    # Build Firestore update dict (only non-None fields)
+    update_data = {}
+    if req.name is not None:
+        update_data["name"] = req.name
+    if req.username is not None:
+        new_email = to_firebase_email(req.username)
+        update_data["username"] = req.username.strip().lower()
+        update_data["email"] = new_email
+    if req.batch_id is not None:
+        update_data["batch_id"] = req.batch_id
+
+    # Handle custom fee: clear or set
+    fee_changed = False
+    new_effective_fee = None
+
+    if req.clear_custom_fee:
+        update_data["custom_fee"] = firestore.DELETE_FIELD
+        fee_changed = True
+        # Revert to default
+        new_effective_fee = DEFAULT_FEE_AMOUNT
+    elif req.custom_fee is not None:
+        update_data["custom_fee"] = req.custom_fee
+        if req.custom_fee != student_data.get("custom_fee"):
+            fee_changed = True
+            new_effective_fee = req.custom_fee
+
+    if update_data:
+        user_ref.update(update_data)
+
+    # Sync all Unpaid payment records to the new fee
+    if fee_changed and new_effective_fee is not None:
+        unpaid_payments = db.collection("payments") \
+            .where("student_id", "==", uid) \
+            .where("status", "==", "Unpaid") \
+            .stream()
+        for p in unpaid_payments:
+            db.collection("payments").document(p.id).update({
+                "amount": new_effective_fee,
+                "updated_at": ts_now(),
+            })
+
+    # Auto-generate payment records if batch changed
+    auto_created = 0
+    new_batch_id = req.batch_id
+    if new_batch_id is not None and new_batch_id != student_data.get("batch_id"):
+        student_name = req.name or student_data.get("name", "")
+        auto_created = _auto_generate_for_student(uid, student_name, new_batch_id)
+
+    # Update Firebase Auth (username/email, password, display_name)
+    auth_updates = {}
+    if req.name is not None:
+        auth_updates["display_name"] = req.name
+    if req.username is not None:
+        auth_updates["email"] = to_firebase_email(req.username)
+    if req.password is not None and req.password.strip():
+        auth_updates["password"] = req.password
+
+    if auth_updates:
+        try:
+            firebase_auth.update_user(uid, **auth_updates)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Firebase Auth update failed: {e}")
+
+    msg = "Student updated successfully"
+    if auto_created > 0:
+        msg += f" — {auto_created} payment record(s) auto-generated for existing months."
+    return {"message": msg}
+
+
+@router.delete("/students/{uid}")
+async def admin_remove_student(uid: str, user=Depends(require_role("admin"))):
+    """Remove a student (Firestore doc + Firebase Auth)."""
+    # Delete Firestore doc
+    db.collection("users").document(uid).delete()
+
+    # Delete all their payments
+    payments = db.collection("payments").where("student_id", "==", uid).stream()
+    for p in payments:
+        db.collection("payments").document(p.id).delete()
+
+    # Delete from Firebase Auth
+    try:
+        firebase_auth.delete_user(uid)
+    except Exception:
+        pass
+
+    return {"message": "Student removed"}
+
+
+# ══════════════════════════════════════════════
+#  TEACHER MANAGEMENT
+# ══════════════════════════════════════════════
+
+@router.get("/teachers")
+async def admin_list_teachers(user=Depends(require_role("admin"))):
+    """List all teachers with their assigned batches."""
+    teachers = db.collection("users").where("role", "==", "teacher").stream()
+    results = []
+    for t in teachers:
+        data = serialize_doc(t)
+        data["uid"] = t.id
+        # Find batches assigned to this teacher
+        batches = db.collection("batches") \
+            .where("teacher_ids", "array_contains", t.id) \
+            .stream()
+        data["assigned_batches"] = [
+            {"id": b.id, "batch_name": b.to_dict().get("batch_name", "")}
+            for b in batches
+        ]
+        results.append(data)
+    return results
+
+
+@router.post("/teachers")
+async def admin_add_teacher(req: TeacherCreate, user=Depends(require_role("admin"))):
+    """Create a new teacher user and optionally assign to batches."""
+    email = to_firebase_email(req.username)
+    try:
+        fb_user = firebase_auth.create_user(
+            email=email,
+            password=req.password,
+            display_name=req.name,
+        )
+    except firebase_auth.EmailAlreadyExistsError:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    firebase_auth.set_custom_user_claims(fb_user.uid, {"role": "teacher"})
+
+    user_doc = {
+        "name": req.name,
+        "username": req.username.strip().lower(),
+        "email": email,
+        "role": "teacher",
+        "batch_id": None,
+        "created_at": ts_now(),
+    }
+    db.collection("users").document(fb_user.uid).set(user_doc)
+
+    # Assign to batches
+    for batch_id in req.batch_ids:
+        batch_ref = db.collection("batches").document(batch_id)
+        batch_doc = batch_ref.get()
+        if batch_doc.exists:
+            batch_data = batch_doc.to_dict()
+            teacher_ids = batch_data.get("teacher_ids", [])
+            if fb_user.uid not in teacher_ids:
+                teacher_ids.append(fb_user.uid)
+                batch_ref.update({"teacher_ids": teacher_ids})
+
+    return {"uid": fb_user.uid, "message": f"Teacher '{req.name}' added"}
+
+
+@router.put("/teachers/{uid}")
+async def admin_update_teacher(uid: str, req: TeacherUpdate, user=Depends(require_role("admin"))):
+    """Update a teacher's details. Optionally reset their password."""
+    user_ref = db.collection("users").document(uid)
+    user_doc = user_ref.get()
+    if not user_doc.exists:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+
+    # Build Firestore update dict
+    update_data = {}
+    if req.name is not None:
+        update_data["name"] = req.name
+    if req.username is not None:
+        new_email = to_firebase_email(req.username)
+        update_data["username"] = req.username.strip().lower()
+        update_data["email"] = new_email
+
+    if update_data:
+        user_ref.update(update_data)
+
+    # Handle batch reassignment
+    if req.batch_ids is not None:
+        # Remove teacher from all current batches
+        current_batches = db.collection("batches") \
+            .where("teacher_ids", "array_contains", uid) \
+            .stream()
+        for b in current_batches:
+            batch_data = b.to_dict()
+            teacher_ids = [tid for tid in batch_data.get("teacher_ids", []) if tid != uid]
+            db.collection("batches").document(b.id).update({"teacher_ids": teacher_ids})
+
+        # Add teacher to new batches
+        for batch_id in req.batch_ids:
+            batch_ref = db.collection("batches").document(batch_id)
+            batch_doc = batch_ref.get()
+            if batch_doc.exists:
+                batch_data = batch_doc.to_dict()
+                teacher_ids = batch_data.get("teacher_ids", [])
+                if uid not in teacher_ids:
+                    teacher_ids.append(uid)
+                    batch_ref.update({"teacher_ids": teacher_ids})
+
+    # Update Firebase Auth (username/email, password, display_name)
+    auth_updates = {}
+    if req.name is not None:
+        auth_updates["display_name"] = req.name
+    if req.username is not None:
+        auth_updates["email"] = to_firebase_email(req.username)
+    if req.password is not None and req.password.strip():
+        auth_updates["password"] = req.password
+
+    if auth_updates:
+        try:
+            firebase_auth.update_user(uid, **auth_updates)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Firebase Auth update failed: {e}")
+
+    return {"message": "Teacher updated successfully"}
+
+
+@router.delete("/teachers/{uid}")
+async def admin_remove_teacher(uid: str, user=Depends(require_role("admin"))):
+    """Remove a teacher and unassign from all batches."""
+    # Remove from all batches
+    batches = db.collection("batches") \
+        .where("teacher_ids", "array_contains", uid) \
+        .stream()
+    for b in batches:
+        batch_data = b.to_dict()
+        teacher_ids = batch_data.get("teacher_ids", [])
+        teacher_ids = [tid for tid in teacher_ids if tid != uid]
+        db.collection("batches").document(b.id).update({"teacher_ids": teacher_ids})
+
+    # Delete Firestore doc
+    db.collection("users").document(uid).delete()
+
+    # Delete from Firebase Auth
+    try:
+        firebase_auth.delete_user(uid)
+    except Exception:
+        pass
+
+    return {"message": "Teacher removed"}
+
+
+# ══════════════════════════════════════════════
+#  PAYMENT GENERATION
+# ══════════════════════════════════════════════
+
+@router.post("/generate-monthly")
+async def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role("admin"))):
+    """Generate unpaid payment records for students for a given month/year.
+    If batch_id is provided, only generate for that batch; otherwise for all students.
+    Fee hierarchy: student.custom_fee → batch.batch_fee → req.amount → DEFAULT_FEE_AMOUNT."""
+
+    # If a specific batch is selected, validate it has both teachers and students
+    if req.batch_id:
+        batch_check = db.collection("batches").document(req.batch_id).get()
+        if batch_check.exists:
+            batch_info = batch_check.to_dict()
+            batch_name = batch_info.get("batch_name", "Unknown")
+            has_teachers = bool(batch_info.get("teacher_ids"))
+
+            student_count = sum(1 for _ in db.collection("users")
+                .where("role", "==", "student")
+                .where("batch_id", "==", req.batch_id)
+                .stream())
+            has_students = student_count > 0
+
+            if not has_teachers and not has_students:
+                return {
+                    "message": f"Cannot generate fees for batch '{batch_name}' — no students and no teachers found. Add both first.",
+                    "created": 0,
+                    "skipped": 0,
+                }
+            if not has_teachers:
+                return {
+                    "message": f"Cannot generate fees for batch '{batch_name}' — no teachers assigned. Assign at least one teacher first.",
+                    "created": 0,
+                    "skipped": 0,
+                }
+            if not has_students:
+                return {
+                    "message": f"Cannot generate fees for batch '{batch_name}' — no students found. Add students first, and they will auto-receive payment records.",
+                    "created": 0,
+                    "skipped": 0,
+                }
+
+    fallback_amount = req.amount or DEFAULT_FEE_AMOUNT
+
+    # Filter students by batch if specified
+    query = db.collection("users").where("role", "==", "student")
+    if req.batch_id:
+        query = query.where("batch_id", "==", req.batch_id)
+
+    students = query.stream()
+    student_list = list(students)
+
+    created = 0
+    skipped = 0
+
+    for s in student_list:
+        student = s.to_dict()
+        student_id = s.id
+
+        # Check if payment already exists
+        existing = db.collection("payments") \
+            .where("student_id", "==", student_id) \
+            .where("month", "==", req.month) \
+            .where("year", "==", req.year) \
+            .limit(1) \
+            .stream()
+
+        if list(existing):
+            skipped += 1
+            continue
+
+        # Determine fee using hierarchy: custom_fee → batch_fee → fallback
+        student_custom_fee = student.get("custom_fee")
+        student_batch_id = student.get("batch_id", "")
+        if student_custom_fee is not None:
+            final_amount = student_custom_fee
+        elif student_batch_id:
+            batch_doc = db.collection("batches").document(student_batch_id).get()
+            batch_fee = batch_doc.to_dict().get("batch_fee") if batch_doc.exists else None
+            final_amount = batch_fee if batch_fee is not None else fallback_amount
+        else:
+            final_amount = fallback_amount
+
+        payment_data = {
+            "student_id": student_id,
+            "student_name": student.get("name", ""),
+            "batch_id": student_batch_id,
+            "month": req.month,
+            "year": req.year,
+            "amount": final_amount,
+            "mode": None,
+            "screenshot_url": None,
+            "requested_by_teacher": None,
+            "status": "Unpaid",
+            "created_at": ts_now(),
+            "updated_at": ts_now(),
+        }
+        db.collection("payments").add(payment_data)
+        created += 1
+
+    batch_label = ""
+    if req.batch_id:
+        batch_doc = db.collection("batches").document(req.batch_id).get()
+        if batch_doc.exists:
+            batch_label = f" for batch '{batch_doc.to_dict().get('batch_name', '')}'"
+
+    # Notify students who got new bills
+    if created > 0:
+        MONTHS_NOTIF = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December",
+        ]
+        month_name = MONTHS_NOTIF[req.month - 1] if 1 <= req.month <= 12 else str(req.month)
+        # Collect student IDs who actually got a payment created
+        notified_ids = []
+        for s in student_list:
+            sid = s.id
+            # Only notify if we didn't skip them (check if payment was created)
+            existing_check = db.collection("payments") \
+                .where("student_id", "==", sid) \
+                .where("month", "==", req.month) \
+                .where("year", "==", req.year) \
+                .limit(1).stream()
+            for p in existing_check:
+                p_data = p.to_dict()
+                if p_data.get("status") == "Unpaid":
+                    notified_ids.append(sid)
+                break
+        if notified_ids:
+            notify_users(
+                notified_ids,
+                f"Your fee for {month_name} {req.year} has been generated.",
+                "bill_generated",
+            )
+
+    return {
+        "message": f"Generated {created} payment records{batch_label}, skipped {skipped} existing",
+        "created": created,
+        "skipped": skipped,
+    }
+
+
+@router.post("/undo-monthly")
+async def admin_undo_monthly(req: UndoMonthly, user=Depends(require_role("admin"))):
+    """Undo (delete) generated Unpaid payment records for a given month/year.
+    Only removes records with status == 'Unpaid' so paid/pending records are safe."""
+
+    query = db.collection("payments") \
+        .where("month", "==", req.month) \
+        .where("year", "==", req.year) \
+        .where("status", "==", "Unpaid")
+
+    if req.batch_id:
+        query = query.where("batch_id", "==", req.batch_id)
+
+    docs = list(query.stream())
+    deleted = 0
+    for doc in docs:
+        doc.reference.delete()
+        deleted += 1
+
+    MONTH_NAMES = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    ]
+    month_name = MONTH_NAMES[req.month - 1] if 1 <= req.month <= 12 else str(req.month)
+
+    batch_label = ""
+    if req.batch_id:
+        batch_doc = db.collection("batches").document(req.batch_id).get()
+        if batch_doc.exists:
+            batch_label = f" for batch '{batch_doc.to_dict().get('batch_name', '')}'"
+
+    return {
+        "message": f"Removed {deleted} unpaid record(s) for {month_name} {req.year}{batch_label}",
+        "deleted": deleted,
+    }
+
+
+# ══════════════════════════════════════════════
+#  FEE OVERRIDE
+# ══════════════════════════════════════════════
+
+@router.post("/fee-override")
+async def admin_fee_override(req: FeeOverride, user=Depends(require_role("admin"))):
+    """Override a student's fee in two modes:
+    - 'all-time': Update profile custom_fee + sync all Unpaid records.
+    - 'specific-month': Update only one targeted payment record.
+    Paid records are never modified."""
+
+    if req.mode not in ("all-time", "specific-month"):
+        raise HTTPException(status_code=400, detail="Mode must be 'all-time' or 'specific-month'")
+
+    # Verify the student exists
+    student_ref = db.collection("users").document(req.student_id)
+    student_doc = student_ref.get()
+    if not student_doc.exists:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # ── MODE 1: ALL-TIME ──
+    if req.mode == "all-time":
+        # 1. Update the student's profile custom_fee
+        student_ref.update({"custom_fee": req.amount})
+
+        # 2. Sync all Unpaid payment records
+        unpaid_payments = list(
+            db.collection("payments")
+            .where("student_id", "==", req.student_id)
+            .where("status", "==", "Unpaid")
+            .stream()
+        )
+
+        updated_count = 0
+        for p in unpaid_payments:
+            db.collection("payments").document(p.id).update({
+                "amount": req.amount,
+                "updated_at": ts_now(),
+            })
+            updated_count += 1
+
+        return {
+            "message": f"Permanent fee set to ₹{req.amount}. Updated {updated_count} unpaid record(s).",
+            "custom_fee": req.amount,
+            "records_updated": updated_count,
+        }
+
+    # ── MODE 2: SPECIFIC MONTH ──
+    if req.month is None or req.year is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Month and year are required for 'specific-month' mode.",
+        )
+
+    # Find the targeted payment record
+    target_payments = list(
+        db.collection("payments")
+        .where("student_id", "==", req.student_id)
+        .where("month", "==", req.month)
+        .where("year", "==", req.year)
+        .limit(1)
+        .stream()
+    )
+
+    if not target_payments:
+        MONTHS = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December",
+        ]
+        month_label = MONTHS[req.month - 1] if 1 <= req.month <= 12 else str(req.month)
+        raise HTTPException(
+            status_code=404,
+            detail=f"No payment record found for {month_label} {req.year}. Generate the month first.",
+        )
+
+    payment = target_payments[0]
+    payment_data = payment.to_dict()
+
+    if payment_data.get("status") == "Paid":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot modify a Paid record. Financial history is locked.",
+        )
+
+    # Update only this record's amount
+    old_amount = payment_data.get("amount", 0)
+    db.collection("payments").document(payment.id).update({
+        "amount": req.amount,
+        "updated_at": ts_now(),
+    })
+
+    MONTHS = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    ]
+    month_label = MONTHS[req.month - 1] if 1 <= req.month <= 12 else str(req.month)
+
+    return {
+        "message": f"Fee for {month_label} {req.year} updated from ₹{old_amount} to ₹{req.amount}.",
+        "old_amount": old_amount,
+        "new_amount": req.amount,
+        "records_updated": 1,
+    }
+
+
+# ══════════════════════════════════════════════
+#  ALL PAYMENTS
+# ══════════════════════════════════════════════
+
+@router.get("/payments")
+async def admin_all_payments(
+    batch_id: Optional[str] = None,
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    status: Optional[str] = None,
+    user=Depends(require_role("admin")),
+):
+    """Get all payments with optional filters."""
+    query = db.collection("payments")
+
+    if batch_id:
+        query = query.where("batch_id", "==", batch_id)
+    if month:
+        query = query.where("month", "==", month)
+    if year:
+        query = query.where("year", "==", year)
+    if status:
+        query = query.where("status", "==", status)
+
+    payments = query.stream()
+    results = [serialize_doc(p) for p in payments]
+
+    # Dynamically inject the latest student names
+    student_ids = {p.get("student_id") for p in results if p.get("student_id")}
+    if student_ids:
+        user_refs = [db.collection("users").document(sid) for sid in student_ids]
+        student_names = {}
+        for i in range(0, len(user_refs), 100):
+            docs = db.get_all(user_refs[i:i+100])
+            for doc in docs:
+                if doc.exists:
+                    student_names[doc.id] = doc.to_dict().get("name", "Unknown")
+        for p in results:
+            sid = p.get("student_id")
+            if sid and sid in student_names:
+                p["student_name"] = student_names[sid]
+
+    return results
+
+# ══════════════════════════════════════════════
+#  REVENUE DISTRIBUTION
+# ══════════════════════════════════════════════
+
+@router.get("/distribution")
+async def admin_distribution(
+    month: int,
+    year: int,
+    batch_id: Optional[str] = None,
+    user=Depends(require_role("admin")),
+):
+    """Calculate revenue distribution among teachers for a given fee month/year.
+    Groups paid payments by batch and splits revenue among assigned teachers.
+    Optionally filter by batch_id."""
+
+    # 1. Query paid payments for this fee month/year (+ optional batch filter)
+    query = db.collection("payments") \
+        .where("status", "==", "Paid") \
+        .where("month", "==", month) \
+        .where("year", "==", year)
+    if batch_id:
+        query = query.where("batch_id", "==", batch_id)
+
+    matching_payments = [serialize_doc(p) for p in query.stream()]
+
+    # 3. Group by batch_id
+    payments_by_batch = {}
+    for p in matching_payments:
+        bid = p.get("batch_id", "")
+        if not bid:
+            bid = "unassigned"
+        payments_by_batch.setdefault(bid, []).append(p)
+
+    # 4. Build batch-level distribution
+    batch_results = []
+    teacher_earnings = {}  # uid -> { name, total }
+
+    for bid, batch_payments in payments_by_batch.items():
+        batch_total = sum(p.get("amount", 0) for p in batch_payments)
+
+        # Get batch info
+        batch_name = "Unassigned"
+        teacher_ids = []
+        if bid != "unassigned":
+            batch_doc = db.collection("batches").document(bid).get()
+            if batch_doc.exists:
+                bd = batch_doc.to_dict()
+                batch_name = bd.get("batch_name", "Unknown")
+                teacher_ids = bd.get("teacher_ids", [])
+
+        # Build teacher list with per-teacher share
+        teacher_count = len(teacher_ids)
+        per_teacher = round(batch_total / teacher_count, 2) if teacher_count > 0 else 0
+
+        teachers_list = []
+        for tid in teacher_ids:
+            t_doc = db.collection("users").document(tid).get()
+            t_name = t_doc.to_dict().get("name", "Unknown") if t_doc.exists else "Unknown"
+            teachers_list.append({
+                "uid": tid,
+                "name": t_name,
+                "amount": per_teacher,
+            })
+            # Aggregate for teacher_totals
+            if tid not in teacher_earnings:
+                teacher_earnings[tid] = {"name": t_name, "total": 0}
+            teacher_earnings[tid]["total"] = round(teacher_earnings[tid]["total"] + per_teacher, 2)
+
+        batch_results.append({
+            "batch_id": bid,
+            "batch_name": batch_name,
+            "total": batch_total,
+            "payments_count": len(batch_payments),
+            "teacher_count": teacher_count,
+            "per_teacher": per_teacher,
+            "teachers": teachers_list,
+        })
+
+    # 5. Build teacher totals (across all batches)
+    teacher_totals = [
+        {"uid": uid, "name": info["name"], "total": info["total"]}
+        for uid, info in teacher_earnings.items()
+    ]
+    teacher_totals.sort(key=lambda t: t["total"], reverse=True)
+
+    total_collected = sum(b["total"] for b in batch_results)
+
+    # 6. Build date-wise distribution
+    # Group payments by confirmation date (updated_at)
+    payments_by_date = {}
+    for p in matching_payments:
+        updated_at = p.get("updated_at", "")
+        if updated_at:
+            date_key = str(updated_at)[:10]  # "YYYY-MM-DD"
+        else:
+            date_key = "unknown"
+        payments_by_date.setdefault(date_key, []).append(p)
+
+    date_results = []
+    for date_str in sorted(payments_by_date.keys(), reverse=True):
+        dp = payments_by_date[date_str]
+        date_total = sum(x.get("amount", 0) for x in dp)
+
+        # Calculate per-teacher for this date's payments (across batches)
+        date_teacher_earnings = {}
+        # Group this date's payments by batch
+        date_by_batch = {}
+        for x in dp:
+            bid = x.get("batch_id", "unassigned")
+            date_by_batch.setdefault(bid, []).append(x)
+
+        for bid, bp in date_by_batch.items():
+            bt = sum(x.get("amount", 0) for x in bp)
+            # Reuse batch info from batch_results or lookup
+            tids = []
+            if bid != "unassigned":
+                batch_doc = db.collection("batches").document(bid).get()
+                if batch_doc.exists:
+                    tids = batch_doc.to_dict().get("teacher_ids", [])
+            tc = len(tids)
+            pt = round(bt / tc, 2) if tc > 0 else 0
+            for tid in tids:
+                t_doc = db.collection("users").document(tid).get()
+                t_name = t_doc.to_dict().get("name", "Unknown") if t_doc.exists else "Unknown"
+                if tid not in date_teacher_earnings:
+                    date_teacher_earnings[tid] = {"name": t_name, "total": 0}
+                date_teacher_earnings[tid]["total"] = round(
+                    date_teacher_earnings[tid]["total"] + pt, 2
+                )
+
+        teachers = [
+            {"uid": uid, "name": info["name"], "amount": info["total"]}
+            for uid, info in date_teacher_earnings.items()
+        ]
+        teachers.sort(key=lambda t: t["amount"], reverse=True)
+
+        date_results.append({
+            "date": date_str,
+            "total": date_total,
+            "payments_count": len(dp),
+            "teachers": teachers,
+            "payments": dp,
+            "settled": False,
+        })
+
+    # 7. Check for existing settlement snapshots
+    snapshot_query = db.collection("distribution_snapshots") \
+        .where("month", "==", month) \
+        .where("year", "==", year)
+    if batch_id:
+        snapshot_query = snapshot_query.where("batch_id", "==", batch_id)
+
+    settled_dates = {}
+    for snap in snapshot_query.stream():
+        sd = snap.to_dict()
+        settled_dates[sd["date"]] = sd
+
+    # Overlay snapshot data onto date results
+    for dr in date_results:
+        if dr["date"] in settled_dates:
+            snap = settled_dates[dr["date"]]
+            dr["settled"] = True
+            dr["settled_at"] = snap.get("settled_at", "")
+            dr["teachers"] = snap.get("teachers", dr["teachers"])
+            dr["total"] = snap.get("total", dr["total"])
+
+    return {
+        "month": month,
+        "year": year,
+        "total_collected": total_collected,
+        "batches": batch_results,
+        "teacher_totals": teacher_totals,
+        "dates": date_results,
+    }
+
+
+# ══════════════════════════════════════════════
+#  SETTLE / UNSETTLE DISTRIBUTION
+# ══════════════════════════════════════════════
+
+@router.post("/settle-distribution")
+async def admin_settle_distribution(req: SettleDistribution, user=Depends(require_role("admin"))):
+    """Freeze a date's distribution as a permanent snapshot.
+    Once settled, teacher changes won't affect this date's records."""
+
+    # Check if already settled
+    existing = db.collection("distribution_snapshots") \
+        .where("date", "==", req.date) \
+        .where("month", "==", req.month) \
+        .where("year", "==", req.year)
+    if req.batch_id:
+        existing = existing.where("batch_id", "==", req.batch_id)
+
+    if list(existing.limit(1).stream()):
+        raise HTTPException(status_code=400, detail="This date is already settled.")
+
+    # Re-calculate distribution for this specific date
+    query = db.collection("payments") \
+        .where("status", "==", "Paid") \
+        .where("month", "==", req.month) \
+        .where("year", "==", req.year)
+    if req.batch_id:
+        query = query.where("batch_id", "==", req.batch_id)
+
+    all_payments = [serialize_doc(p) for p in query.stream()]
+
+    # Filter to only this date's payments
+    date_payments = [
+        p for p in all_payments
+        if str(p.get("updated_at", ""))[:10] == req.date
+    ]
+
+    if not date_payments:
+        raise HTTPException(status_code=404, detail="No payments found for this date.")
+
+    # Group by batch and calculate teacher shares
+    date_by_batch = {}
+    for p in date_payments:
+        bid = p.get("batch_id", "unassigned")
+        date_by_batch.setdefault(bid, []).append(p)
+
+    date_total = sum(p.get("amount", 0) for p in date_payments)
+    teacher_earnings = {}
+
+    for bid, bp in date_by_batch.items():
+        bt = sum(x.get("amount", 0) for x in bp)
+        tids = []
+        if bid != "unassigned":
+            batch_doc = db.collection("batches").document(bid).get()
+            if batch_doc.exists:
+                tids = batch_doc.to_dict().get("teacher_ids", [])
+        tc = len(tids)
+        pt = round(bt / tc, 2) if tc > 0 else 0
+        for tid in tids:
+            t_doc = db.collection("users").document(tid).get()
+            t_name = t_doc.to_dict().get("name", "Unknown") if t_doc.exists else "Unknown"
+            if tid not in teacher_earnings:
+                teacher_earnings[tid] = {"name": t_name, "total": 0}
+            teacher_earnings[tid]["total"] = round(
+                teacher_earnings[tid]["total"] + pt, 2
+            )
+
+    teachers_snapshot = [
+        {"uid": uid, "name": info["name"], "amount": info["total"]}
+        for uid, info in teacher_earnings.items()
+    ]
+    teachers_snapshot.sort(key=lambda t: t["amount"], reverse=True)
+
+    # Save the snapshot
+    snapshot_data = {
+        "date": req.date,
+        "month": req.month,
+        "year": req.year,
+        "batch_id": req.batch_id,
+        "total": date_total,
+        "payments_count": len(date_payments),
+        "teachers": teachers_snapshot,
+        "settled_by": user["uid"],
+        "settled_at": ts_now(),
+        "permanently_settled": True,
+    }
+    db.collection("distribution_snapshots").add(snapshot_data)
+
+    # Notify each teacher with their personalized earnings
+    # Convert date from YYYY-MM-DD to DD.MM.YYYY
+    parts = req.date.split("-")
+    formatted_date = f"{parts[2]}.{parts[1]}.{parts[0]}" if len(parts) == 3 else req.date
+    for t in teachers_snapshot:
+        tid = t.get("uid")
+        if tid:
+            notify_user(
+                tid,
+                f"The distribution for {formatted_date} has been successfully settled.",
+                "distribution_settled",
+            )
+
+    return {
+        "message": f"Distribution for {req.date} settled. {len(teachers_snapshot)} teacher(s) locked.",
+        "snapshot": snapshot_data,
+    }
+
+
+
+
+# ══════════════════════════════════════════════
+#  PDF BACKUP
+# ══════════════════════════════════════════════
+
+@router.get("/backup")
+async def admin_backup(
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    user=Depends(require_role("admin")),
+):
+    """Export payment data as a PDF report, grouped by batch for a specific month/year."""
+    from fpdf import FPDF
+    from fastapi.responses import StreamingResponse
+
+    # Default to current month/year if not provided
+    now = datetime.utcnow()
+    month = month or now.month
+    year = year or now.year
+
+    MONTHS_FULL = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    ]
+    month_label = MONTHS_FULL[month - 1] if 1 <= month <= 12 else str(month)
+
+    def safe_str(val):
+        """Convert value to ASCII-safe string for PDF."""
+        if val is None or val == "" or val == "None":
+            return "-"
+        text = str(val)
+        text = text.replace("\u2014", "-").replace("\u2013", "-").replace("\u2019", "'")
+        text = text.encode("latin-1", errors="replace").decode("latin-1")
+        return text
+
+    # ── Fetch data ──
+    batches_list = [serialize_doc(b) for b in db.collection("batches").stream()]
+
+    # Build user lookup  (uid → {name, email})
+    all_users = {}
+    for u in db.collection("users").stream():
+        ud = u.to_dict()
+        all_users[u.id] = {"name": ud.get("name", ""), "email": ud.get("email", "")}
+
+    # Fetch payments for the requested month/year
+    payments = [
+        serialize_doc(p)
+        for p in db.collection("payments")
+        .where("month", "==", month)
+        .where("year", "==", year)
+        .stream()
+    ]
+
+    # Dynamically overlay latest student name
+    for p in payments:
+        sid = p.get("student_id", "")
+        if sid in all_users:
+            p["student_name"] = all_users[sid]["name"]
+
+    # Group payments by batch_id
+    payments_by_batch = {}
+    for p in payments:
+        bid = p.get("batch_id", "unassigned")
+        payments_by_batch.setdefault(bid, []).append(p)
+
+    # ── Build PDF ──
+    pdf = FPDF(orientation="L")  # landscape for wider tables
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    # ── Title Page ──
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 22)
+    pdf.cell(0, 20, "FP Finance Payment Report", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 12)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 8, f"{month_label} {year}", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(
+        0, 8,
+        f"Generated: {now.strftime('%d %B %Y, %H:%M UTC')}  |  Batches: {len(batches_list)}  |  Payments: {len(payments)}",
+        align="C", new_x="LMARGIN", new_y="NEXT",
+    )
+    pdf.ln(6)
+    pdf.set_text_color(0, 0, 0)
+
+    # ── Table drawing helper ──
+    headers = ["#", "Student Name", "Email", "Amount", "Status", "Mode", "Date"]
+    col_widths = [10, 55, 65, 30, 40, 30, 47]  # total ≈ 277 (landscape A4)
+
+    def draw_header():
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_fill_color(60, 60, 100)
+        pdf.set_text_color(255, 255, 255)
+        for i, h in enumerate(headers):
+            pdf.cell(col_widths[i], 8, h, border=1, fill=True, align="C")
+        pdf.ln()
+        pdf.set_font("Helvetica", "", 8)
+        pdf.set_text_color(0, 0, 0)
+
+    # ── One table per batch ──
+    for batch in batches_list:
+        bid = batch.get("id", "")
+        batch_name = batch.get("batch_name", "Unknown Batch")
+        batch_payments = payments_by_batch.get(bid, [])
+
+        # Get teacher names for subtitle
+        teacher_ids = batch.get("teacher_ids", [])
+        teacher_names = [all_users.get(tid, {}).get("name", tid[:12]) for tid in teacher_ids]
+
+        pdf.add_page()
+
+        # Batch title
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.set_text_color(50, 50, 150)
+        pdf.cell(0, 10, safe_str(batch_name), new_x="LMARGIN", new_y="NEXT")
+
+        # Batch subtitle
+        pdf.set_font("Helvetica", "", 9)
+        pdf.set_text_color(100, 100, 100)
+        teacher_line = f"Teachers: {', '.join(teacher_names)}" if teacher_names else "No teachers assigned"
+        pdf.cell(
+            0, 6,
+            f"{teacher_line}  |  {len(batch_payments)} payment(s) for {month_label} {year}",
+            new_x="LMARGIN", new_y="NEXT",
+        )
+        pdf.ln(3)
+        pdf.set_text_color(0, 0, 0)
+
+        if not batch_payments:
+            pdf.set_font("Helvetica", "I", 10)
+            pdf.set_text_color(150, 150, 150)
+            pdf.cell(0, 10, "No payment records for this period.", new_x="LMARGIN", new_y="NEXT")
+            pdf.set_text_color(0, 0, 0)
+            continue
+
+        draw_header()
+
+        for row_idx, p in enumerate(batch_payments):
+            if row_idx % 2 == 0:
+                pdf.set_fill_color(240, 240, 250)
+            else:
+                pdf.set_fill_color(255, 255, 255)
+
+            # Page break with repeated header
+            if pdf.get_y() > 185:  # landscape height is ~210
+                pdf.add_page()
+                draw_header()
+
+            # Resolve student email from the user lookup
+            student_id = p.get("student_id", "")
+            student_info = all_users.get(student_id, {})
+            student_email = student_info.get("email", "-")
+
+            # Payment date
+            updated = p.get("updated_at", p.get("created_at", ""))
+            if updated and updated != "-":
+                try:
+                    dt = datetime.fromisoformat(str(updated))
+                    date_str = dt.strftime("%d %b %Y")
+                except Exception:
+                    date_str = str(updated)[:10]
+            else:
+                date_str = "-"
+
+            row = [
+                str(row_idx + 1),
+                p.get("student_name", "-"),
+                student_email,
+                f"Rs.{p.get('amount', 0)}",
+                p.get("status", "-"),
+                p.get("mode", "") or "-",
+                date_str,
+            ]
+
+            for i, val in enumerate(row):
+                text = safe_str(val)
+                if len(text) > 30:
+                    text = text[:28] + ".."
+                pdf.cell(col_widths[i], 7, text, border=1, fill=True, align="C")
+            pdf.ln()
+
+        # Batch summary
+        total_amt = sum(p.get("amount", 0) for p in batch_payments)
+        paid_count = sum(1 for p in batch_payments if p.get("status") == "Paid")
+        unpaid_count = sum(1 for p in batch_payments if p.get("status") == "Unpaid")
+        pending_count = sum(1 for p in batch_payments if p.get("status") == "Pending_Verification")
+
+        pdf.ln(3)
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.cell(
+            0, 7,
+            f"Total: Rs.{total_amt}  |  Paid: {paid_count}  |  Unpaid: {unpaid_count}  |  Pending: {pending_count}",
+            new_x="LMARGIN", new_y="NEXT",
+        )
+
+    # Handle unassigned payments (students without a batch)
+    unassigned = payments_by_batch.get("unassigned", []) + payments_by_batch.get("", [])
+    if unassigned:
+        pdf.add_page()
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.set_text_color(50, 50, 150)
+        pdf.cell(0, 10, "Unassigned Students", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(3)
+        draw_header()
+        for row_idx, p in enumerate(unassigned):
+            if row_idx % 2 == 0:
+                pdf.set_fill_color(240, 240, 250)
+            else:
+                pdf.set_fill_color(255, 255, 255)
+            student_id = p.get("student_id", "")
+            student_info = all_users.get(student_id, {})
+            updated = p.get("updated_at", p.get("created_at", ""))
+            try:
+                date_str = datetime.fromisoformat(str(updated)).strftime("%d %b %Y")
+            except Exception:
+                date_str = "-"
+            row = [
+                str(row_idx + 1),
+                p.get("student_name", "-"),
+                student_info.get("email", "-"),
+                f"Rs.{p.get('amount', 0)}",
+                p.get("status", "-"),
+                p.get("mode", "") or "-",
+                date_str,
+            ]
+            for i, val in enumerate(row):
+                text = safe_str(val)
+                if len(text) > 30:
+                    text = text[:28] + ".."
+                pdf.cell(col_widths[i], 7, text, border=1, fill=True, align="C")
+            pdf.ln()
+
+    # ── Output PDF ──
+    pdf_bytes = pdf.output()
+    buffer = io.BytesIO(pdf_bytes)
+    buffer.seek(0)
+
+    filename = f"FPFinance_{month_label}_{year}_Report.pdf"
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+# ══════════════════════════════════════════════
+#  INITIALISE DEFAULT ADMIN
+# ══════════════════════════════════════════════
+
+@router.post("/seed")
+async def seed_default_admin(req: AdminSeed):
+    """Create an admin account with the given credentials.
+    Only works if no admin account exists yet."""
+    # Check if an admin already exists
+    existing_admins = list(
+        db.collection("users").where("role", "==", "admin").limit(1).stream()
+    )
+    if existing_admins:
+        admin_data = existing_admins[0].to_dict()
+        return {
+            "message": "Admin account already exists",
+            "admin": {"uid": existing_admins[0].id, "username": admin_data.get("username", ""), "new": False},
+        }
+
+    email = to_firebase_email(req.username)
+    try:
+        fb_user = firebase_auth.create_user(
+            email=email,
+            password=req.password,
+            display_name=req.name,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    firebase_auth.set_custom_user_claims(fb_user.uid, {"role": "admin"})
+
+    db.collection("users").document(fb_user.uid).set({
+        "name": req.name,
+        "username": req.username.strip().lower(),
+        "email": email,
+        "role": "admin",
+        "batch_id": None,
+        "created_at": ts_now(),
+    })
+
+    return {
+        "message": "Admin account created",
+        "admin": {"uid": fb_user.uid, "username": req.username.strip().lower(), "new": True},
+    }
+

@@ -1,0 +1,44 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/context/AuthContext";
+import { NotificationProvider } from "@/context/NotificationContext";
+import OfflineIndicator from "@/components/OfflineIndicator";
+import HomePage from "@/pages/HomePage";
+import LoginPage from "@/pages/LoginPage";
+import WelcomePage from "@/pages/WelcomePage";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminApprovals from "@/pages/admin/AdminApprovals";
+import ManageStudents from "@/pages/admin/ManageStudents";
+import ManageTeachers from "@/pages/admin/ManageTeachers";
+import ManageBatches from "@/pages/admin/ManageBatches";
+import AllPayments from "@/pages/admin/AllPayments";
+import RevenueDistribution from "@/pages/admin/RevenueDistribution";
+import StudentDashboard from "@/pages/student/StudentDashboard";
+import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
+import TeacherDistribution from "@/pages/teacher/TeacherDistribution";
+
+export default function App() {
+    return (
+        <BrowserRouter>
+            <AuthProvider>
+                <NotificationProvider>
+                    <OfflineIndicator />
+                    <Routes>
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/welcome" element={<WelcomePage />} />
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/admin" element={<AdminDashboard />} />
+                        <Route path="/admin/approvals" element={<AdminApprovals />} />
+                        <Route path="/admin/students" element={<ManageStudents />} />
+                        <Route path="/admin/teachers" element={<ManageTeachers />} />
+                        <Route path="/admin/batches" element={<ManageBatches />} />
+                        <Route path="/admin/payments" element={<AllPayments />} />
+                        <Route path="/admin/distribution" element={<RevenueDistribution />} />
+                        <Route path="/student" element={<StudentDashboard />} />
+                        <Route path="/teacher" element={<TeacherDashboard />} />
+                        <Route path="/teacher/distribution" element={<TeacherDistribution />} />
+                    </Routes>
+                </NotificationProvider>
+            </AuthProvider>
+        </BrowserRouter>
+    );
+}
