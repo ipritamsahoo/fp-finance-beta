@@ -1,5 +1,6 @@
 import uuid
 from typing import Optional
+from datetime import datetime
 
 import cloudinary.uploader
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -7,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from config import ADMIN_UPI_VPA, DEFAULT_FEE_AMOUNT
 from database import db
 from dependencies import require_role
-from utils import ts_now, serialize_doc
+from utils import ts_now, serialize_doc, IST
 from notifications import notify_user, notify_admins
 
 router = APIRouter(prefix="/api/student", tags=["Student"])
@@ -124,4 +125,112 @@ async def student_get_upi_link(
     upi_link = f"upi://pay?pa={ADMIN_UPI_VPA}&pn=Soumya%20Sengupta&am={am_str}&cu=INR"
 
     return {"upi_link": upi_link, "amount": pay_amount, "vpa": ADMIN_UPI_VPA}
+
+
+# ──────────────────────────────────────────────
+# GET /api/student/leaderboard
+# ──────────────────────────────────────────────
+@router.get("/leaderboard")
+async def student_get_leaderboard(
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    user=Depends(require_role("student")),
+):
+    """Get fastest-payer leaderboard for a billing cycle.
+
+    Ranks students by `updated_at` (admin approval timestamp) ascending.
+    Returns top 5 fastest payers, current student's position, and stats.
+    If month/year not provided, defaults to current month.
+    """
+    # Default to current month/year
+    if not month or not year:
+        now = datetime.now(IST)
+        month = now.month
+        year = now.year
+
+    try:
+        # ── Fetch all payments for this billing cycle ──
+        all_payments_stream = db.collection("payments") \
+            .where("month", "==", month) \
+            .where("year", "==", year) \
+            .stream()
+
+        all_payments = []
+        paid_payments = []
+        for p in all_payments_stream:
+            data = p.to_dict()
+            data["id"] = p.id
+            # Convert any datetime objects to ISO strings
+            for k, v in data.items():
+                if hasattr(v, "isoformat"):
+                    data[k] = v.isoformat()
+            all_payments.append(data)
+            if data.get("status") == "Paid":
+                paid_payments.append(data)
+
+        total_students = len(all_payments)
+        total_paid = len(paid_payments)
+
+        # ── Sort paid payments by updated_at ascending (fastest first) ──
+        paid_payments.sort(key=lambda x: x.get("updated_at", "") or "9999")
+
+        # ── Build top 5 with student profile info ──
+        top5 = []
+        for i, p in enumerate(paid_payments[:5]):
+            student_doc = db.collection("users").document(p["student_id"]).get()
+            student_data = student_doc.to_dict() if student_doc.exists else {}
+            top5.append({
+                "rank": i + 1,
+                "student_name": student_data.get("name", p.get("student_name", "Unknown")),
+                "student_id": p["student_id"],
+                "paid_at": p.get("updated_at", ""),
+                "profile_pic_url": student_data.get("profile_pic_url"),
+            })
+
+        # ── Find current student's position ──
+        current_position = None
+        is_current_paid = False
+        for i, p in enumerate(paid_payments):
+            if p["student_id"] == user["uid"]:
+                current_position = i + 1
+                is_current_paid = True
+                break
+
+        # Check if current student has a payment for this month at all
+        has_bill = any(p["student_id"] == user["uid"] for p in all_payments)
+
+        # ── Available months (unique month/year combos from this student's payments) ──
+        student_payments = db.collection("payments") \
+            .where("student_id", "==", user["uid"]) \
+            .stream()
+        available_months = sorted(
+            set(
+                (sp.to_dict().get("month"), sp.to_dict().get("year"))
+                for sp in student_payments
+                if sp.to_dict().get("month") and sp.to_dict().get("year")
+            ),
+            key=lambda x: (x[1], x[0]),
+            reverse=True,
+        )
+
+        # ── Compute cohort progress percentage ──
+        cohort_progress = round((total_paid / total_students * 100)) if total_students > 0 else 0
+
+        return {
+            "month": month,
+            "year": year,
+            "top5": top5,
+            "current_position": current_position,
+            "is_current_paid": is_current_paid,
+            "has_bill": has_bill,
+            "total_paid": total_paid,
+            "total_students": total_students,
+            "cohort_progress": cohort_progress,
+            "available_months": [{"month": m, "year": y} for m, y in available_months],
+        }
+
+    except Exception as e:
+        print(f"Error fetching leaderboard: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch leaderboard: {str(e)}")
+
 

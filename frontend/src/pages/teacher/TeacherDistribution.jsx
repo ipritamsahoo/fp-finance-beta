@@ -1,15 +1,80 @@
 import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import DashboardLayout from "@/components/DashboardLayout";
+import TeacherLayout from "@/components/TeacherLayout";
 import { api } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import { getYearOptions } from "@/lib/yearOptions";
 
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
 ];
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// ── Glass Card ──
+function GlassCard({ children, className = "", style = {} }) {
+    return (
+        <div
+            className={`rounded-[28px] border border-white/[0.07] ${className}`}
+            style={{
+                background: "rgba(255, 255, 255, 0.05)",
+                backdropFilter: "blur(32px) saturate(180%)",
+                WebkitBackdropFilter: "blur(32px) saturate(180%)",
+                ...style,
+            }}
+        >
+            {children}
+        </div>
+    );
+}
+
+// ── Pill Select ──
+function PillSelect({ icon, value, onChange, children }) {
+    return (
+        <label className="relative inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#f0f0fd] cursor-pointer hover:bg-white/10 transition-all">
+            <span className="material-symbols-outlined text-[#aaaab7] text-base">{icon}</span>
+            <select
+                value={value}
+                onChange={onChange}
+                className="bg-transparent border-none text-sm font-semibold text-[#f0f0fd] appearance-none cursor-pointer focus:outline-none pr-4"
+            >
+                {children}
+            </select>
+            <span className="material-symbols-outlined text-[#aaaab7] text-sm absolute -right-0.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                expand_more
+            </span>
+        </label>
+    );
+}
+
+// ── Student Initial Avatar ──
+function InitialAvatar({ name, size = 36, className = "" }) {
+    const initials = (name || "?")
+        .split(" ")
+        .map((w) => w.charAt(0))
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+    const palettes = [
+        { bg: "bg-[#c799ff]/20", text: "text-[#c799ff]", border: "border-[#c799ff]/20" },
+        { bg: "bg-[#4af8e3]/20", text: "text-[#4af8e3]", border: "border-[#4af8e3]/20" },
+        { bg: "bg-[#ff9dac]/20", text: "text-[#ff9dac]", border: "border-[#ff9dac]/20" },
+        { bg: "bg-[#bc87fe]/20", text: "text-[#bc87fe]", border: "border-[#bc87fe]/20" },
+        { bg: "bg-[#33e9d5]/20", text: "text-[#33e9d5]", border: "border-[#33e9d5]/20" },
+    ];
+    const p = palettes[(name || "").charCodeAt(0) % palettes.length];
+    return (
+        <div
+            className={`rounded-full ${p.bg} ${p.text} ${p.border} border flex items-center justify-center font-bold backdrop-blur-md ${className}`}
+            style={{ width: size, height: size, minWidth: size, fontSize: size * 0.3 }}
+        >
+            {initials}
+        </div>
+    );
+}
 
 function TeacherDistributionContent() {
+    const { user } = useAuth();
     const now = new Date();
     const [month, setMonth] = useState(now.getMonth() + 1);
     const [year, setYear] = useState(now.getFullYear());
@@ -28,7 +93,6 @@ function TeacherDistributionContent() {
             if (batchFilter) url += `&batch_id=${batchFilter}`;
             const res = await api.get(url);
             setData(res);
-            // Auto-select first batch on initial load
             if (!batchFilter && res.batches && res.batches.length > 0) {
                 setBatchFilter(res.batches[0].id);
             }
@@ -45,7 +109,7 @@ function TeacherDistributionContent() {
 
     const yearOptions = getYearOptions();
 
-    // Collect unique teacher names from all dates for the ledger table
+    // Collect unique teacher names for the ledger
     const allTeachers = (() => {
         if (!data || !data.dates) return [];
         const map = new Map();
@@ -57,310 +121,352 @@ function TeacherDistributionContent() {
         return Array.from(map.entries()).map(([uid, name]) => ({ uid, name }));
     })();
 
+    const formatDateStr = (dateStr) => {
+        try {
+            const d = new Date(dateStr + "T00:00:00");
+            return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+        } catch {
+            return dateStr;
+        }
+    };
+
     return (
-        <div>
-            {/* Header + Selectors */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
-                <div>
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">My Earnings 💸</h1>
-                    <p className="text-[#8a8f98] text-sm mt-1">Revenue distribution from your assigned batches</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
-                        className="px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50">
-                        {MONTHS.map((m, i) => (
-                            <option key={i + 1} value={i + 1}>{m}</option>
-                        ))}
-                    </select>
-                    <select value={year} onChange={(e) => setYear(Number(e.target.value))}
-                        className="px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50">
-                        {yearOptions.map((y) => (
-                            <option key={y} value={y}>{y}</option>
-                        ))}
-                    </select>
-                    {data && data.batches && data.batches.length > 0 ? (
-                        <select value={batchFilter} onChange={(e) => setBatchFilter(e.target.value)}
-                            className="px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50">
-                            {data.batches.map((b) => (
-                                <option key={b.id} value={b.id}>{b.batch_name}</option>
-                            ))}
-                        </select>
-                    ) : (
-                        <div className="px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 w-32 h-[38px] animate-pulse" />
-                    )}
-                </div>
+        <div className="space-y-6">
+            {/* ── Title ── */}
+            <div className="animate-fade-in-scale">
+                <h1
+                    className="text-2xl font-extrabold flex items-center gap-2 tracking-tight text-[#f0f0fd]"
+                    style={{ fontFamily: "'Manrope', sans-serif" }}
+                >
+                    My Earnings 💰
+                </h1>
+                <p className="text-[#aaaab7] text-sm mt-1">Real-time revenue distribution</p>
             </div>
 
+            {/* ── Filters ── */}
+            <div className="flex flex-wrap gap-2 animate-fade-in-scale" style={{ animationDelay: "60ms" }}>
+                <PillSelect icon="calendar_month" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+                    {MONTHS.map((m, i) => (
+                        <option key={i + 1} value={i + 1}>{MONTHS_SHORT[i]}</option>
+                    ))}
+                </PillSelect>
+                <PillSelect icon="event" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+                    {yearOptions.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                    ))}
+                </PillSelect>
+                {data && data.batches && data.batches.length > 0 && (
+                    <PillSelect icon="school" value={batchFilter} onChange={(e) => setBatchFilter(e.target.value)}>
+                        {data.batches.map((b) => (
+                            <option key={b.id} value={b.id}>{b.batch_name}</option>
+                        ))}
+                    </PillSelect>
+                )}
+            </div>
+
+            {/* ── Error ── */}
             {error && (
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-                    {error} <button onClick={() => setError("")} className="ml-2 cursor-pointer">✕</button>
+                <div className="p-4 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff9dac] text-sm flex items-center justify-between animate-fade-in-scale">
+                    <span>{error}</span>
+                    <button onClick={() => setError("")} className="ml-2 text-[#ff6e84] hover:text-white cursor-pointer">
+                        <span className="material-symbols-outlined text-lg">close</span>
+                    </button>
                 </div>
             )}
 
             {loading ? (
                 <div className="flex items-center justify-center py-20">
-                    <div className="w-10 h-10 border-4 border-[#3861fb]/30 border-t-[#3861fb] rounded-full animate-spin" />
+                    <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
                 </div>
             ) : data ? (
                 <>
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-6 relative">
-                        <div className="glass-card rounded-xl p-3 sm:p-5 animate-fade-in-up">
-                            <p className="text-[#8a8f98] text-[10px] sm:text-sm uppercase tracking-wider mb-1 truncate font-medium">My Earnings</p>
-                            <p className="text-lg sm:text-3xl font-bold text-emerald-400 tracking-tight">₹{(data.my_total || 0).toLocaleString()}</p>
-                            <p className="text-[#5a5f68] text-[9px] sm:text-xs mt-0.5 sm:mt-1">{MONTHS[month - 1]} {year}</p>
-                        </div>
-                        <div className="glass-card rounded-xl p-3 sm:p-5 animate-fade-in-up" style={{ animationDelay: "50ms" }}>
-                            <p className="text-[#8a8f98] text-[10px] sm:text-sm uppercase tracking-wider mb-1 truncate font-medium">Total Collected</p>
-                            <p className="text-lg sm:text-3xl font-bold text-blue-400 tracking-tight">₹{data.total_collected.toLocaleString()}</p>
-                            <p className="text-[#5a5f68] text-[9px] sm:text-xs mt-0.5 sm:mt-1">From your batches</p>
-                        </div>
-                        <div className="glass-card rounded-xl p-3 sm:p-5 animate-fade-in-up col-span-2 sm:col-span-1" style={{ animationDelay: "100ms" }}>
-                            <p className="text-[#8a8f98] text-[10px] sm:text-sm uppercase tracking-wider mb-1 truncate font-medium">Teachers Sharing</p>
-                            <p className="text-lg sm:text-3xl font-bold text-violet-400 tracking-tight">{data.teacher_totals.length}</p>
-                            <p className="text-[#5a5f68] text-[9px] sm:text-xs mt-0.5 sm:mt-1">In your batches</p>
-                        </div>
-                    </div>
+                    {/* ── Summary Bento Grid ── */}
+                    <section className="grid grid-cols-2 gap-4 animate-fade-in-scale" style={{ animationDelay: "100ms" }}>
+                        {/* My Earnings — Full Width */}
+                        <GlassCard className="col-span-2 p-6 relative overflow-hidden group shadow-2xl" style={{ border: "1px solid rgba(199,153,255,0.15)" }}>
+                            <div className="absolute top-0 right-0 w-48 h-48 bg-[#c799ff]/15 blur-3xl -mr-20 -mt-20 group-hover:bg-[#c799ff]/25 transition-all duration-500" />
+                            <p className="text-[#aaaab7] text-xs font-semibold uppercase tracking-widest mb-2">My Earnings</p>
+                            <span
+                                className="text-[#4af8e3] font-extrabold text-5xl tracking-tight"
+                                style={{ fontFamily: "'Manrope', sans-serif" }}
+                            >
+                                ₹{(data.my_total || 0).toLocaleString()}
+                            </span>
+                        </GlassCard>
 
-                    {/* ═══ Tab Bar ═══ */}
-                    <div className="flex flex-col sm:flex-row gap-1 mb-6 p-1 rounded-xl bg-[#0f1320]/60 border border-[#1a1f2e]/50 animate-fade-in-up" style={{ animationDelay: "130ms" }}>
+                        {/* Total Collected */}
+                        <GlassCard className="p-5 shadow-xl">
+                            <p className="text-[#aaaab7] text-[10px] font-semibold uppercase tracking-widest mb-1">Total Collected</p>
+                            <p className="text-[#f0f0fd] font-bold text-xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                ₹{data.total_collected.toLocaleString()}
+                            </p>
+                        </GlassCard>
+
+                        {/* Teachers Sharing */}
+                        <GlassCard className="p-5 shadow-xl">
+                            <p className="text-[#aaaab7] text-[10px] font-semibold uppercase tracking-widest mb-1">Teachers Sharing</p>
+                            <p className="text-[#f0f0fd] font-bold text-xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                {data.teacher_totals.length}
+                            </p>
+                        </GlassCard>
+                    </section>
+
+                    {/* ── Tab Bar ── */}
+                    <div
+                        className="flex gap-1 p-1.5 rounded-full border border-white/10 shadow-inner animate-fade-in-scale"
+                        style={{ background: "rgba(255,255,255,0.05)", backdropFilter: "blur(24px)", animationDelay: "150ms" }}
+                    >
                         <button
                             onClick={() => setActiveTab("datewise")}
-                            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
+                            className={`flex-1 py-3 px-4 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer
                                 ${activeTab === "datewise"
-                                    ? "bg-gradient-to-r from-[#3861fb]/20 to-[#2b4fcf]/10 text-white border border-[#3861fb]/30 shadow-[0_0_15px_rgba(56,97,251,0.15)]"
-                                    : "text-[#8a8f98] hover:text-white hover:bg-[#1a1f2e]/40"
+                                    ? "bg-[#c799ff]/90 text-[#340064] shadow-lg"
+                                    : "text-[#aaaab7] hover:text-[#f0f0fd]"
                                 }`}
                         >
-                            📅 Date-wise Distribution
+                            Date-wise Distribution
                         </button>
                         <button
                             onClick={() => setActiveTab("earnings")}
-                            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
+                            className={`flex-1 py-3 px-4 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer
                                 ${activeTab === "earnings"
-                                    ? "bg-gradient-to-r from-[#3861fb]/20 to-[#2b4fcf]/10 text-white border border-[#3861fb]/30 shadow-[0_0_15px_rgba(56,97,251,0.15)]"
-                                    : "text-[#8a8f98] hover:text-white hover:bg-[#1a1f2e]/40"
+                                    ? "bg-[#c799ff]/90 text-[#340064] shadow-lg"
+                                    : "text-[#aaaab7] hover:text-[#f0f0fd]"
                                 }`}
                         >
-                            👨‍🏫 Teacher Earnings
+                            Teacher Earnings
                         </button>
                     </div>
 
                     {/* ═══ Tab 1: Date-wise Distribution ═══ */}
                     {activeTab === "datewise" && (
-                        <>
+                        <section className="space-y-4 animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
+                            <div className="flex justify-between items-end mb-2">
+                                <h2 className="font-bold text-xl text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                    Distribution History
+                                </h2>
+                                <span className="text-[#4af8e3] text-xs font-bold border border-[#4af8e3]/30 px-4 py-1.5 rounded-full bg-[#4af8e3]/10 backdrop-blur-md">
+                                    Recent
+                                </span>
+                            </div>
+
                             {data.dates && data.dates.length > 0 ? (
-                                <div className="animate-fade-in-up">
-                                    <div className="space-y-3">
-                                        {data.dates.map((dist) => {
-                                            const isExpanded = expandedDate === dist.date;
-                                            const formattedDate = (() => {
-                                                try {
-                                                    const d = new Date(dist.date + "T00:00:00");
-                                                    return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-                                                } catch { return dist.date; }
-                                            })();
-                                            return (
-                                                <div key={dist.date} className={`glass-card rounded-xl overflow-hidden ${dist.settled ? "border border-emerald-500/20" : ""}`}>
-                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 gap-2">
-                                                        <button
-                                                            onClick={() => setExpandedDate(isExpanded ? null : dist.date)}
-                                                            className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
+                                <div className="space-y-4">
+                                    {data.dates.map((dist, distIdx) => {
+                                        const isExpanded = expandedDate === dist.date;
+                                        const formattedDate = formatDateStr(dist.date);
+                                        return (
+                                            <GlassCard
+                                                key={dist.date}
+                                                className="overflow-hidden shadow-2xl animate-fade-in-scale"
+                                                style={{
+                                                    borderRadius: 32,
+                                                    border: dist.settled ? "1px solid rgba(74,248,227,0.15)" : "1px solid rgba(255,255,255,0.07)",
+                                                    animationDelay: `${250 + distIdx * 80}ms`,
+                                                }}
+                                            >
+                                                {/* Date Header */}
+                                                <button
+                                                    onClick={() => setExpandedDate(isExpanded ? null : dist.date)}
+                                                    className="w-full p-5 flex justify-between items-center bg-white/5 border-b border-white/5 cursor-pointer hover:bg-white/[0.08] transition-colors"
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <div
+                                                            className={`w-12 h-12 rounded-2xl flex items-center justify-center border backdrop-blur-xl
+                                                                ${dist.settled
+                                                                    ? "bg-[#4af8e3]/15 text-[#4af8e3] border-[#4af8e3]/20"
+                                                                    : "bg-[#c799ff]/15 text-[#c799ff] border-[#c799ff]/20"
+                                                                }`}
+                                                            style={dist.settled ? { boxShadow: "0 0 20px rgba(74,248,227,0.15)" } : {}}
                                                         >
-                                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm shrink-0 ${dist.settled
-                                                                ? "bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-500/30"
-                                                                : "bg-gradient-to-br from-[#3861fb]/20 to-[#2b4fcf]/20 border border-[#3861fb]/30"
-                                                                }`}>
-                                                                {dist.settled ? "✅" : "📅"}
-                                                            </div>
-                                                            <div className="text-left">
-                                                                <p className="text-white font-semibold text-sm">{formattedDate}</p>
-                                                                <p className="text-[#5a5f68] text-xs">
-                                                                    {dist.payments_count} payment(s) · {dist.teachers.length} teacher(s)
-                                                                    {dist.settled && <span className="text-emerald-400 ml-1">· Permanently Settled</span>}
-                                                                </p>
-                                                            </div>
-                                                        </button>
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
-                                                                ₹{dist.total.toLocaleString()}
-                                                            </span>
-                                                            {dist.settled && (
-                                                                <span className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400/70 text-xs font-semibold select-none hidden sm:inline-block">
-                                                                    🔒 Settled
-                                                                </span>
-                                                            )}
-                                                            <button
-                                                                onClick={() => setExpandedDate(isExpanded ? null : dist.date)}
-                                                                className={`text-[#8a8f98] transition-transform duration-200 cursor-pointer ${isExpanded ? "rotate-180" : ""}`}>
-                                                                ▼
-                                                            </button>
+                                                            <span className="material-symbols-outlined">calendar_today</span>
+                                                        </div>
+                                                        <div className="text-left">
+                                                            <p className="font-bold text-base text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                                                {formattedDate}
+                                                            </p>
+                                                            <p className={`text-[10px] font-bold uppercase tracking-wider ${dist.settled ? "text-[#4af8e3]" : "text-amber-400"}`}>
+                                                                {dist.settled ? "Settled" : "Pending"}
+                                                            </p>
                                                         </div>
                                                     </div>
-
-                                                    {isExpanded && (
-                                                        <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-[#1a1f2e]/30">
-                                                            <p className="text-[#8a8f98] text-xs uppercase tracking-wider mt-3 mb-2">
-                                                                Student Payments for {formattedDate}
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="text-right">
+                                                            <p className="font-extrabold text-xl text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                                                ₹{dist.total.toLocaleString()}
                                                             </p>
+                                                            <p className="text-[10px] text-[#aaaab7] font-medium">Total Volume</p>
+                                                        </div>
+                                                        <span className={`material-symbols-outlined text-[#aaaab7] transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}>
+                                                            expand_more
+                                                        </span>
+                                                    </div>
+                                                </button>
 
-                                                            {/* Mobile view */}
-                                                            <div className="space-y-2 md:hidden">
-                                                                {dist.payments && dist.payments.map((p, idx) => (
-                                                                    <div key={p.id || idx} className="flex items-center justify-between py-2 border-b border-[#1a1f2e]/20 last:border-0">
-                                                                        <div className="flex items-center gap-2 min-w-0">
-                                                                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#3861fb] to-[#2b4fcf] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                                                {/* Expandable Student Payments */}
+                                                {isExpanded && (
+                                                    <div className="p-4 space-y-2 animate-fade-in-scale">
+                                                        {/* Teacher earnings for this date */}
+                                                        <p className="text-[10px] text-[#aaaab7] uppercase tracking-widest font-bold px-2 mb-2">
+                                                            Teacher Earnings · {dist.teachers.length} teacher(s)
+                                                        </p>
+                                                        {dist.teachers.map((t) => (
+                                                            <div
+                                                                key={t.uid}
+                                                                className="px-5 py-4 flex justify-between items-center bg-white/[0.03] hover:bg-white/[0.08] transition-colors rounded-2xl border border-white/[0.05]"
+                                                            >
+                                                                <div className="flex items-center gap-4">
+                                                                    <InitialAvatar name={t.name} size={36} />
+                                                                    <span className="text-sm font-semibold text-[#f0f0fd]">{t.name}</span>
+                                                                    {t.uid === user?.uid && (
+                                                                        <span className="text-[9px] font-bold uppercase tracking-wider text-[#c799ff] bg-[#c799ff]/10 px-2 py-0.5 rounded-full border border-[#c799ff]/20">
+                                                                            You
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <span className="text-sm font-bold text-[#f0f0fd]">
+                                                                    ₹{(t.amount || 0).toLocaleString()}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+
+                                                        {/* Student payments breakdown */}
+                                                        {dist.payments && dist.payments.length > 0 && (
+                                                            <>
+                                                                <p className="text-[10px] text-[#aaaab7] uppercase tracking-widest font-bold px-2 mt-4 mb-2">
+                                                                    Student Payments · {dist.payments_count} payment(s)
+                                                                </p>
+                                                                {dist.payments.map((p, idx) => (
+                                                                    <div
+                                                                        key={p.id || idx}
+                                                                        className="px-5 py-3 flex justify-between items-center bg-white/[0.02] hover:bg-white/[0.06] transition-colors rounded-2xl border border-white/[0.03]"
+                                                                    >
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="w-6 h-6 rounded-full bg-[#c799ff]/15 flex items-center justify-center text-[10px] font-bold text-[#c799ff] border border-[#c799ff]/20">
                                                                                 {idx + 1}
                                                                             </div>
-                                                                            <p className="text-white text-sm truncate">{p.student_name}</p>
+                                                                            <span className="text-sm text-[#f0f0fd]">{p.student_name}</span>
                                                                         </div>
-                                                                        <p className="text-emerald-400 text-sm font-bold whitespace-nowrap ml-2">
+                                                                        <span className="text-sm font-bold text-[#4af8e3]">
                                                                             ₹{(p.amount || 0).toLocaleString()}
-                                                                        </p>
+                                                                        </span>
                                                                     </div>
                                                                 ))}
-                                                                {(!dist.payments || dist.payments.length === 0) && (
-                                                                    <p className="text-[#5a5f68] text-sm py-2">No payment details available.</p>
-                                                                )}
-                                                            </div>
-
-                                                            {/* Desktop table */}
-                                                            <div className="hidden md:block">
-                                                                <table className="w-full">
-                                                                    <thead>
-                                                                        <tr className="text-xs text-[#5a5f68] uppercase">
-                                                                            <th className="text-left py-2 w-12">#</th>
-                                                                            <th className="text-left py-2">Student</th>
-                                                                            <th className="text-right py-2">Amount</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {dist.payments && dist.payments.map((p, idx) => (
-                                                                            <tr key={p.id || idx} className="border-t border-[#1a1f2e]/20 hover:bg-slate-800/10 transition-colors">
-                                                                                <td className="py-2.5 text-sm text-[#5a5f68]">{idx + 1}</td>
-                                                                                <td className="py-2.5 text-sm text-white font-medium">{p.student_name}</td>
-                                                                                <td className="py-2.5 text-sm text-emerald-400 font-bold text-right">
-                                                                                    ₹{(p.amount || 0).toLocaleString()}
-                                                                                </td>
-                                                                            </tr>
-                                                                        ))}
-                                                                        {(!dist.payments || dist.payments.length === 0) && (
-                                                                            <tr>
-                                                                                <td colSpan="3" className="py-4 text-[#5a5f68] text-sm text-center border-t border-[#1a1f2e]/20">No payment details available.</td>
-                                                                            </tr>
-                                                                        )}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </GlassCard>
+                                        );
+                                    })}
                                 </div>
                             ) : (
-                                <div className="glass-card rounded-xl p-8 text-center animate-fade-in-up">
-                                    <p className="text-[#8a8f98] text-lg mb-1">No earnings in {MONTHS[month - 1]} {year}</p>
-                                    <p className="text-[#5a5f68] text-sm">Earnings will appear here once payments from your batches are approved.</p>
-                                </div>
+                                <GlassCard className="p-10 text-center rounded-[32px]">
+                                    <span className="material-symbols-outlined text-5xl text-[#737580] mb-3 block">payments</span>
+                                    <p className="text-[#aaaab7] text-base font-medium mb-1">
+                                        No earnings in {MONTHS[month - 1]} {year}
+                                    </p>
+                                    <p className="text-[#737580] text-sm">
+                                        Earnings will appear here once payments are approved.
+                                    </p>
+                                </GlassCard>
                             )}
-                        </>
+                        </section>
                     )}
 
                     {/* ═══ Tab 2: Teacher Earnings Ledger ═══ */}
                     {activeTab === "earnings" && (
-                        <div className="animate-fade-in-up">
-                            {data.dates && data.dates.length > 0 && allTeachers.length > 0 ? (
-                                <>
-                                    {/* Ledger table (scrollable on mobile) */}
-                                    <div className="glass-card rounded-xl overflow-hidden">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full border-collapse min-w-[500px]">
-                                                <thead className="bg-[#0f1320]/40 sticky top-0 z-20">
-                                                    {/* Summary row: Total Collected per teacher for the month */}
-                                                    <tr className="bg-[#0f1320]/80">
-                                                        <th className="px-4 py-3 text-left text-xs font-bold text-emerald-400 uppercase tracking-wider whitespace-nowrap border-b border-r border-[#1a1f2e]/40 min-w-[140px] sticky left-0 bg-[#0f1320]/95 z-30">
-                                                            Total Collected
-                                                        </th>
-                                                        {allTeachers.map((t) => {
-                                                            const teacherTotal = data.dates.reduce((s, d) => {
-                                                                const found = d.teachers.find((x) => x.uid === t.uid);
-                                                                return s + (found ? found.amount : 0);
-                                                            }, 0);
-                                                            return (
-                                                                <th key={t.uid} className="px-4 py-3 text-center text-sm font-bold text-emerald-400 border-b border-r border-[#1a1f2e]/40 min-w-[130px]">
-                                                                    ₹{teacherTotal.toLocaleString()}
-                                                                </th>
-                                                            );
-                                                        })}
-                                                        <th className="px-4 py-3 border-b border-[#1a1f2e]/40 min-w-[110px]"></th>
-                                                    </tr>
-                                                    {/* Column headers */}
-                                                    <tr className="bg-[#0a0a12]/95">
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-[#8a8f98] uppercase tracking-wider whitespace-nowrap border-b border-r border-[#1a1f2e]/40 sticky left-0 bg-[#0a0a12]/95 z-30">
-                                                            Date
-                                                        </th>
-                                                        {allTeachers.map((t) => (
-                                                            <th key={t.uid} className="px-4 py-3 text-center text-xs font-semibold text-[#8a8f98] uppercase tracking-wider border-b border-r border-[#1a1f2e]/40">
-                                                                {t.name}
-                                                            </th>
-                                                        ))}
-                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-[#8a8f98] uppercase tracking-wider border-b border-[#1a1f2e]/40">
-                                                            Status
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {data.dates.map((dist) => {
-                                                        const formattedDate = (() => {
-                                                            try {
-                                                                const d = new Date(dist.date + "T00:00:00");
-                                                                return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-                                                            } catch { return dist.date; }
-                                                        })();
-                                                        const teacherMap = {};
-                                                        for (const t of dist.teachers) teacherMap[t.uid] = t.amount;
+                        <section className="animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
+                            <div className="flex justify-between items-end mb-4">
+                                <h2 className="font-bold text-xl text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                    Monthly Earnings Breakdown
+                                </h2>
+                            </div>
 
-                                                        return (
-                                                            <tr key={dist.date} className="border-b border-[#1a1f2e]/20 hover:bg-[#0f1320]/10 transition-colors">
-                                                                <td className="px-4 py-3 text-sm text-white font-medium whitespace-nowrap border-r border-[#1a1f2e]/40 sticky left-0 bg-[#0a0a12]/95 z-10">{formattedDate}</td>
-                                                                {allTeachers.map((t) => (
-                                                                    <td key={t.uid} className="px-4 py-3 border-r border-[#1a1f2e]/40 text-center">
-                                                                        <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs font-semibold"
-                                                                            style={{ boxShadow: "0 0 8px rgba(59,130,246,0.4), 0 0 2px rgba(59,130,246,0.2)" }}>
-                                                                            ₹{(teacherMap[t.uid] || 0).toLocaleString()}
-                                                                        </span>
-                                                                    </td>
-                                                                ))}
-                                                                <td className="px-4 py-3 text-center">
-                                                                    {dist.settled ? (
-                                                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold"
-                                                                            style={{ boxShadow: "0 0 8px rgba(16,185,129,0.4), 0 0 2px rgba(16,185,129,0.2)" }}>
-                                                                            🔒 Settled
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-semibold"
-                                                                            style={{ boxShadow: "0 0 8px rgba(245,158,11,0.4), 0 0 2px rgba(245,158,11,0.2)" }}>
-                                                                            ⏳ Pending
-                                                                        </span>
-                                                                    )}
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
+                            {data.dates && data.dates.length > 0 && allTeachers.length > 0 ? (
+                                <GlassCard className="overflow-hidden rounded-[32px] shadow-2xl">
+                                    {/* Header Labels */}
+                                    <div className="bg-white/5 border-b border-white/5">
+                                        {/* Total row */}
+                                        <div className="grid px-6 py-4" style={{ gridTemplateColumns: `1fr ${allTeachers.map(() => "1fr").join(" ")} 1fr` }}>
+                                            <span className="text-[10px] font-bold text-[#4af8e3] uppercase tracking-widest">Date</span>
+                                            {allTeachers.map((t) => {
+                                                const teacherTotal = data.dates.reduce((s, d) => {
+                                                    const found = d.teachers.find((x) => x.uid === t.uid);
+                                                    return s + (found ? found.amount : 0);
+                                                }, 0);
+                                                return (
+                                                    <span key={t.uid} className="text-[10px] font-bold text-[#f0f0fd] uppercase tracking-widest text-center">
+                                                        {t.name.split(" ")[0]}
+                                                        <br />
+                                                        <span className="text-[#4af8e3] text-sm font-extrabold" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                                            ₹{teacherTotal.toLocaleString()}
+                                                        </span>
+                                                    </span>
+                                                );
+                                            })}
+                                            <span className="text-[10px] font-bold text-[#aaaab7] uppercase tracking-widest text-right">Status</span>
                                         </div>
                                     </div>
-                                </>
+
+                                    {/* Date Rows */}
+                                    {data.dates.map((dist, idx) => {
+                                        const formattedDate = formatDateStr(dist.date);
+                                        const teacherMap = {};
+                                        for (const t of dist.teachers) teacherMap[t.uid] = t.amount;
+
+                                        return (
+                                            <div key={dist.date}>
+                                                <div
+                                                    className="grid px-6 py-5 items-center hover:bg-white/5 transition-colors"
+                                                    style={{ gridTemplateColumns: `1fr ${allTeachers.map(() => "1fr").join(" ")} 1fr` }}
+                                                >
+                                                    <div>
+                                                        <p className="text-sm font-bold text-[#f0f0fd]">
+                                                            {formattedDate.split(" ").slice(0, 2).join(" ")}
+                                                        </p>
+                                                        <p className="text-[10px] text-[#aaaab7]">
+                                                            {formattedDate.split(" ").slice(2).join(" ")}
+                                                        </p>
+                                                    </div>
+                                                    {allTeachers.map((t) => (
+                                                        <div key={t.uid} className="text-center">
+                                                            <span className={`text-sm font-semibold ${t.uid === user?.uid ? "text-[#c799ff]" : "text-[#4af8e3]"}`}>
+                                                                ₹{(teacherMap[t.uid] || 0).toLocaleString()}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                    <div className="flex justify-end">
+                                                        {dist.settled ? (
+                                                            <span className="bg-[#4af8e3]/10 text-[#4af8e3] text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-tight ring-1 ring-[#4af8e3]/30">
+                                                                Settled
+                                                            </span>
+                                                        ) : (
+                                                            <span className="bg-[#ff6e84]/10 text-[#ff6e84] text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-tight ring-1 ring-[#ff6e84]/30">
+                                                                Pending
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {idx < data.dates.length - 1 && (
+                                                    <div className="mx-6 h-px bg-white/5" />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </GlassCard>
                             ) : (
-                                <div className="glass-card rounded-xl p-8 text-center">
-                                    <p className="text-[#8a8f98] text-lg mb-1">No teacher earnings in {MONTHS[month - 1]} {year}</p>
-                                    <p className="text-[#5a5f68] text-sm">Earnings will appear once payments are confirmed.</p>
-                                </div>
+                                <GlassCard className="p-10 text-center rounded-[32px]">
+                                    <span className="material-symbols-outlined text-5xl text-[#737580] mb-3 block">group</span>
+                                    <p className="text-[#aaaab7] text-base font-medium mb-1">
+                                        No teacher earnings in {MONTHS[month - 1]} {year}
+                                    </p>
+                                    <p className="text-[#737580] text-sm">
+                                        Earnings will appear once payments are confirmed.
+                                    </p>
+                                </GlassCard>
                             )}
-                        </div>
+                        </section>
                     )}
                 </>
             ) : null}
@@ -371,9 +477,9 @@ function TeacherDistributionContent() {
 export default function TeacherDistribution() {
     return (
         <ProtectedRoute allowedRoles={["teacher"]}>
-            <DashboardLayout>
+            <TeacherLayout>
                 <TeacherDistributionContent />
-            </DashboardLayout>
+            </TeacherLayout>
         </ProtectedRoute>
     );
 }

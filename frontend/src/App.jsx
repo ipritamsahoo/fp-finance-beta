@@ -14,6 +14,9 @@ import AllPayments from "@/pages/admin/AllPayments";
 import RevenueDistribution from "@/pages/admin/RevenueDistribution";
 import ReportExport from "@/pages/admin/ReportExport";
 import StudentDashboard from "@/pages/student/StudentDashboard";
+import StudentPayments from "@/pages/student/StudentPayments";
+import StudentLeaderboard from "@/pages/student/StudentLeaderboard";
+import StudentSettings from "@/pages/student/StudentSettings";
 import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
 import TeacherDistribution from "@/pages/teacher/TeacherDistribution";
 import NotificationsPage from "@/pages/NotificationsPage";
@@ -37,6 +40,9 @@ export default function App() {
                         <Route path="/admin/distribution" element={<RevenueDistribution />} />
                         <Route path="/admin/reports" element={<ReportExport />} />
                         <Route path="/student" element={<StudentDashboard />} />
+                        <Route path="/student/payments" element={<StudentPayments />} />
+                        <Route path="/student/leaderboard" element={<StudentLeaderboard />} />
+                        <Route path="/student/settings" element={<StudentSettings />} />
                         <Route path="/teacher" element={<TeacherDashboard />} />
                         <Route path="/teacher/distribution" element={<TeacherDistribution />} />
                         <Route path="/notifications" element={<NotificationsPage />} />

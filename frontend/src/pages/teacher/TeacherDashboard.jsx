@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import DashboardLayout from "@/components/DashboardLayout";
+import TeacherLayout from "@/components/TeacherLayout";
+import ProfilePicture from "@/components/ProfilePicture";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
@@ -8,20 +9,96 @@ import { getYearOptions } from "@/lib/yearOptions";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+// ── Status Badge ──
 function StatusBadge({ status }) {
-    const styles = {
-        Paid: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-        Pending_Verification: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-        Unpaid: "bg-red-500/20 text-red-300 border-red-500/30",
+    const config = {
+        Paid: {
+            bg: "bg-[#4af8e3]/10",
+            text: "text-[#4af8e3]",
+            ring: "ring-[#4af8e3]/30",
+            label: "PAID",
+        },
+        Pending_Verification: {
+            bg: "bg-amber-400/10",
+            text: "text-amber-400",
+            ring: "ring-amber-400/30",
+            label: "PENDING",
+        },
+        Unpaid: {
+            bg: "bg-[#ff6e84]/10",
+            text: "text-[#ff6e84]",
+            ring: "ring-[#ff6e84]/30",
+            label: "UNPAID",
+        },
     };
+    const c = config[status] || config.Unpaid;
     return (
-        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${styles[status] || styles.Unpaid}`}>
-            {status === "Pending_Verification" ? "Pending" : status}
+        <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-tight ring-1 ${c.bg} ${c.text} ${c.ring}`}>
+            {c.label}
         </span>
     );
 }
 
+// ── Student Initial Avatar ──
+function StudentAvatar({ name, size = 44 }) {
+    const initial = (name || "?").charAt(0).toUpperCase();
+    const colors = [
+        "from-[#c799ff] to-[#7744b5]",
+        "from-[#4af8e3] to-[#006a60]",
+        "from-[#ff9dac] to-[#a70138]",
+        "from-[#bc87fe] to-[#440080]",
+        "from-[#33e9d5] to-[#005b51]",
+    ];
+    const colorIndex = (name || "").charCodeAt(0) % colors.length;
+    return (
+        <div
+            className={`rounded-2xl bg-gradient-to-br ${colors[colorIndex]} flex items-center justify-center text-white font-bold shadow-lg`}
+            style={{ width: size, height: size, minWidth: size, fontSize: size * 0.4 }}
+        >
+            {initial}
+        </div>
+    );
+}
+
+// ── Glass Card Component ──
+function GlassCard({ children, className = "", style = {} }) {
+    return (
+        <div
+            className={`rounded-[28px] border border-white/[0.07] ${className}`}
+            style={{
+                background: "rgba(28, 31, 43, 0.6)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                ...style,
+            }}
+        >
+            {children}
+        </div>
+    );
+}
+
+// ── Filter Pill Select ──
+function PillSelect({ icon, value, onChange, children }) {
+    return (
+        <label className="relative inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#f0f0fd] cursor-pointer hover:bg-white/10 transition-all">
+            <span className="material-symbols-outlined text-[#aaaab7] text-base">{icon}</span>
+            <select
+                value={value}
+                onChange={onChange}
+                className="bg-transparent border-none text-sm font-semibold text-[#f0f0fd] appearance-none cursor-pointer focus:outline-none pr-4"
+            >
+                {children}
+            </select>
+            <span className="material-symbols-outlined text-[#aaaab7] text-sm absolute -right-0.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                expand_more
+            </span>
+        </label>
+    );
+}
+
+// ── Main Content ──
 function TeacherDashboardContent() {
     const { user } = useAuth();
     const [batches, setBatches] = useState([]);
@@ -42,7 +119,7 @@ function TeacherDashboardContent() {
             if (data.length > 0 && !selectedBatch) {
                 setSelectedBatch(data[0].id);
             }
-            setError(""); // Clear error on successful fetch
+            setError("");
         } catch (err) {
             setError(err.message);
         } finally {
@@ -59,7 +136,7 @@ function TeacherDashboardContent() {
             if (filterMonth) url += `&month=${filterMonth}`;
             const data = await api.get(url);
             setPayments(data);
-            setError(""); // Clear error on successful fetch
+            setError("");
         } catch (err) {
             setError(err.message);
         } finally {
@@ -69,14 +146,10 @@ function TeacherDashboardContent() {
 
     useEffect(() => {
         fetchBatches();
-
         const handleOnline = () => {
             setError("");
             fetchBatches();
-            // fetchPayments is dependent on selectedBatch, so it will trigger naturally if batch exists
-            if (selectedBatch) {
-                fetchPayments();
-            }
+            if (selectedBatch) fetchPayments();
         };
         window.addEventListener("online", handleOnline);
         return () => window.removeEventListener("online", handleOnline);
@@ -102,6 +175,7 @@ function TeacherDashboardContent() {
     const handleOfflineRequest = async (payment) => {
         setOfflineLoading(payment.id);
         setError("");
+        setSuccess("");
         try {
             await api.post("/api/teacher/offline-request", {
                 student_id: payment.student_id,
@@ -109,8 +183,9 @@ function TeacherDashboardContent() {
                 year: payment.year || filterYear,
                 amount: payment.amount,
             });
-            setSuccess("Offline payment request submitted for approval.");
+            setSuccess("Offline payment request submitted!");
             fetchPayments();
+            setTimeout(() => setSuccess(""), 3000);
         } catch (err) {
             const msg = typeof err.message === "string" ? err.message : JSON.stringify(err.message);
             setError(msg);
@@ -121,264 +196,314 @@ function TeacherDashboardContent() {
 
     const isAllMonths = filterMonth === "";
 
-    // For single-month view
+    // Summary stats
     const totalStudents = payments.length;
     const paidCount = payments.filter((p) => p.status === "Paid").length;
     const unpaidCount = payments.filter((p) => p.status === "Unpaid").length;
+    const pendingCount = payments.filter((p) => p.status === "Pending_Verification").length;
 
     // For All Months pivot view
     const pivotStudentMap = {};
     const monthTotals = Array(12).fill(0);
-
     if (isAllMonths) {
         for (const p of payments) {
             const sid = p.student_id;
             if (!pivotStudentMap[sid]) pivotStudentMap[sid] = { name: p.student_name, months: {} };
             pivotStudentMap[sid].months[p.month] = p;
-
-            if (p.status === "Paid") {
-                monthTotals[p.month - 1] += (p.amount || 0);
-            }
+            if (p.status === "Paid") monthTotals[p.month - 1] += (p.amount || 0);
         }
     }
     const pivotStudents = Object.entries(pivotStudentMap)
         .map(([id, data]) => ({ id, ...data }))
         .sort((a, b) => (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" }));
 
+    const statusLabel = (s) => (s === "Pending_Verification" ? "Pending" : s || "—");
     const formatDate = (dateStr) => {
         if (!dateStr) return "";
         try {
             const d = new Date(dateStr);
-            const dd = String(d.getDate()).padStart(2, "0");
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            const yyyy = d.getFullYear();
-            return `${dd}.${mm}.${yyyy}`;
+            return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
         } catch { return ""; }
     };
 
-    const statusLabel = (s) => (s === "Pending_Verification" ? "Pending" : s || "—");
+    const selectedBatchName = batches.find(b => b.id === selectedBatch)?.batch_name || "Select Batch";
 
     return (
-        <div>
-            {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-white">Welcome, {user?.name} 👋</h1>
+        <div className="space-y-6">
+            {/* ── Welcome ── */}
+            <div className="animate-fade-in-scale">
+                <h1
+                    className="text-lg font-bold text-[#f0f0fd]"
+                    style={{ fontFamily: "'Manrope', sans-serif" }}
+                >
+                    Welcome, {user?.name} 👋
+                </h1>
             </div>
 
-            {/* Summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-6 relative">
-                <div className="rounded-xl p-3 sm:p-5 bg-gradient-to-br from-indigo-500/20 to-indigo-600/10 border border-indigo-500/20 glass-card animate-fade-in-up">
+            {/* ── Summary Cards ── */}
+            <section className="space-y-4 animate-fade-in-scale" style={{ animationDelay: "60ms" }}>
+                {/* Total Students — Full Width */}
+                <GlassCard className="p-6 relative overflow-hidden group">
                     <div className="flex items-center justify-between">
-                        <div className="min-w-0">
-                            <p className="text-[#8a8f98] text-[10px] sm:text-sm truncate font-medium">Students</p>
-                            <p className="text-lg sm:text-3xl font-bold text-indigo-300 mt-0.5 sm:mt-1 tracking-tight">{totalStudents}</p>
+                        <div>
+                            <p className="text-[10px] uppercase tracking-widest text-[#aaaab7] font-bold mb-2">
+                                Total Students
+                            </p>
+                            <p className="text-4xl font-extrabold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                {totalStudents}
+                            </p>
                         </div>
-                        <span className="text-xl sm:text-3xl opacity-80 shrink-0 ml-2 drop-shadow-md">🎓</span>
-                    </div>
-                </div>
-                <div className="rounded-xl p-3 sm:p-5 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 glass-card animate-fade-in-up" style={{ animationDelay: "80ms" }}>
-                    <div className="flex items-center justify-between">
-                        <div className="min-w-0">
-                            <p className="text-[#8a8f98] text-[10px] sm:text-sm truncate font-medium">Paid</p>
-                            <p className="text-lg sm:text-3xl font-bold text-emerald-300 mt-0.5 sm:mt-1 tracking-tight">{paidCount}</p>
+                        <div className="w-14 h-14 rounded-2xl bg-[#c799ff]/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[#c799ff] text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                group
+                            </span>
                         </div>
-                        <span className="text-xl sm:text-3xl opacity-80 shrink-0 ml-2 drop-shadow-md">✅</span>
                     </div>
-                </div>
-                <div className="rounded-xl p-3 sm:p-5 bg-gradient-to-br from-red-500/20 to-red-600/10 border border-red-500/20 glass-card animate-fade-in-up col-span-2 sm:col-span-1" style={{ animationDelay: "160ms" }}>
-                    <div className="flex items-center justify-between">
-                        <div className="min-w-0">
-                            <p className="text-[#8a8f98] text-[10px] sm:text-sm truncate font-medium">Unpaid</p>
-                            <p className="text-lg sm:text-3xl font-bold text-red-300 mt-0.5 sm:mt-1 tracking-tight">{unpaidCount}</p>
-                        </div>
-                        <span className="text-xl sm:text-3xl opacity-80 shrink-0 ml-2 drop-shadow-md">⏳</span>
-                    </div>
-                </div>
-            </div>
+                </GlassCard>
 
+                {/* Paid + Unpaid — 2 Columns */}
+                <div className="grid grid-cols-2 gap-4">
+                    <GlassCard className="p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="w-8 h-8 rounded-full bg-[#4af8e3]/10 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-[#4af8e3] text-lg">check_circle</span>
+                            </div>
+                            <span className="text-xs font-bold uppercase tracking-wider text-[#4af8e3]">Paid</span>
+                        </div>
+                        <p className="text-3xl font-extrabold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                            {paidCount}
+                        </p>
+                    </GlassCard>
+
+                    <GlassCard className="p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="w-8 h-8 rounded-full bg-[#ff6e84]/10 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-[#ff6e84] text-lg">cancel</span>
+                            </div>
+                            <span className="text-xs font-bold uppercase tracking-wider text-[#ff6e84]">Unpaid</span>
+                        </div>
+                        <p className="text-3xl font-extrabold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                            {unpaidCount}
+                        </p>
+                    </GlassCard>
+                </div>
+            </section>
+
+            {/* ── Current Filter ── */}
+            <section className="animate-fade-in-scale" style={{ animationDelay: "120ms" }}>
+                <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs uppercase tracking-widest text-[#aaaab7] font-bold">
+                        Current Filter
+                    </p>
+                    <span className="material-symbols-outlined text-[#aaaab7] text-lg">tune</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {/* Batch Pill */}
+                    <PillSelect
+                        icon="school"
+                        value={selectedBatch}
+                        onChange={(e) => setSelectedBatch(e.target.value)}
+                    >
+                        {batches.map((b) => (
+                            <option key={b.id} value={b.id}>{b.batch_name}</option>
+                        ))}
+                    </PillSelect>
+
+                    {/* Month Pill */}
+                    <PillSelect
+                        icon="calendar_month"
+                        value={filterMonth}
+                        onChange={(e) => setFilterMonth(e.target.value)}
+                    >
+                        <option value="">All</option>
+                        {MONTHS.map((m, i) => (
+                            <option key={i} value={i + 1}>{m}</option>
+                        ))}
+                    </PillSelect>
+
+                    {/* Year Pill */}
+                    <PillSelect
+                        icon="event"
+                        value={filterYear}
+                        onChange={(e) => setFilterYear(parseInt(e.target.value))}
+                    >
+                        {getYearOptions().map((y) => (
+                            <option key={y} value={y}>{y}</option>
+                        ))}
+                    </PillSelect>
+                </div>
+            </section>
+
+            {/* ── Alerts ── */}
             {error && (
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-                    {error} <button onClick={() => setError("")} className="ml-2 cursor-pointer">✕</button>
+                <div className="p-4 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff9dac] text-sm flex items-center justify-between animate-fade-in-scale">
+                    <span>{error}</span>
+                    <button onClick={() => setError("")} className="ml-2 text-[#ff6e84] hover:text-white cursor-pointer">
+                        <span className="material-symbols-outlined text-lg">close</span>
+                    </button>
                 </div>
             )}
             {success && (
-                <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm">
-                    {success} <button onClick={() => setSuccess("")} className="ml-2 cursor-pointer">✕</button>
+                <div className="p-4 rounded-2xl bg-[#4af8e3]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-sm flex items-center justify-between animate-fade-in-scale">
+                    <span>{success}</span>
+                    <button onClick={() => setSuccess("")} className="ml-2 text-[#4af8e3] hover:text-white cursor-pointer">
+                        <span className="material-symbols-outlined text-lg">close</span>
+                    </button>
                 </div>
             )}
 
-            {/* Filters */}
-            <div className="glass-card rounded-xl p-4 sm:p-5 mb-6 animate-fade-in-up delay-200">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <select value={selectedBatch} onChange={(e) => setSelectedBatch(e.target.value)}
-                        className="px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/50">
-                        {batches.map((b) => <option key={b.id} value={b.id}>{b.batch_name}</option>)}
-                    </select>
-                    <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)}
-                        className="px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/50">
-                        <option value="">All Months</option>
-                        {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-                    </select>
-                    <select value={filterYear} onChange={(e) => setFilterYear(parseInt(e.target.value))}
-                        className="px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/50">
-                        {getYearOptions().map((y) => <option key={y} value={y}>{y}</option>)}
-                    </select>
-                </div>
-            </div>
-
-            {/* Payment list */}
+            {/* ── Payment Status ── */}
             {loading ? (
-                <div className="flex items-center justify-center py-12">
-                    <div className="w-8 h-8 border-4 border-[#3861fb]/30 border-t-[#3861fb] rounded-full animate-spin" />
+                <div className="flex items-center justify-center py-16">
+                    <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
                 </div>
             ) : isAllMonths ? (
-                /* ─── ALL MONTHS PIVOT TABLE ─── */
-                <div className="glass-card rounded-xl overflow-hidden animate-fade-in-up delay-300">
-                    {pivotStudents.length === 0 ? (
-                        <div className="px-4 py-8 text-center text-slate-400">No payment records for {filterYear}.</div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-collapse min-w-[900px]">
-                                <thead className="bg-slate-800/40 sticky top-0 z-20">
-                                    <tr className="bg-slate-800/80">
-                                        <th className="px-4 py-3 text-left text-xs font-bold text-emerald-400 uppercase tracking-wider whitespace-nowrap border-b border-r border-[#1a1f2e]/40 min-w-[130px] sticky left-0 bg-[#0f1320]/95 z-30">
-                                            Total Collected
-                                        </th>
-                                        {MONTHS.map((_, i) => (
-                                            <th key={i} className="px-3 py-3 text-center text-sm font-bold text-emerald-400 tracking-wider border-b border-r border-[#1a1f2e]/40 min-w-[120px]">
-                                                ₹{monthTotals[i].toLocaleString()}
+                /* ── ALL MONTHS PIVOT TABLE ── */
+                <section className="animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-bold text-lg text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                            Yearly Overview
+                        </h2>
+                    </div>
+                    <GlassCard className="overflow-hidden rounded-[32px]">
+                        {pivotStudents.length === 0 ? (
+                            <div className="px-4 py-12 text-center text-[#aaaab7]">
+                                <span className="material-symbols-outlined text-5xl text-[#737580] mb-3 block">table_chart</span>
+                                No payment records for {filterYear}.
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full border-collapse min-w-[900px]">
+                                    <thead>
+                                        <tr className="bg-white/5">
+                                            <th className="px-4 py-3 text-left text-[10px] font-bold text-[#4af8e3] uppercase tracking-wider border-b border-r border-white/5 min-w-[130px] sticky left-0 bg-[#0f1320]/95 z-30">
+                                                Total
                                             </th>
-                                        ))}
-                                    </tr>
-                                    <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-[#8a8f98] uppercase tracking-wider whitespace-nowrap border-b border-r border-[#1a1f2e]/40 min-w-[130px] sticky left-0 bg-[#0a0a12]/95 z-30">
-                                            Student Name
-                                        </th>
-                                        {MONTHS.map((m, i) => (
-                                            <th key={i} className="px-3 py-3 text-center text-xs font-semibold text-[#8a8f98] uppercase tracking-wider border-b border-r border-[#1a1f2e]/40 min-w-[120px]">
-                                                {m}
+                                            {MONTHS.map((_, i) => (
+                                                <th key={i} className="px-3 py-3 text-center text-sm font-bold text-[#4af8e3] border-b border-r border-white/5 min-w-[120px]">
+                                                    ₹{monthTotals[i].toLocaleString()}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-[10px] font-bold text-[#aaaab7] uppercase tracking-wider border-b border-r border-white/5 min-w-[130px] sticky left-0 bg-[#0a0a12]/95 z-30">
+                                                Student
                                             </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {pivotStudents.map((student) => (
-                                        <tr key={student.id} className="border-b border-slate-700/20 hover:bg-slate-800/10 transition-colors">
-                                            <td className="px-4 py-3 text-sm text-white font-medium whitespace-nowrap border-r border-slate-700/40 sticky left-0 bg-slate-900/95 z-10">
-                                                {student.name}
-                                            </td>
-                                            {MONTHS.map((_, mi) => {
-                                                const monthNum = mi + 1;
-                                                const p = student.months[monthNum];
-                                                if (!p) {
+                                            {MONTHS.map((m, i) => (
+                                                <th key={i} className="px-3 py-3 text-center text-[10px] font-bold text-[#aaaab7] uppercase tracking-wider border-b border-r border-white/5 min-w-[120px]">
+                                                    {m}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {pivotStudents.map((student) => (
+                                            <tr key={student.id} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
+                                                <td className="px-4 py-3 text-sm text-white font-medium whitespace-nowrap border-r border-white/5 sticky left-0 bg-[#0c0e17]/95 z-10">
+                                                    {student.name}
+                                                </td>
+                                                {MONTHS.map((_, mi) => {
+                                                    const monthNum = mi + 1;
+                                                    const p = student.months[monthNum];
+                                                    if (!p) {
+                                                        return (
+                                                            <td key={mi} className="px-2 py-2 text-center border-r border-white/5">
+                                                                <span className="text-[#737580] text-xs">—</span>
+                                                            </td>
+                                                        );
+                                                    }
+                                                    const stColors = p.status === "Paid"
+                                                        ? "bg-[#4af8e3]/10 border-[#4af8e3]/30 text-[#4af8e3]"
+                                                        : p.status === "Pending_Verification"
+                                                            ? "bg-amber-400/10 border-amber-400/30 text-amber-400"
+                                                            : "bg-[#ff6e84]/10 border-[#ff6e84]/30 text-[#ff6e84]";
                                                     return (
-                                                        <td key={mi} className="px-2 py-2 text-center border-r border-slate-700/40">
-                                                            <span className="text-slate-600 text-xs">—</span>
+                                                        <td key={mi} className="px-2 py-2 border-r border-white/5">
+                                                            <div className="grid grid-cols-2 gap-1.5 min-w-[130px]">
+                                                                <span className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-[#c799ff]/10 border border-[#c799ff]/30 text-[#c799ff] text-[11px] font-semibold whitespace-nowrap">
+                                                                    ₹{p.amount}
+                                                                </span>
+                                                                <span className={`inline-flex items-center justify-center px-2 py-1 rounded-full border text-[11px] font-semibold whitespace-nowrap ${stColors}`}>
+                                                                    {statusLabel(p.status)}
+                                                                </span>
+                                                                <span className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-[#bc87fe]/10 border border-[#bc87fe]/30 text-[#bc87fe] text-[11px] font-medium whitespace-nowrap">
+                                                                    {p.mode ? p.mode.charAt(0).toUpperCase() + p.mode.slice(1) : "—"}
+                                                                </span>
+                                                                <span className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-white/5 border border-white/10 text-[#aaaab7] text-[11px] font-medium whitespace-nowrap">
+                                                                    {p.status === "Paid" && p.updated_at ? formatDate(p.updated_at) : "—"}
+                                                                </span>
+                                                            </div>
                                                         </td>
                                                     );
-                                                }
-                                                const stBg = p.status === "Paid"
-                                                    ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
-                                                    : p.status === "Pending_Verification"
-                                                        ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
-                                                        : "bg-red-500/15 border-red-500/30 text-red-400";
-                                                const stGlow = p.status === "Paid"
-                                                    ? "0 0 8px rgba(16,185,129,0.4), 0 0 2px rgba(16,185,129,0.2)"
-                                                    : p.status === "Pending_Verification"
-                                                        ? "0 0 8px rgba(245,158,11,0.4), 0 0 2px rgba(245,158,11,0.2)"
-                                                        : "0 0 8px rgba(239,68,68,0.4), 0 0 2px rgba(239,68,68,0.2)";
-                                                return (
-                                                    <td key={mi} className="px-2 py-2 border-r border-[#1a1f2e]/40">
-                                                        <div className="grid grid-cols-2 gap-1.5 min-w-[130px]">
-                                                            <span className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[11px] font-semibold whitespace-nowrap"
-                                                                style={{ boxShadow: "0 0 8px rgba(59,130,246,0.4), 0 0 2px rgba(59,130,246,0.2)" }}>
-                                                                ₹{p.amount}
-                                                            </span>
-                                                            <span className={`inline-flex items-center justify-center px-2 py-1 rounded-full border text-[11px] font-semibold whitespace-nowrap ${stBg}`}
-                                                                style={{ boxShadow: stGlow }}>
-                                                                {statusLabel(p.status)}
-                                                            </span>
-                                                            <span className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-300 text-[11px] font-medium whitespace-nowrap"
-                                                                style={{ boxShadow: "0 0 8px rgba(139,92,246,0.4), 0 0 2px rgba(139,92,246,0.2)" }}>
-                                                                {p.mode ? p.mode.charAt(0).toUpperCase() + p.mode.slice(1) : "—"}
-                                                            </span>
-                                                            <span className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-slate-500/15 border border-slate-500/30 text-slate-300 text-[11px] font-medium whitespace-nowrap"
-                                                                style={{ boxShadow: "0 0 8px rgba(100,116,139,0.35), 0 0 2px rgba(100,116,139,0.15)" }}>
-                                                                {p.status === "Paid" && p.updated_at ? formatDate(p.updated_at) : "—"}
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                );
-                                            })}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            ) : (
-                /* ─── SINGLE MONTH LIST VIEW ─── */
-                <>
-                    {/* Mobile: Card layout */}
-                    <div className="space-y-3 md:hidden">
-                        {payments.map((p, idx) => (
-                            <div key={p.id} className="glass-card rounded-xl p-4 animate-fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
-                                <div className="flex items-center justify-between gap-2 mb-2">
-                                    <p className="text-white font-medium text-sm truncate flex-1">{p.student_name}</p>
-                                    <StatusBadge status={p.status} />
-                                </div>
-                                <p className="text-[#8a8f98] text-xs mb-3">₹{p.amount}</p>
-                                {p.status === "Unpaid" && (
-                                    <button onClick={() => handleOfflineRequest(p)} disabled={offlineLoading === p.id}
-                                        className="w-full py-2.5 rounded-lg bg-violet-500/20 border border-violet-500/30 text-violet-300 text-xs font-medium
-                                            active:bg-violet-500/30 disabled:opacity-50 cursor-pointer">
-                                        {offlineLoading === p.id ? "Submitting..." : "💵 Mark Offline Paid"}
-                                    </button>
-                                )}
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
-                        ))}
-                        {payments.length === 0 && (
-                            <div className="glass-card rounded-xl p-8 text-center text-[#8a8f98] text-sm">No payment records for this period.</div>
+                        )}
+                    </GlassCard>
+                </section>
+            ) : (
+                /* ── SINGLE MONTH — Card Layout ── */
+                <section className="animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-bold text-lg text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                            Payment Status
+                        </h2>
+                        <span className="text-[10px] uppercase tracking-widest font-bold text-[#aaaab7]">
+                            {payments.length} students
+                        </span>
+                    </div>
+                    <div className="space-y-3">
+                        {payments.length === 0 ? (
+                            <GlassCard className="p-10 text-center">
+                                <span className="material-symbols-outlined text-5xl text-[#737580] mb-3 block">receipt_long</span>
+                                <p className="text-[#aaaab7] text-sm">No payment records for this period.</p>
+                            </GlassCard>
+                        ) : (
+                            payments.map((p, idx) => (
+                                <GlassCard
+                                    key={p.id}
+                                    className="p-4 animate-fade-in-scale hover:border-[#c799ff]/20 transition-all"
+                                    style={{ animationDelay: `${250 + idx * 60}ms` }}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        {/* Avatar */}
+                                        <StudentAvatar name={p.student_name} size={48} />
+
+                                        {/* Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-[#f0f0fd] truncate">{p.student_name}</p>
+                                            <p className="text-xs text-[#aaaab7] mt-0.5">₹{p.amount}</p>
+                                        </div>
+
+                                        {/* Status */}
+                                        <StatusBadge status={p.status} />
+                                    </div>
+
+                                    {/* Offline button for Unpaid */}
+                                    {p.status === "Unpaid" && (
+                                        <button
+                                            onClick={() => handleOfflineRequest(p)}
+                                            disabled={offlineLoading === p.id}
+                                            className="w-full mt-3 py-3 rounded-2xl bg-gradient-to-r from-[#4af8e3]/10 to-[#c799ff]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-xs font-bold uppercase tracking-wider hover:from-[#4af8e3]/20 hover:to-[#c799ff]/20 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+                                        >
+                                            {offlineLoading === p.id ? (
+                                                <span className="flex items-center justify-center gap-2">
+                                                    <div className="w-4 h-4 border-2 border-[#4af8e3]/30 border-t-[#4af8e3] rounded-full animate-spin" />
+                                                    Submitting...
+                                                </span>
+                                            ) : (
+                                                "Mark Offline Paid"
+                                            )}
+                                        </button>
+                                    )}
+                                </GlassCard>
+                            ))
                         )}
                     </div>
-
-                    {/* Desktop: Table */}
-                    <div className="hidden md:block glass-card rounded-xl overflow-hidden animate-fade-in-up delay-300">
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-[#0f1320]/40">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Student</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Amount</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Status</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-[#1a1f2e]/30">
-                                    {payments.map((p) => (
-                                        <tr key={p.id} className="hover:bg-slate-800/20 transition-colors">
-                                            <td className="px-4 py-3 text-sm text-white">{p.student_name}</td>
-                                            <td className="px-4 py-3 text-sm text-slate-300">₹{p.amount}</td>
-                                            <td className="px-4 py-3"><StatusBadge status={p.status} /></td>
-                                            <td className="px-4 py-3 text-right">
-                                                {p.status === "Unpaid" && (
-                                                    <button onClick={() => handleOfflineRequest(p)} disabled={offlineLoading === p.id}
-                                                        className="px-3 py-1.5 rounded-lg bg-violet-500/20 border border-violet-500/30 text-violet-300 text-xs font-medium hover:bg-violet-500/30 transition-all disabled:opacity-50 cursor-pointer">
-                                                        {offlineLoading === p.id ? "..." : "💵 Mark Offline Paid"}
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {payments.length === 0 && (
-                                        <tr><td colSpan={4} className="px-4 py-8 text-center text-[#8a8f98]">No payment records for this period.</td></tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </>
+                </section>
             )}
         </div>
     );
@@ -387,9 +512,9 @@ function TeacherDashboardContent() {
 export default function TeacherDashboard() {
     return (
         <ProtectedRoute allowedRoles={["teacher"]}>
-            <DashboardLayout>
+            <TeacherLayout>
                 <TeacherDashboardContent />
-            </DashboardLayout>
+            </TeacherLayout>
         </ProtectedRoute>
     );
 }

@@ -266,3 +266,104 @@ textarea {
     font-size: 22px;
     margin-bottom: 2px;
 }
+
+/* ════════════════════════════════════════════
+   STUDENT PANEL — Nebula Glassmorphism Theme
+   ════════════════════════════════════════════ */
+
+/* Nebula ambient background glows */
+.nebula-glow-1 {
+    background: radial-gradient(circle at 50% 50%, rgba(199, 153, 255, 0.15) 0%, transparent 70%);
+}
+
+.nebula-glow-2 {
+    background: radial-gradient(circle at 80% 20%, rgba(74, 248, 227, 0.1) 0%, transparent 60%);
+}
+
+/* Student glass card — more transparent, more blur */
+.glass-card-student {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-student:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 12px 40px -12px rgba(199, 153, 255, 0.15);
+}
+
+/* Student bottom nav */
+.student-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border-top-left-radius: 32px;
+    border-top-right-radius: 32px;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
+    padding-bottom: var(--safe-bottom);
+}
+
+/* Student top header bar */
+.student-top-bar {
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Material Symbols configuration */
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.material-symbols-filled {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Student color palette CSS variables */
+.student-theme {
+    --st-surface: #0c0e17;
+    --st-surface-container: #171924;
+    --st-surface-high: #1c1f2b;
+    --st-primary: #c799ff;
+    --st-primary-dim: #ba85fb;
+    --st-secondary: #4af8e3;
+    --st-secondary-dim: #33e9d5;
+    --st-error: #ff6e84;
+    --st-tertiary: #ff9dac;
+    --st-on-surface: #f0f0fd;
+    --st-on-surface-variant: #aaaab7;
+    --st-outline: #737580;
+}
+
+/* Fade-in scale animation for student cards */
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.animate-fade-in-scale {
+    animation: fadeInScale 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Touch-friendly active states for student */
+@media (max-width: 767px) {
+    .glass-card-student:active {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+    }
+}
