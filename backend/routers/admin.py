@@ -1536,6 +1536,500 @@ async def admin_backup(
 
 
 # ══════════════════════════════════════════════
+#  REPORT EXPORT (PDF)
+# ══════════════════════════════════════════════
+
+@router.get("/report-export")
+async def admin_report_export(
+    batch_id: str,
+    year: int,
+    months: str,
+    user=Depends(require_role("admin")),
+):
+    """Export a Collection & Distribution PDF report for a batch.
+    `months` is a comma-separated list of month numbers, e.g. '1,2,3'.
+    Each month gets its own page(s) with 4 tables:
+      1. Student list (all payments)
+      2. Status summary (Paid / Unpaid counts)
+      3. Collection (paid students with dates)
+      4. Distribution (teacher-wise split by confirmation date)
+    """
+    from fpdf import FPDF
+    from fastapi.responses import StreamingResponse
+
+    # ── Parse & validate ──
+    try:
+        month_list = sorted(set(int(m.strip()) for m in months.split(",") if m.strip()))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid months format. Use comma-separated numbers, e.g. '1,2,3'.")
+
+    if not month_list or any(m < 1 or m > 12 for m in month_list):
+        raise HTTPException(status_code=400, detail="Month values must be between 1 and 12.")
+
+    # ── Fetch batch info ──
+    batch_doc = db.collection("batches").document(batch_id).get()
+    if not batch_doc.exists:
+        raise HTTPException(status_code=404, detail="Batch not found.")
+    batch_data = batch_doc.to_dict()
+    batch_name = batch_data.get("batch_name", "Unknown Batch")
+    teacher_ids = batch_data.get("teacher_ids", [])
+
+    # ── Fetch teacher names ──
+    teacher_map = {}  # uid -> name
+    for tid in teacher_ids:
+        t_doc = db.collection("users").document(tid).get()
+        if t_doc.exists:
+            teacher_map[tid] = t_doc.to_dict().get("name", "Unknown")
+        else:
+            teacher_map[tid] = "Unknown"
+
+    # ── Build user lookup for latest student names ──
+    all_users = {}
+    for u in db.collection("users").where("role", "==", "student").where("batch_id", "==", batch_id).stream():
+        ud = u.to_dict()
+        all_users[u.id] = ud.get("name", "Unknown")
+
+    MONTHS_FULL = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    ]
+
+    def safe_str(val):
+        """Convert value to PDF-safe ASCII string."""
+        if val is None or val == "" or val == "None":
+            return "-"
+        text = str(val)
+        text = text.replace("\u2014", "-").replace("\u2013", "-").replace("\u2019", "'")
+        text = text.replace("\u20b9", "Rs.")
+        text = text.encode("latin-1", errors="replace").decode("latin-1")
+        return text
+
+    def format_date(raw):
+        """Parse an ISO datetime string to 'DD/MM/YYYY'."""
+        if not raw or raw == "-":
+            return "-"
+        try:
+            dt = datetime.fromisoformat(str(raw))
+            return dt.strftime("%d/%m/%Y")
+        except Exception:
+            return str(raw)[:10]
+
+    # ── Build PDF (Portrait A4) ──
+    pdf = FPDF(orientation="P")
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    PAGE_W = 210
+    MARGIN = 10
+    USABLE_W = PAGE_W - 2 * MARGIN
+
+    for month_num in month_list:
+        month_label = MONTHS_FULL[month_num - 1] if 1 <= month_num <= 12 else str(month_num)
+
+        # ── Fetch payments for this month ──
+        payments_raw = list(
+            db.collection("payments")
+            .where("batch_id", "==", batch_id)
+            .where("month", "==", month_num)
+            .where("year", "==", year)
+            .stream()
+        )
+        payments = []
+        for p in payments_raw:
+            d = p.to_dict()
+            d["id"] = p.id
+            # Overlay latest student name
+            sid = d.get("student_id", "")
+            if sid in all_users:
+                d["student_name"] = all_users[sid]
+            # Convert timestamps
+            for k in ("created_at", "updated_at"):
+                if hasattr(d.get(k), "isoformat"):
+                    d[k] = d[k].isoformat()
+            payments.append(d)
+
+        # Sort by student name
+        payments.sort(key=lambda x: (x.get("student_name") or "").lower())
+
+        paid_payments = [p for p in payments if p.get("status") == "Paid"]
+        unpaid_payments = [p for p in payments if p.get("status") != "Paid"]
+
+        # ═══════════════════════════════════════
+        #  NEW PAGE — Title
+        # ═══════════════════════════════════════
+        pdf.add_page()
+
+        # Title: "Collection & Distribution Report"
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.set_text_color(30, 30, 30)
+        pdf.cell(0, 10, "Collection & Distribution Report", align="C", new_x="LMARGIN", new_y="NEXT")
+
+        # Subtitle: "BATCH NAME | Month, Year"
+        pdf.set_font("Helvetica", "", 11)
+        pdf.set_text_color(80, 80, 80)
+        pdf.cell(0, 7, safe_str(f"{batch_name}  |  {month_label}, {year}"), align="C", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(6)
+
+        # ═══════════════════════════════════════
+        #  TABLE 1: Student List (All)
+        # ═══════════════════════════════════════
+        t1_cols = [12, 50, 28, 28, 28, 44]  # = 190
+        t1_headers = ["Sr. No.", "Student Name", "Amount", "Status", "Mode", "Date"]
+
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_fill_color(50, 50, 70)
+        pdf.set_text_color(255, 255, 255)
+        for i, h in enumerate(t1_headers):
+            pdf.cell(t1_cols[i], 7, h, border=1, fill=True, align="C")
+        pdf.ln()
+
+        pdf.set_font("Helvetica", "", 8)
+        pdf.set_text_color(30, 30, 30)
+
+        if payments:
+            for idx, p in enumerate(payments):
+                if pdf.get_y() > 265:
+                    pdf.add_page()
+                    # Redraw table 1 header on new page
+                    pdf.set_font("Helvetica", "B", 9)
+                    pdf.set_fill_color(50, 50, 70)
+                    pdf.set_text_color(255, 255, 255)
+                    for i, h in enumerate(t1_headers):
+                        pdf.cell(t1_cols[i], 7, h, border=1, fill=True, align="C")
+                    pdf.ln()
+                    pdf.set_font("Helvetica", "", 8)
+                    pdf.set_text_color(30, 30, 30)
+
+                bg = (idx % 2 == 0)
+                if bg:
+                    pdf.set_fill_color(245, 245, 250)
+                else:
+                    pdf.set_fill_color(255, 255, 255)
+
+                status = p.get("status", "-")
+                mode = p.get("mode") or "-"
+                pay_date = "-"
+                if status == "Paid":
+                    pay_date = format_date(p.get("updated_at"))
+                elif status == "Pending_Verification":
+                    pay_date = format_date(p.get("updated_at"))
+
+                row = [
+                    str(idx + 1),
+                    safe_str(p.get("student_name", "-")),
+                    safe_str(f"Rs.{p.get('amount', 0)}"),
+                    safe_str(status.replace("_", " ")),
+                    safe_str(mode),
+                    safe_str(pay_date),
+                ]
+                for i, val in enumerate(row):
+                    text = val[:25] + ".." if len(val) > 27 else val
+                    pdf.cell(t1_cols[i], 6, text, border=1, fill=True, align="C")
+                pdf.ln()
+        else:
+            pdf.set_font("Helvetica", "I", 9)
+            pdf.set_text_color(120, 120, 120)
+            pdf.cell(sum(t1_cols), 8, "No payment records for this period.", border=1, align="C")
+            pdf.ln()
+            pdf.set_text_color(30, 30, 30)
+
+        pdf.ln(6)
+
+        # ═══════════════════════════════════════
+        #  TABLE 2: Status Summary
+        # ═══════════════════════════════════════
+        paid_count = len(paid_payments)
+        unpaid_count = len(unpaid_payments)
+
+        t2_cols = [50, 50]  # small table
+        t2_x = MARGIN  # left-aligned
+
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_fill_color(50, 50, 70)
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_x(t2_x)
+        pdf.cell(t2_cols[0], 7, "Status", border=1, fill=True, align="C")
+        pdf.cell(t2_cols[1], 7, "Count", border=1, fill=True, align="C")
+        pdf.ln()
+
+        pdf.set_font("Helvetica", "", 8)
+        pdf.set_text_color(30, 30, 30)
+
+        pdf.set_x(t2_x)
+        pdf.set_fill_color(245, 245, 250)
+        pdf.cell(t2_cols[0], 6, "Paid", border=1, fill=True, align="C")
+        pdf.cell(t2_cols[1], 6, str(paid_count), border=1, fill=True, align="C")
+        pdf.ln()
+
+        pdf.set_x(t2_x)
+        pdf.set_fill_color(255, 255, 255)
+        pdf.cell(t2_cols[0], 6, "Unpaid", border=1, fill=True, align="C")
+        pdf.cell(t2_cols[1], 6, str(unpaid_count), border=1, fill=True, align="C")
+        pdf.ln()
+
+        pdf.ln(8)
+
+        # ═══════════════════════════════════════
+        #  TABLE 3: Collection (Paid only)
+        # ═══════════════════════════════════════
+        pdf.set_font("Helvetica", "B", 11)
+        pdf.set_text_color(30, 30, 30)
+        pdf.cell(0, 8, "Collection:", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(1)
+
+        t3_cols = [35, 60, 50, 45]  # = 190
+        t3_headers = ["Date", "Student Name", "Amount", "Total"]
+
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_fill_color(50, 50, 70)
+        pdf.set_text_color(255, 255, 255)
+        for i, h in enumerate(t3_headers):
+            pdf.cell(t3_cols[i], 7, h, border=1, fill=True, align="C")
+        pdf.ln()
+
+        pdf.set_font("Helvetica", "", 8)
+        pdf.set_text_color(30, 30, 30)
+
+        if paid_payments:
+            # Sort by payment date, then group by date
+            paid_sorted = sorted(paid_payments, key=lambda x: x.get("updated_at", "") or "")
+
+            # Group payments by date string (DD/MM/YYYY)
+            from collections import OrderedDict
+            date_groups = OrderedDict()
+            for p in paid_sorted:
+                date_key = format_date(p.get("updated_at"))
+                date_groups.setdefault(date_key, []).append(p)
+
+            ROW_H = 6
+            running_total = 0
+
+            for date_str, group in date_groups.items():
+                group_size = len(group)
+                group_height = group_size * ROW_H
+
+                # Page break check — if the group won't fit, start a new page
+                if pdf.get_y() + group_height > 265:
+                    pdf.add_page()
+                    pdf.set_font("Helvetica", "B", 9)
+                    pdf.set_fill_color(50, 50, 70)
+                    pdf.set_text_color(255, 255, 255)
+                    for i, h in enumerate(t3_headers):
+                        pdf.cell(t3_cols[i], 7, h, border=1, fill=True, align="C")
+                    pdf.ln()
+                    pdf.set_font("Helvetica", "", 8)
+                    pdf.set_text_color(30, 30, 30)
+
+                group_start_y = pdf.get_y()
+
+                # Calculate the total for this date group
+                date_total = sum(p.get("amount", 0) for p in group)
+
+                # ─── Draw the merged Date cell (left, tall) ───
+                pdf.set_fill_color(245, 245, 250)
+                pdf.cell(t3_cols[0], group_height, date_str, border=1, fill=True, align="C")
+
+                # ─── Draw each student row (Student Name + Amount only) ───
+                for g_idx, p in enumerate(group):
+                    row_y = group_start_y + g_idx * ROW_H
+                    pdf.set_xy(MARGIN + t3_cols[0], row_y)
+
+                    if g_idx % 2 == 0:
+                        pdf.set_fill_color(245, 245, 250)
+                    else:
+                        pdf.set_fill_color(255, 255, 255)
+
+                    amt = p.get("amount", 0)
+
+                    student_name = safe_str(p.get("student_name", "-"))
+                    if len(student_name) > 28:
+                        student_name = student_name[:26] + ".."
+
+                    pdf.cell(t3_cols[1], ROW_H, student_name, border=1, fill=True, align="C")
+                    pdf.cell(t3_cols[2], ROW_H, safe_str(f"Rs.{amt}"), border=1, fill=True, align="C")
+
+                # ─── Draw the merged Total cell (right, tall) ───
+                total_x = MARGIN + t3_cols[0] + t3_cols[1] + t3_cols[2]
+                pdf.set_xy(total_x, group_start_y)
+                pdf.set_fill_color(245, 245, 250)
+                pdf.cell(t3_cols[3], group_height, safe_str(f"Rs.{date_total}"), border=1, fill=True, align="C")
+
+                running_total += date_total
+
+                # Move cursor below this date group
+                pdf.set_y(group_start_y + group_height)
+
+            # Total row
+            pdf.set_font("Helvetica", "B", 8)
+            pdf.set_fill_color(230, 230, 240)
+            merged_width = t3_cols[0] + t3_cols[1] + t3_cols[2]
+            pdf.cell(merged_width, 7, "Total", border=1, fill=True, align="C")
+            pdf.cell(t3_cols[3], 7, safe_str(f"Rs.{running_total}"), border=1, fill=True, align="C")
+            pdf.ln()
+        else:
+            pdf.set_font("Helvetica", "I", 9)
+            pdf.set_text_color(120, 120, 120)
+            pdf.cell(sum(t3_cols), 8, "No payments collected this month.", border=1, align="C")
+            pdf.ln()
+            pdf.set_text_color(30, 30, 30)
+
+        pdf.ln(8)
+
+        # ═══════════════════════════════════════
+        #  TABLE 4: Distribution (Teacher-wise)
+        # ═══════════════════════════════════════
+
+        # Check if we need a new page for distribution
+        if pdf.get_y() > 220:
+            pdf.add_page()
+
+        pdf.set_font("Helvetica", "B", 11)
+        pdf.set_text_color(30, 30, 30)
+        pdf.cell(0, 8, "Distribution:", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(1)
+
+        teacher_count = len(teacher_ids)
+
+        if teacher_count == 0 or not paid_payments:
+            pdf.set_font("Helvetica", "I", 9)
+            pdf.set_text_color(120, 120, 120)
+            no_dist_msg = "No teachers assigned to this batch." if teacher_count == 0 else "No paid payments to distribute."
+            pdf.cell(USABLE_W, 8, no_dist_msg, border=1, align="C")
+            pdf.ln()
+        else:
+            # Group paid payments by date
+            payments_by_date = {}
+            for p in paid_payments:
+                date_key = str(p.get("updated_at", ""))[:10]
+                if not date_key or date_key == "None":
+                    continue
+                payments_by_date.setdefault(date_key, []).append(p)
+
+            # Fetch snapshots for settled distribution
+            snapshot_query = db.collection("distribution_snapshots") \
+                .where("batch_id", "==", batch_id) \
+                .where("month", "==", month_num) \
+                .where("year", "==", year)
+                
+            settled_dates = {}
+            for snap in snapshot_query.stream():
+                sd = snap.to_dict()
+                if "date" in sd:
+                    settled_dates[sd["date"]] = sd
+
+            sorted_dates = sorted(payments_by_date.keys())
+            settled_sorted_dates = [d for d in sorted_dates if d in settled_dates]
+
+            if not settled_sorted_dates:
+                pdf.set_font("Helvetica", "I", 9)
+                pdf.set_text_color(120, 120, 120)
+                pdf.cell(USABLE_W, 8, "No settled payments to distribute for this month.", border=1, align="C")
+                pdf.ln()
+            else:
+                # Date column + teacher columns + total column
+                date_col_w = 30
+                total_col_w = 28
+                remaining = USABLE_W - date_col_w - total_col_w
+                teacher_col_w = max(25, remaining / teacher_count) if teacher_count > 0 else remaining
+
+                # If too many teachers, reduce all columns proportionally
+                actual_total_w = date_col_w + (teacher_col_w * teacher_count) + total_col_w
+                if actual_total_w > USABLE_W:
+                    teacher_col_w = (USABLE_W - date_col_w - total_col_w) / teacher_count
+
+                t4_cols = [date_col_w] + [teacher_col_w] * teacher_count + [total_col_w]
+                t4_headers = ["Date"] + [safe_str(teacher_map.get(tid, "?")) for tid in teacher_ids] + ["Total"]
+
+                # Truncate long teacher names for header
+                t4_display_headers = []
+                for h in t4_headers:
+                    max_chars = int(teacher_col_w / 2.2)
+                    if len(h) > max_chars and h not in ("Date", "Total"):
+                        t4_display_headers.append(h[:max_chars-1] + ".")
+                    else:
+                        t4_display_headers.append(h)
+
+                pdf.set_font("Helvetica", "B", 7 if teacher_count > 3 else 8)
+                pdf.set_fill_color(50, 50, 70)
+                pdf.set_text_color(255, 255, 255)
+                for i, h in enumerate(t4_display_headers):
+                    pdf.cell(t4_cols[i], 7, h, border=1, fill=True, align="C")
+                pdf.ln()
+
+                pdf.set_font("Helvetica", "", 7 if teacher_count > 3 else 8)
+                pdf.set_text_color(30, 30, 30)
+
+                # Track teacher totals
+                teacher_grand_totals = {tid: 0 for tid in teacher_ids}
+                grand_total = 0
+
+                for d_idx, date_str in enumerate(settled_sorted_dates):
+                    if pdf.get_y() > 265:
+                        pdf.add_page()
+                        pdf.set_font("Helvetica", "B", 7 if teacher_count > 3 else 8)
+                        pdf.set_fill_color(50, 50, 70)
+                        pdf.set_text_color(255, 255, 255)
+                        for i, h in enumerate(t4_display_headers):
+                            pdf.cell(t4_cols[i], 7, h, border=1, fill=True, align="C")
+                        pdf.ln()
+                        pdf.set_font("Helvetica", "", 7 if teacher_count > 3 else 8)
+                        pdf.set_text_color(30, 30, 30)
+
+                    bg = (d_idx % 2 == 0)
+                    pdf.set_fill_color(245, 245, 250) if bg else pdf.set_fill_color(255, 255, 255)
+
+                    dp = payments_by_date[date_str]
+                    date_total = sum(x.get("amount", 0) for x in dp)
+                    
+                    # Format base date
+                    try:
+                        dt = datetime.fromisoformat(date_str)
+                        display_date = dt.strftime("%d/%m/%Y")
+                    except Exception:
+                        display_date = date_str
+
+                    # Apply snapshot data (guaranteed to be settled)
+                    snap = settled_dates[date_str]
+                    date_total = snap.get("total", date_total)
+                    settled_teacher_amounts = {t["uid"]: t["amount"] for t in snap.get("teachers", [])}
+
+                    row_vals = [display_date]
+                    for tid in teacher_ids:
+                        amt = settled_teacher_amounts.get(tid, 0)
+                        row_vals.append(safe_str(f"Rs.{amt}"))
+                        teacher_grand_totals[tid] += amt
+                        
+                    row_vals.append(safe_str(f"Rs.{date_total}"))
+                    grand_total += date_total
+
+                    for i, val in enumerate(row_vals):
+                        pdf.cell(t4_cols[i], 6, val, border=1, fill=True, align="C")
+                    pdf.ln()
+
+                # Total row
+                pdf.set_font("Helvetica", "B", 7 if teacher_count > 3 else 8)
+                pdf.set_fill_color(230, 230, 240)
+                pdf.cell(t4_cols[0], 7, "Total", border=1, fill=True, align="C")
+                for tid in teacher_ids:
+                    pdf.cell(teacher_col_w, 7, safe_str(f"Rs.{round(teacher_grand_totals[tid], 2)}"), border=1, fill=True, align="C")
+                pdf.cell(t4_cols[-1], 7, safe_str(f"Rs.{round(grand_total, 2)}"), border=1, fill=True, align="C")
+                pdf.ln()
+
+    # ── Output PDF ──
+    pdf_bytes = pdf.output()
+    buffer = io.BytesIO(pdf_bytes)
+    buffer.seek(0)
+
+    month_labels = [MONTHS_FULL[m - 1] for m in month_list if 1 <= m <= 12]
+    filename = f"Report_{safe_str(batch_name).replace(' ', '_')}_{'-'.join(month_labels)}_{year}.pdf"
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+# ══════════════════════════════════════════════
 #  INITIALISE DEFAULT ADMIN
 # ══════════════════════════════════════════════
 

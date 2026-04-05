@@ -12,9 +12,11 @@ import ManageTeachers from "@/pages/admin/ManageTeachers";
 import ManageBatches from "@/pages/admin/ManageBatches";
 import AllPayments from "@/pages/admin/AllPayments";
 import RevenueDistribution from "@/pages/admin/RevenueDistribution";
+import ReportExport from "@/pages/admin/ReportExport";
 import StudentDashboard from "@/pages/student/StudentDashboard";
 import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
 import TeacherDistribution from "@/pages/teacher/TeacherDistribution";
+import NotificationsPage from "@/pages/NotificationsPage";
 
 export default function App() {
     return (
@@ -33,9 +35,11 @@ export default function App() {
                         <Route path="/admin/batches" element={<ManageBatches />} />
                         <Route path="/admin/payments" element={<AllPayments />} />
                         <Route path="/admin/distribution" element={<RevenueDistribution />} />
+                        <Route path="/admin/reports" element={<ReportExport />} />
                         <Route path="/student" element={<StudentDashboard />} />
                         <Route path="/teacher" element={<TeacherDashboard />} />
                         <Route path="/teacher/distribution" element={<TeacherDistribution />} />
+                        <Route path="/notifications" element={<NotificationsPage />} />
                     </Routes>
                 </NotificationProvider>
             </AuthProvider>

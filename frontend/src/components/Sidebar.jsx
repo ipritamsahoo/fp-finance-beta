@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
 import { db, auth } from "@/lib/firebase";
@@ -8,7 +8,6 @@ import { useNotifications } from "@/context/NotificationContext";
 import { api } from "@/lib/api";
 import ProfilePicture from "./ProfilePicture";
 import ProfilePicUpload from "./ProfilePicUpload";
-import NotificationPanel from "./NotificationPanel";
 import MyDevicesModal from "./MyDevicesModal";
 
 
@@ -21,6 +20,7 @@ const navItems = {
         { label: "Batches", href: "/admin/batches", icon: "📋" },
         { label: "Payments", href: "/admin/payments", icon: "💰" },
         { label: "Distribution", href: "/admin/distribution", icon: "💸" },
+        { label: "Reports", href: "/admin/reports", icon: "📊" },
     ],
     teacher: [
         { label: "Home", href: "/teacher", icon: "🏠" },
@@ -34,11 +34,11 @@ const navItems = {
 export default function Sidebar() {
     const { user, logout, refreshUser } = useAuth();
     const { pathname } = useLocation();
+    const navigate = useNavigate();
     const { unreadCount } = useNotifications() || {};
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [pendingCount, setPendingCount] = useState(0);
     const [picModalOpen, setPicModalOpen] = useState(false);
-    const [notifOpen, setNotifOpen] = useState(false);
     const [devicesModalOpen, setDevicesModalOpen] = useState(false);
 
     // Credential modals
@@ -150,7 +150,7 @@ export default function Sidebar() {
                         {/* Main Notification Bell */}
                         <div className="relative">
                             <button
-                                onClick={() => setNotifOpen(!notifOpen)}
+                                onClick={() => navigate("/notifications")}
                                 className="relative p-1.5 rounded-full hover:bg-[#1a1f2e]/60 text-[#8a8f98] hover:text-white transition-colors flex items-center justify-center cursor-pointer"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
@@ -160,7 +160,6 @@ export default function Sidebar() {
                                     </span>
                                 )}
                             </button>
-                            <NotificationPanel isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
                         </div>
 
                         <button
@@ -252,12 +251,12 @@ export default function Sidebar() {
                                 </button>
                             )}
 
-                            <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm text-[#c0c4cc] hover:text-white hover:bg-[#1a1f2e]/50 transition-colors group cursor-pointer">
+                            <button onClick={() => { navigate("/notifications"); setSidebarOpen(false); }} className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm text-[#c0c4cc] hover:text-white hover:bg-[#1a1f2e]/50 transition-colors group cursor-pointer">
                                 <div className="flex items-center gap-3">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-80 group-hover:opacity-100"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
                                     <span className="font-medium">Notifications</span>
                                 </div>
-                                <span className="text-xs text-[#3861fb] font-semibold bg-[#3861fb]/10 px-2 py-0.5 rounded text-nowrap">ON</span>
+                                {unreadCount > 0 && <span className="text-xs text-white font-semibold bg-red-500 px-2 py-0.5 rounded text-nowrap">{unreadCount} New</span>}
                             </button>
 
                             <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm text-[#c0c4cc] hover:text-white hover:bg-[#1a1f2e]/50 transition-colors group cursor-pointer">

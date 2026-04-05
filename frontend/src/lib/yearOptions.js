@@ -6,7 +6,7 @@
 const LAUNCH_YEAR = 2026;
 
 export function getYearOptions() {
-    const endYear = new Date().getFullYear() + 2;
+    const endYear = 2099;
     const years = [];
     for (let y = LAUNCH_YEAR; y <= endYear; y++) {
         years.push(y);
