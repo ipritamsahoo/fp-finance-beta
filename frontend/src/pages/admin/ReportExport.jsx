@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import DashboardLayout from "@/components/DashboardLayout";
+import AdminLayout from "@/components/AdminLayout";
 import { api, apiFetch } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import { auth } from "@/lib/firebase";
@@ -114,7 +114,7 @@ function ReportExportContent() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#3861fb]/30 border-t-[#3861fb] rounded-full animate-spin" />
+                <div className="w-10 h-10 border-4 border-[#4af8e3]/30 border-t-[#4af8e3] rounded-full animate-spin" />
             </div>
         );
     }
@@ -122,75 +122,92 @@ function ReportExportContent() {
     const selectedBatch = batches.find((b) => b.id === batchId);
 
     return (
-        <div>
-            {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Report Export 📊</h1>
-                <p className="text-[#8a8f98] text-sm mt-1">
+        <div className="space-y-6">
+            {/* Header - Hidden on mobile as it's in the Sub-Page Header */}
+            <div className="mb-6 hidden md:block">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#f0f0fd] tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                    Report Export <span className="text-2xl drop-shadow-md">📊</span>
+                </h1>
+                <p className="text-[#aaaab7] text-sm mt-1 font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
                     Export Collection & Distribution report as PDF
                 </p>
             </div>
 
             {/* Error */}
             {error && (
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm animate-fade-in-up">
-                    {error} <button onClick={() => setError("")} className="ml-2 cursor-pointer">✕</button>
+                <div className="mb-4 p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#ff6e84]/30 shadow-lg text-[#ff9dac] text-sm flex items-center gap-3 animate-fade-in-up">
+                    <span className="material-symbols-outlined text-[#ff6e84]">error</span>
+                    <span className="flex-1">{error}</span>
+                    <button onClick={() => setError("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
                 </div>
             )}
 
             {/* Success */}
             {success && (
-                <div className="mb-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm animate-fade-in-up">
-                    <div className="flex items-start gap-2">
-                        <span className="text-lg">✅</span>
-                        <span>{success}</span>
-                    </div>
+                <div className="mb-4 p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#4af8e3]/30 shadow-lg text-[#dcfff8] text-sm flex items-center gap-3 animate-fade-in-up">
+                    <span className="material-symbols-outlined text-[#4af8e3]">check_circle</span>
+                    <span className="flex-1">{success}</span>
+                    <button onClick={() => setSuccess("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
                 </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                 {/* Step 1: Select Batch */}
-                <div className="glass-card rounded-xl p-5 animate-fade-in-up">
-                    <h3 className="text-white font-semibold mb-4">
+                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80">
+                    <h3 className="text-[#f0f0fd] font-bold mb-4 flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
                         Select Batch
                     </h3>
-                    <select
-                        value={batchId}
-                        onChange={(e) => setBatchId(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50"
-                    >
-                        <option value="">Select Batch</option>
-                        {batches.map((b) => (
-                            <option key={b.id} value={b.id}>{b.batch_name}</option>
-                        ))}
-                    </select>
+                    <div className="relative">
+                        <select
+                            value={batchId}
+                            onChange={(e) => setBatchId(e.target.value)}
+                            className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#4af8e3]/50 transition-colors appearance-none cursor-pointer"
+                        >
+                            <option value="">Select Batch</option>
+                            {batches.map((b) => (
+                                <option key={b.id} value={b.id}>{b.batch_name}</option>
+                            ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                    </div>
                 </div>
 
                 {/* Step 2: Select Year */}
-                <div className="glass-card rounded-xl p-5 animate-fade-in-up" style={{ animationDelay: "80ms" }}>
-                    <h3 className="text-white font-semibold mb-4">
+                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80" style={{ animationDelay: "80ms" }}>
+                    <h3 className="text-[#f0f0fd] font-bold mb-4 flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
                         Select Year
                     </h3>
-                    <select
-                        value={year}
-                        onChange={(e) => setYear(Number(e.target.value))}
-                        className="w-full px-4 py-3 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50"
-                    >
-                        {yearOptions.map((y) => (
-                            <option key={y} value={y}>{y}</option>
-                        ))}
-                    </select>
+                    <div className="relative">
+                        <select
+                            value={year}
+                            onChange={(e) => setYear(Number(e.target.value))}
+                            className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#4af8e3]/50 transition-colors appearance-none cursor-pointer"
+                        >
+                            {yearOptions.map((y) => (
+                                <option key={y} value={y}>{y}</option>
+                            ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                    </div>
                 </div>
             </div>
 
             {/* Step 3: Select Month(s) */}
-            <div className="glass-card rounded-xl p-5 mb-5 animate-fade-in-up" style={{ animationDelay: "160ms" }}>
-                <h3 className="text-white font-semibold mb-1">
-                    Select Month(s)
-                </h3>
-                <p className="text-[#5a5f68] text-xs mb-4">You can select multiple months — each month will get a separate page in the PDF</p>
+            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 mb-8 animate-fade-in-up transition-colors hover:bg-[#171924]/80" style={{ animationDelay: "160ms" }}>
+                <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-[#f0f0fd] font-bold flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                        Select Month(s)
+                    </h3>
+                    <button
+                        onClick={selectAllMonths}
+                        className="text-xs text-[#4af8e3] hover:text-white transition-colors cursor-pointer font-bold uppercase tracking-widest bg-[#4af8e3]/10 px-3 py-1.5 rounded-lg border border-[#4af8e3]/30"
+                    >
+                        {selectedMonths.length === 12 ? "Deselect All" : "Select All"}
+                    </button>
+                </div>
+                <p className="text-[#aaaab7] text-xs font-medium mb-6">Each month will act as a separate page in the generated PDF</p>
 
-                <div className="flex flex-wrap gap-2 mb-3">
+                <div className="flex flex-wrap gap-3 mb-4">
                     {MONTHS.map((m, i) => {
                         const monthNum = i + 1;
                         const isSelected = selectedMonths.includes(monthNum);
@@ -198,30 +215,26 @@ function ReportExportContent() {
                             <button
                                 key={monthNum}
                                 onClick={() => toggleMonth(monthNum)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
+                                className={`px-5 py-2.5 rounded-xl text-sm font-bold tracking-wide transition-all duration-300 cursor-pointer
                                     ${isSelected
-                                        ? "bg-gradient-to-r from-emerald-500/20 to-green-500/10 text-emerald-300 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.15)]"
-                                        : "bg-[#0f1320]/40 border border-[#1a1f2e]/40 text-[#8a8f98] hover:text-white hover:bg-[#1a1f2e]/50"
+                                        ? "bg-[#4af8e3]/10 text-[#4af8e3] border border-[#4af8e3]/50 shadow-[0_4px_15px_rgba(74,248,227,0.15)]"
+                                        : "bg-[#222532]/50 border border-[#464752]/50 text-[#aaaab7] hover:border-[#464752] hover:bg-[#222532]/80"
                                     }`}
                             >
-                                {isSelected && <span className="mr-1">✓</span>}
-                                {m.slice(0, 3)}
+                                <div className="flex items-center gap-2">
+                                    {isSelected && <span className="material-symbols-outlined text-[16px]">check</span>}
+                                    {m.slice(0, 3)}
+                                </div>
                             </button>
                         );
                     })}
                 </div>
 
-                <button
-                    onClick={selectAllMonths}
-                    className="text-xs text-[#8a8f98] hover:text-white transition-colors cursor-pointer underline underline-offset-2"
-                >
-                    {selectedMonths.length === 12 ? "Deselect All" : "Select All Months"}
-                </button>
-
                 {selectedMonths.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
+                    <div className="mt-5 flex flex-wrap gap-2 pt-5 border-t border-[#464752]/30">
+                        <span className="text-xs text-[#aaaab7] w-full mb-1 font-bold tracking-widest uppercase">Selected:</span>
                         {selectedMonths.map((m) => (
-                            <span key={m} className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-xs font-medium">
+                            <span key={m} className="px-3 py-1 rounded-lg bg-[#4af8e3]/10 border border-[#4af8e3]/30 text-[#4af8e3] text-[11px] font-bold tracking-widest uppercase">
                                 {MONTHS[m - 1]}
                             </span>
                         ))}
@@ -234,22 +247,16 @@ function ReportExportContent() {
                 <button
                     onClick={handleExport}
                     disabled={exporting || !batchId || selectedMonths.length === 0}
-                    className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-white text-sm font-semibold transition-all duration-300
-                        bg-gradient-to-r from-[#3861fb] to-[#2b4fcf] hover:from-[#4a73ff] hover:to-[#3861fb]
-                        shadow-lg shadow-[#3861fb]/20 hover:shadow-[#3861fb]/40
-                        disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer
-                        active:scale-[0.98]"
+                    className="w-full sm:w-auto px-8 py-4 rounded-2xl text-[13px] font-bold uppercase tracking-widest transition-all duration-300
+                        bg-[#4af8e3]/10 text-[#4af8e3] border border-[#4af8e3]/30 hover:bg-[#4af8e3]/20 hover:border-[#4af8e3]/50 shadow-[0_4px_15px_rgba(74,248,227,0.15)]
+                        disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-3 group"
                 >
                     {exporting ? (
-                        <span className="flex items-center gap-2">
-                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            Generating PDF...
-                        </span>
+                        <span className="w-5 h-5 rounded-full border-2 border-[#4af8e3]/30 border-t-[#4af8e3] animate-spin" />
                     ) : (
-                        <span className="flex items-center gap-2">
-                            📄 Export PDF Report
-                        </span>
+                        <span className="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform">picture_as_pdf</span>
                     )}
+                    {exporting ? "Generating PDF..." : "Export PDF Report"}
                 </button>
             </div>
 
@@ -261,9 +268,9 @@ function ReportExportContent() {
 export default function ReportExport() {
     return (
         <ProtectedRoute allowedRoles={["admin"]}>
-            <DashboardLayout>
+            <AdminLayout>
                 <ReportExportContent />
-            </DashboardLayout>
+            </AdminLayout>
         </ProtectedRoute>
     );
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import DashboardLayout from "@/components/DashboardLayout";
+import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
@@ -13,44 +13,31 @@ const MONTHS = [
     "July", "August", "September", "October", "November", "December",
 ];
 
-function SkeletonStatCard({ delay }) {
+function SkeletonBentoCard() {
     return (
-        <div
-            className="rounded-xl p-3 sm:p-5 border border-[#1a1f2e]/30 glass-card animate-fade-in-up"
-            style={{ animationDelay: `${delay}ms` }}
-        >
-            <div className="flex items-center justify-between h-full">
-                <div className="min-w-0 w-full">
-                    <div className="h-3 w-16 sm:h-4 sm:w-24 skeleton-loader mb-2"></div>
-                    <div className="h-6 w-12 sm:h-8 sm:w-20 skeleton-loader"></div>
-                </div>
-                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full skeleton-loader shrink-0 ml-2"></div>
+        <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 p-5 rounded-3xl flex flex-col justify-between h-36 animate-pulse">
+            <div className="flex justify-between items-start">
+                <div className="w-10 h-10 rounded-xl bg-white/5"></div>
+            </div>
+            <div>
+                <div className="h-8 w-16 bg-white/5 rounded mt-2"></div>
+                <div className="h-4 w-20 bg-white/5 rounded mt-1"></div>
             </div>
         </div>
     );
 }
 
-function StatCard({ label, value, icon, color, delay }) {
-    const colors = {
-        indigo: "from-[#3861fb]/20 to-[#3861fb]/10 border-[#3861fb]/20 text-[#7b9cff]",
-        emerald: "from-emerald-500/20 to-emerald-600/10 border-emerald-500/20 text-emerald-300",
-        amber: "from-amber-500/20 to-amber-600/10 border-amber-500/20 text-amber-300",
-        violet: "from-violet-500/20 to-violet-600/10 border-violet-500/20 text-violet-300",
-        blue: "from-blue-500/20 to-blue-600/10 border-blue-500/20 text-blue-300",
-        rose: "from-rose-500/20 to-rose-600/10 border-rose-500/20 text-rose-300",
-    };
-
+function BentoStatCard({ label, value, icon, iconDivClass }) {
     return (
-        <div
-            className={`rounded-xl p-3 sm:p-5 bg-gradient-to-br border ${colors[color]} glass-card animate-fade-in-up`}
-            style={{ animationDelay: `${delay}ms` }}
-        >
-            <div className="flex items-center justify-between">
-                <div className="min-w-0">
-                    <p className="text-[#8a8f98] text-[10px] sm:text-sm truncate font-medium">{label}</p>
-                    <p className="text-lg sm:text-3xl font-bold mt-0.5 sm:mt-1 tracking-tight">{value}</p>
+        <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 p-5 rounded-3xl flex flex-col justify-between h-36 transition-all duration-300 hover:bg-[#171924]/80">
+            <div className="flex justify-between items-start">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconDivClass}`}>
+                    <span className="material-symbols-outlined">{icon}</span>
                 </div>
-                <span className="text-xl sm:text-3xl opacity-80 shrink-0 ml-2 drop-shadow-md">{icon}</span>
+            </div>
+            <div>
+                <div className="text-2xl font-bold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>{value}</div>
+                <div className="text-xs text-[#aaaab7] font-medium uppercase tracking-widest mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>{label}</div>
             </div>
         </div>
     );
@@ -147,148 +134,171 @@ function AdminDashboardContent() {
     };
 
     return (
-        <div>
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
-                <div>
-                    <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-white">Welcome, {user?.name} 👋</h1>
-                </div>
-            </div>
+        <>
+            <section className="mb-10">
+                <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-[#f0f0fd] flex items-center gap-3" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                    Welcome, {user?.name} <span className="text-4xl md:text-6xl animate-wave origin-bottom-right drop-shadow-md">👋</span>
+                </h2>
+                <p className="text-[#aaaab7] text-sm mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>
+                    Here is what's happening today in your nebula.
+                </p>
+            </section>
 
             {/* Messages */}
             <div className="fixed top-20 right-4 z-50 flex flex-col gap-2 pointer-events-none">
                 {error && (
-                    <div className="toast-enter pointer-events-auto p-3 sm:p-4 rounded-xl glass-card border border-red-500/50 bg-red-950/80 shadow-lg shadow-red-900/20 text-red-200 text-sm flex items-center gap-3">
-                        <span className="text-red-400">⚠️</span>
+                    <div className="toast-enter pointer-events-auto p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#ff6e84]/30 shadow-lg text-[#ff9dac] text-sm flex items-center gap-3 w-80">
+                        <span className="material-symbols-outlined text-[#ff6e84]">error</span>
                         <p className="flex-1">{error}</p>
-                        <button onClick={() => setError("")} className="ml-2 text-red-400 hover:text-red-300 transition-colors p-1 cursor-pointer">✕</button>
+                        <button onClick={() => setError("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
                     </div>
                 )}
                 {message && (
-                    <div className="toast-enter pointer-events-auto p-3 sm:p-4 rounded-xl glass-card border border-emerald-500/50 bg-emerald-950/80 shadow-lg shadow-emerald-900/20 text-emerald-200 text-sm flex flex-col gap-1">
+                    <div className="toast-enter pointer-events-auto p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#4af8e3]/30 shadow-lg text-[#dcfff8] text-sm flex flex-col gap-1 w-80">
                         <div className="flex items-center gap-3">
-                            <span className="text-emerald-400">✓</span>
-                            <p className="flex-1">{message}</p>
-                            <button onClick={() => setMessage("")} className="ml-2 text-emerald-400 hover:text-emerald-300 transition-colors p-1 cursor-pointer">✕</button>
+                            <span className="material-symbols-outlined text-[#4af8e3]">check_circle</span>
+                            <p className="flex-1 text-[#f0f0fd]">{message}</p>
+                            <button onClick={() => setMessage("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
                         </div>
                         {!message.startsWith("Removed") && (
-                            <p className="text-[10px] text-emerald-500/70 pl-7">Generated by mistake? <button onClick={handleUndo} className="underline hover:text-emerald-300 transition-colors cursor-pointer">Click Undo</button></p>
+                            <p className="text-[10px] text-[#aaaab7] pl-8 mt-1">
+                                Generated by mistake? <button onClick={handleUndo} className="underline hover:text-[#ff9dac] transition-colors cursor-pointer">Click Undo</button>
+                            </p>
                         )}
                     </div>
                 )}
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-6 relative">
+            {/* Stats Grid (Bento Style) */}
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 {loading ? (
                     <>
-                        <SkeletonStatCard delay={0} />
-                        <SkeletonStatCard delay={80} />
-                        <SkeletonStatCard delay={160} />
-                        <SkeletonStatCard delay={240} />
+                        <SkeletonBentoCard />
+                        <SkeletonBentoCard />
+                        <SkeletonBentoCard />
+                        <SkeletonBentoCard />
                     </>
                 ) : stats ? (
                     <>
-                        <StatCard label="Students" value={stats.total_students} icon="🎓" color="indigo" delay={0} />
-                        <StatCard label="Teachers" value={stats.total_teachers} icon="👨‍🏫" color="blue" delay={80} />
-                        <StatCard label="Batches" value={stats.total_batches} icon="📋" color="violet" delay={160} />
-                        <StatCard label="Pending" value={stats.total_pending} icon="⏳" color="amber" delay={240} />
+                        <BentoStatCard label="Students" value={stats.total_students} icon="person" iconDivClass="bg-[#3b82f6]/10 text-[#3b82f6]" />
+                        <BentoStatCard label="Teachers" value={stats.total_teachers} icon="school" iconDivClass="bg-[#4af8e3]/10 text-[#4af8e3]" />
+                        <BentoStatCard label="Batches" value={stats.total_batches} icon="group" iconDivClass="bg-[#ff9dac]/10 text-[#ff9dac]" />
+                        <BentoStatCard label="Pending" value={stats.total_pending} icon="timer" iconDivClass="bg-[#ff6e84]/10 text-[#ff6e84]" />
                     </>
                 ) : null}
-            </div>
+            </section>
 
+            {/* Payments Panel */}
+            <section className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 md:p-8 space-y-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-5 md:opacity-10 pointer-events-none">
+                    <span className="material-symbols-outlined text-8xl md:text-6xl">payments</span>
+                </div>
+                
+                <h3 className="text-xl font-bold flex items-center gap-2 text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                    Generate Monthly Payments
+                </h3>
 
-
-            {/* Generate Monthly Payments */}
-            <div className="glass-card rounded-xl p-4 sm:p-6 animate-fade-in-up" style={{ animationDelay: "600ms" }}>
-                <h2 className="text-base sm:text-lg font-semibold text-white mb-1">⚡ Generate Monthly Payments</h2>
-                <p className="text-[#8a8f98] text-xs sm:text-sm mb-4">Create &ldquo;Unpaid&rdquo; records for a batch or all students.</p>
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-                    <div>
-                        <label className="block text-[#8a8f98] text-[10px] sm:text-xs mb-1">Month</label>
-                        <select
-                            value={genMonth}
-                            onChange={(e) => setGenMonth(parseInt(e.target.value))}
-                            className="w-full px-2 sm:px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50"
-                        >
-                            {MONTHS.map((m, i) => (
-                                <option key={i} value={i + 1}>{m}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-[#8a8f98] text-[10px] sm:text-xs mb-1">Year</label>
-                        <select
-                            value={genYear}
-                            onChange={(e) => setGenYear(parseInt(e.target.value))}
-                            className="w-full px-2 sm:px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50"
-                        >
-                            {getYearOptions().map((y) => (
-                                <option key={y} value={y}>{y}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-[#8a8f98] text-[10px] sm:text-xs mb-1">Default Amount (₹)</label>
-                        <input
-                            type="number"
-                            value={genAmount}
-                            onChange={(e) => setGenAmount(parseInt(e.target.value))}
-                            className="w-full px-2 sm:px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50"
-                        />
-                        <p className="text-[#5a5f68] text-[9px] sm:text-[10px] mt-0.5">Fallback if no custom/batch fee</p>
-                    </div>
-                    <div>
-                        <label className="block text-[#8a8f98] text-[10px] sm:text-xs mb-1">Batch</label>
-                        <select
-                            value={genBatch}
-                            onChange={(e) => setGenBatch(e.target.value)}
-                            className="w-full px-2 sm:px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50"
-                        >
-                            <option value="">All Batches</option>
-                            {batches.map((b) => (
-                                <option key={b.id} value={b.id}>{b.batch_name}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="col-span-2 lg:col-span-1">
-                        <label className="block text-[#8a8f98] text-[10px] sm:text-xs mb-1 opacity-0 pointer-events-none">&nbsp;</label>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={handleGenerate}
-                                disabled={generating || undoing}
-                                className={`flex-1 py-2.5 rounded-lg text-white text-sm font-bold shadow-lg shadow-[#3861fb]/25 transition-all duration-300 active:scale-95 cursor-pointer border border-[#3861fb]/30 
-                                    ${generating
-                                        ? 'bg-[#1a1f2e] opacity-70 cursor-not-allowed'
-                                        : 'bg-gradient-to-r from-[#3861fb] via-[#2b4fcf] to-[#3861fb] animate-gradient hover:shadow-[#3861fb]/40'}`}
+                <div className="space-y-5 relative z-10">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-[#aaaab7] ml-1">Batch</label>
+                        <div className="relative">
+                            <select
+                                value={genBatch}
+                                onChange={(e) => setGenBatch(e.target.value)}
+                                className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3.5 appearance-none focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm cursor-pointer"
                             >
-                                {generating ? "Generating..." : "Generate"}
-                            </button>
-                            <button
-                                onClick={handleUndo}
-                                disabled={undoing || generating}
-                                className={`px-3 py-2.5 rounded-lg text-xs font-semibold transition-all duration-200 active:scale-95 cursor-pointer border
-                                    ${undoing
-                                        ? 'bg-[#1a1f2e] border-[#1a1f2e]/50 text-[#5a5f68] opacity-70 cursor-not-allowed'
-                                        : 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50'}`}
-                                title="Undo last generation (removes only Unpaid records)"
-                            >
-                                {undoing ? "..." : "↩ Undo"}
-                            </button>
+                                <option value="">All Batches</option>
+                                {batches.map((b) => (
+                                    <option key={b.id} value={b.id}>{b.batch_name}</option>
+                                ))}
+                            </select>
+                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-[#aaaab7] ml-1">Month</label>
+                            <div className="relative">
+                                <select
+                                    value={genMonth}
+                                    onChange={(e) => setGenMonth(parseInt(e.target.value))}
+                                    className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3.5 appearance-none focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm cursor-pointer"
+                                >
+                                    {MONTHS.map((m, i) => (
+                                        <option key={i} value={i + 1}>{m}</option>
+                                    ))}
+                                </select>
+                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-[#aaaab7] ml-1">Year</label>
+                            <div className="relative">
+                                <select
+                                    value={genYear}
+                                    onChange={(e) => setGenYear(parseInt(e.target.value))}
+                                    className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3.5 appearance-none focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm cursor-pointer"
+                                >
+                                    {getYearOptions().map((y) => (
+                                        <option key={y} value={y}>{y}</option>
+                                    ))}
+                                </select>
+                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5 col-span-2 lg:col-span-1">
+                            <label className="text-xs font-medium text-[#aaaab7] ml-1 flex justify-between">
+                                Default Amount (₹) <span className="opacity-50">Fallback</span>
+                            </label>
+                            <input
+                                type="number"
+                                value={genAmount}
+                                onChange={(e) => setGenAmount(parseInt(e.target.value))}
+                                className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm"
+                            />
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-4 relative z-10">
+                    <button
+                        onClick={handleGenerate}
+                        disabled={generating || undoing}
+                        className={`flex-1 py-4 text-white font-bold rounded-full shadow-lg shadow-[#3b82f6]/20 active:scale-95 transition-all cursor-pointer 
+                            ${generating
+                                ? 'bg-white/10 text-white/50 cursor-not-allowed shadow-none'
+                                : 'bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:shadow-[#3b82f6]/40 hover:brightness-110'}`}
+                        style={{ fontFamily: "'Manrope', sans-serif" }}
+                    >
+                        {generating ? "Generating..." : "Generate Monthly Payments"}
+                    </button>
+                    <button
+                        onClick={handleUndo}
+                        disabled={undoing || generating}
+                        className={`px-6 py-4 rounded-full font-bold active:scale-95 transition-all text-sm flex items-center justify-center cursor-pointer 
+                            ${undoing
+                                ? 'bg-white/5 text-[#aaaab7]/50 cursor-not-allowed border border-transparent'
+                                : 'bg-[#171924] text-[#ff6e84] border border-[#ff6e84]/30 hover:bg-[#ff6e84]/10 hover:border-[#ff6e84]/50'}`}
+                        title="Undo last generation (removes only Unpaid records)"
+                    >
+                        <span className="material-symbols-outlined text-[18px] mr-2">undo</span>
+                        {undoing ? "Undoing..." : "Undo"}
+                    </button>
+                </div>
+            </section>
+        </>
     );
 }
 
 export default function AdminDashboard() {
     return (
         <ProtectedRoute allowedRoles={["admin"]}>
-            <DashboardLayout>
+            <AdminLayout>
                 <AdminDashboardContent />
-            </DashboardLayout>
+            </AdminLayout>
         </ProtectedRoute>
     );
 }

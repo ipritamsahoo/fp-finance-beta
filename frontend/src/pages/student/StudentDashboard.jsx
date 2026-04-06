@@ -83,7 +83,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                 {/* Step 1: Make Payment */}
                 <div className="px-6">
                     <p className="text-[#f0f0fd] text-sm font-semibold mb-3 flex items-center gap-2">
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#c799ff]/20 text-[#c799ff] text-xs font-bold">1</span>
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3b82f6]/20 text-[#3b82f6] text-xs font-bold">1</span>
                         Make Payment
                     </p>
 
@@ -99,7 +99,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                     {isMobile() && upiData && (
                         <button
                             onClick={() => setUpiNotice(true)}
-                            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-[#c799ff]/10 border border-[#c799ff]/20 text-[#c799ff] text-sm font-medium hover:bg-[#c799ff]/20 transition-all mb-2 cursor-pointer"
+                            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#3b82f6] text-sm font-medium hover:bg-[#3b82f6]/20 transition-all mb-2 cursor-pointer"
                         >
                             <span className="material-symbols-outlined text-lg">credit_card</span>
                             Open UPI App
@@ -116,7 +116,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
 
                     {!upiData && (
                         <div className="flex items-center justify-center py-6">
-                            <div className="w-6 h-6 border-3 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
+                            <div className="w-6 h-6 border-3 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
                             <span className="text-[#aaaab7] text-sm ml-3">Loading payment info...</span>
                         </div>
                     )}
@@ -128,12 +128,12 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                 {/* Step 2: Upload Screenshot */}
                 <div className="px-6">
                     <p className="text-[#f0f0fd] text-sm font-semibold mb-3 flex items-center gap-2">
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#c799ff]/20 text-[#c799ff] text-xs font-bold">2</span>
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3b82f6]/20 text-[#3b82f6] text-xs font-bold">2</span>
                         Upload Payment Screenshot
                     </p>
 
                     {!preview ? (
-                        <label className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-white/10 bg-white/[0.02] hover:border-[#c799ff]/30 hover:bg-white/[0.04] transition-all cursor-pointer">
+                        <label className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-white/10 bg-white/[0.02] hover:border-[#3b82f6]/30 hover:bg-white/[0.04] transition-all cursor-pointer">
                             <span className="material-symbols-outlined text-4xl text-[#aaaab7] mb-2">cloud_upload</span>
                             <span className="text-[#aaaab7] text-sm">Tap to upload screenshot</span>
                             <span className="text-[#737580] text-xs mt-1">PNG, JPG up to 5MB</span>
@@ -165,8 +165,8 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                     <button
                         onClick={handleSubmit}
                         disabled={!file || submitting}
-                        className="w-full py-3 rounded-full bg-[#c799ff] text-[#440080] font-bold text-sm
-                            hover:bg-[#ba85fb] transition-all shadow-[0_4px_20px_rgba(199,153,255,0.4)]
+                        className="w-full py-3 rounded-full bg-[#3b82f6] text-white font-bold text-sm
+                            hover:bg-[#2563eb] transition-all shadow-[0_4px_20px_rgba(59,130,246,0.4)]
                             disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer active:scale-95"
                     >
                         {submitting ? (
@@ -277,7 +277,7 @@ function StudentDashboardContent() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
+                <div className="w-10 h-10 border-4 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
             </div>
         );
     }
@@ -346,18 +346,18 @@ function StudentDashboardContent() {
                     </div>
                     <div className="relative z-10 space-y-4">
                         <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[#c799ff]">info</span>
+                            <span className="material-symbols-outlined text-[#3b82f6]">info</span>
                             <span className="text-[#aaaab7] font-medium">Due Amount</span>
                         </div>
                         <div className="flex items-baseline gap-2">
                             <span className="text-3xl font-bold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>₹{totalDue.toLocaleString("en-IN")}</span>
-                            <span className="text-[#c799ff] text-xs font-bold uppercase tracking-wider">
+                            <span className="text-[#3b82f6] text-xs font-bold uppercase tracking-wider">
                                 {totalDue === 0 ? "No Action Needed" : `${actionPayments.filter(p => p.status === "Unpaid").length} Pending`}
                             </span>
                         </div>
                         <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                             <div
-                                className="h-full bg-gradient-to-r from-[#c799ff] to-[#7744b5] rounded-full transition-all duration-700"
+                                className="h-full bg-gradient-to-r from-[#3b82f6] to-[#1e40af] rounded-full transition-all duration-700"
                                 style={{ width: totalDue > 0 ? "100%" : "0%" }}
                             />
                         </div>
@@ -372,7 +372,7 @@ function StudentDashboardContent() {
                         <h2 className="text-2xl font-extrabold tracking-tight text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                             Action Required
                         </h2>
-                        <span className="px-3 py-1 bg-[#c799ff]/15 text-[#c799ff] text-[10px] font-bold uppercase tracking-widest rounded-full border border-[#c799ff]/25">
+                        <span className="px-3 py-1 bg-[#3b82f6]/15 text-[#3b82f6] text-[10px] font-bold uppercase tracking-widest rounded-full border border-[#3b82f6]/25">
                             {actionPayments.length} {actionPayments.length === 1 ? "TASK" : "TASKS"}
                         </span>
                     </div>
@@ -414,7 +414,7 @@ function StudentDashboardContent() {
                                 {p.status === "Unpaid" ? (
                                     <button
                                         onClick={() => openPayModal(p)}
-                                        className="px-6 py-2.5 bg-[#c799ff] text-[#440080] rounded-full font-bold text-sm shadow-[0_4px_20px_rgba(199,153,255,0.4)] active:scale-95 transition-transform cursor-pointer whitespace-nowrap"
+                                        className="px-6 py-2.5 bg-[#3b82f6] text-white rounded-full font-bold text-sm shadow-[0_4px_20px_rgba(59,130,246,0.4)] active:scale-95 transition-transform cursor-pointer whitespace-nowrap"
                                     >
                                         Pay Now
                                     </button>

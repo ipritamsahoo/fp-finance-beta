@@ -194,30 +194,14 @@ function TeacherDashboardContent() {
         }
     };
 
-    const isAllMonths = filterMonth === "";
-
     // Summary stats
     const totalStudents = payments.length;
     const paidCount = payments.filter((p) => p.status === "Paid").length;
     const unpaidCount = payments.filter((p) => p.status === "Unpaid").length;
     const pendingCount = payments.filter((p) => p.status === "Pending_Verification").length;
 
-    // For All Months pivot view
-    const pivotStudentMap = {};
-    const monthTotals = Array(12).fill(0);
-    if (isAllMonths) {
-        for (const p of payments) {
-            const sid = p.student_id;
-            if (!pivotStudentMap[sid]) pivotStudentMap[sid] = { name: p.student_name, months: {} };
-            pivotStudentMap[sid].months[p.month] = p;
-            if (p.status === "Paid") monthTotals[p.month - 1] += (p.amount || 0);
-        }
-    }
-    const pivotStudents = Object.entries(pivotStudentMap)
-        .map(([id, data]) => ({ id, ...data }))
-        .sort((a, b) => (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" }));
-
     const statusLabel = (s) => (s === "Pending_Verification" ? "Pending" : s || "—");
+    const filteredPayments = payments.filter(p => p.status !== "Paid");
     const formatDate = (dateStr) => {
         if (!dateStr) return "";
         try {
@@ -253,8 +237,8 @@ function TeacherDashboardContent() {
                                 {totalStudents}
                             </p>
                         </div>
-                        <div className="w-14 h-14 rounded-2xl bg-[#c799ff]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[#c799ff] text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        <div className="w-14 h-14 rounded-2xl bg-[#3b82f6]/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[#3b82f6] text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                                 group
                             </span>
                         </div>
@@ -291,12 +275,6 @@ function TeacherDashboardContent() {
 
             {/* ── Current Filter ── */}
             <section className="animate-fade-in-scale" style={{ animationDelay: "120ms" }}>
-                <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs uppercase tracking-widest text-[#aaaab7] font-bold">
-                        Current Filter
-                    </p>
-                    <span className="material-symbols-outlined text-[#aaaab7] text-lg">tune</span>
-                </div>
                 <div className="flex flex-wrap gap-2">
                     {/* Batch Pill */}
                     <PillSelect
@@ -315,7 +293,6 @@ function TeacherDashboardContent() {
                         value={filterMonth}
                         onChange={(e) => setFilterMonth(e.target.value)}
                     >
-                        <option value="">All</option>
                         {MONTHS.map((m, i) => (
                             <option key={i} value={i + 1}>{m}</option>
                         ))}
@@ -355,114 +332,24 @@ function TeacherDashboardContent() {
             {/* ── Payment Status ── */}
             {loading ? (
                 <div className="flex items-center justify-center py-16">
-                    <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
+                    <div className="w-10 h-10 border-4 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
                 </div>
-            ) : isAllMonths ? (
-                /* ── ALL MONTHS PIVOT TABLE ── */
-                <section className="animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="font-bold text-lg text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                            Yearly Overview
-                        </h2>
-                    </div>
-                    <GlassCard className="overflow-hidden rounded-[32px]">
-                        {pivotStudents.length === 0 ? (
-                            <div className="px-4 py-12 text-center text-[#aaaab7]">
-                                <span className="material-symbols-outlined text-5xl text-[#737580] mb-3 block">table_chart</span>
-                                No payment records for {filterYear}.
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full border-collapse min-w-[900px]">
-                                    <thead>
-                                        <tr className="bg-white/5">
-                                            <th className="px-4 py-3 text-left text-[10px] font-bold text-[#4af8e3] uppercase tracking-wider border-b border-r border-white/5 min-w-[130px] sticky left-0 bg-[#0f1320]/95 z-30">
-                                                Total
-                                            </th>
-                                            {MONTHS.map((_, i) => (
-                                                <th key={i} className="px-3 py-3 text-center text-sm font-bold text-[#4af8e3] border-b border-r border-white/5 min-w-[120px]">
-                                                    ₹{monthTotals[i].toLocaleString()}
-                                                </th>
-                                            ))}
-                                        </tr>
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-[10px] font-bold text-[#aaaab7] uppercase tracking-wider border-b border-r border-white/5 min-w-[130px] sticky left-0 bg-[#0a0a12]/95 z-30">
-                                                Student
-                                            </th>
-                                            {MONTHS.map((m, i) => (
-                                                <th key={i} className="px-3 py-3 text-center text-[10px] font-bold text-[#aaaab7] uppercase tracking-wider border-b border-r border-white/5 min-w-[120px]">
-                                                    {m}
-                                                </th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {pivotStudents.map((student) => (
-                                            <tr key={student.id} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
-                                                <td className="px-4 py-3 text-sm text-white font-medium whitespace-nowrap border-r border-white/5 sticky left-0 bg-[#0c0e17]/95 z-10">
-                                                    {student.name}
-                                                </td>
-                                                {MONTHS.map((_, mi) => {
-                                                    const monthNum = mi + 1;
-                                                    const p = student.months[monthNum];
-                                                    if (!p) {
-                                                        return (
-                                                            <td key={mi} className="px-2 py-2 text-center border-r border-white/5">
-                                                                <span className="text-[#737580] text-xs">—</span>
-                                                            </td>
-                                                        );
-                                                    }
-                                                    const stColors = p.status === "Paid"
-                                                        ? "bg-[#4af8e3]/10 border-[#4af8e3]/30 text-[#4af8e3]"
-                                                        : p.status === "Pending_Verification"
-                                                            ? "bg-amber-400/10 border-amber-400/30 text-amber-400"
-                                                            : "bg-[#ff6e84]/10 border-[#ff6e84]/30 text-[#ff6e84]";
-                                                    return (
-                                                        <td key={mi} className="px-2 py-2 border-r border-white/5">
-                                                            <div className="grid grid-cols-2 gap-1.5 min-w-[130px]">
-                                                                <span className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-[#c799ff]/10 border border-[#c799ff]/30 text-[#c799ff] text-[11px] font-semibold whitespace-nowrap">
-                                                                    ₹{p.amount}
-                                                                </span>
-                                                                <span className={`inline-flex items-center justify-center px-2 py-1 rounded-full border text-[11px] font-semibold whitespace-nowrap ${stColors}`}>
-                                                                    {statusLabel(p.status)}
-                                                                </span>
-                                                                <span className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-[#bc87fe]/10 border border-[#bc87fe]/30 text-[#bc87fe] text-[11px] font-medium whitespace-nowrap">
-                                                                    {p.mode ? p.mode.charAt(0).toUpperCase() + p.mode.slice(1) : "—"}
-                                                                </span>
-                                                                <span className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-white/5 border border-white/10 text-[#aaaab7] text-[11px] font-medium whitespace-nowrap">
-                                                                    {p.status === "Paid" && p.updated_at ? formatDate(p.updated_at) : "—"}
-                                                                </span>
-                                                            </div>
-                                                        </td>
-                                                    );
-                                                })}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </GlassCard>
-                </section>
             ) : (
                 /* ── SINGLE MONTH — Card Layout ── */
                 <section className="animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-bold text-lg text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                            Payment Status
+                            Pending Actions
                         </h2>
-                        <span className="text-[10px] uppercase tracking-widest font-bold text-[#aaaab7]">
-                            {payments.length} students
-                        </span>
                     </div>
                     <div className="space-y-3">
-                        {payments.length === 0 ? (
+                        {filteredPayments.length === 0 ? (
                             <GlassCard className="p-10 text-center">
-                                <span className="material-symbols-outlined text-5xl text-[#737580] mb-3 block">receipt_long</span>
-                                <p className="text-[#aaaab7] text-sm">No payment records for this period.</p>
+                                <span className="material-symbols-outlined text-5xl text-[#3b82f6]/40 mb-3 block">verified</span>
+                                <p className="text-[#f0f0fd] font-bold text-sm">No Pending Actions! 🎉</p>
                             </GlassCard>
                         ) : (
-                            payments.map((p, idx) => (
+                            filteredPayments.map((p, idx) => (
                                 <GlassCard
                                     key={p.id}
                                     className="p-4 animate-fade-in-scale hover:border-[#c799ff]/20 transition-all"

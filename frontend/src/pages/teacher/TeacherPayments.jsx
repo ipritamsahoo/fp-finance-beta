@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import AdminLayout from "@/components/AdminLayout";
+import TeacherLayout from "@/components/TeacherLayout";
 import { api } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 
@@ -17,7 +17,7 @@ function PaymentsContent() {
     const [filterYear, setFilterYear] = useState(now.getFullYear());
 
     useEffect(() => {
-        api.get("/api/admin/batches").then(setBatches).catch(() => { });
+        api.get("/api/teacher/batches").then(setBatches).catch(() => { });
     }, []);
 
     const fetchPayments = useCallback(async () => {
@@ -25,7 +25,7 @@ function PaymentsContent() {
         setLoading(true);
         setError("");
         try {
-            const res = await api.get(`/api/admin/payments?batch_id=${filterBatch}&year=${filterYear}`);
+            const res = await api.get(`/api/teacher/payments?batch_id=${filterBatch}&year=${filterYear}`);
             setPayments(res);
         } catch (err) {
             setError(err.message);
@@ -80,12 +80,6 @@ function PaymentsContent() {
         } catch { return ""; }
     };
 
-    const statusColor = (status) => {
-        if (status === "Paid") return "text-emerald-400";
-        if (status === "Pending_Verification") return "text-amber-400";
-        return "text-red-400";
-    };
-
     const statusLabel = (status) => {
         if (status === "Pending_Verification") return "Pending";
         return status || "—";
@@ -96,7 +90,7 @@ function PaymentsContent() {
             {/* Header */}
             <div>
                 <h1 className="text-2xl md:text-3xl font-extrabold text-[#f0f0fd] flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                    All Payments <span className="text-2xl drop-shadow-md">💰</span>
+                    Student Payments <span className="text-2xl drop-shadow-md">💰</span>
                 </h1>
             </div>
 
@@ -144,11 +138,11 @@ function PaymentsContent() {
                         <table className="w-full border-collapse min-w-[1200px]">
                             <thead className="bg-[#0c0e17]/80 backdrop-blur-xl sticky top-0 z-20">
                                 <tr className="border-b border-white/5">
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-[#4af8e3] uppercase tracking-wider whitespace-nowrap border-r border-[#464752]/40 min-w-[200px] sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
-                                        Total Collected
+                                    <th className="px-6 py-4 text-left text-sm font-bold text-[#3b82f6] uppercase tracking-wider whitespace-nowrap border-r border-[#464752]/40 min-w-[220px] sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                                        Monthly Totals
                                     </th>
                                     {MONTHS_SHORT.map((_, i) => (
-                                        <th key={i} className="px-4 py-3 text-center text-sm font-bold text-[#4af8e3] tracking-widest border-r border-[#464752]/40 min-w-[170px]">
+                                        <th key={i} className="px-3 py-3 text-center text-sm font-bold text-[#3b82f6] tracking-widest border-r border-[#464752]/40 min-w-[140px]">
                                             ₹{monthTotals[i].toLocaleString()}
                                         </th>
                                     ))}
@@ -167,7 +161,7 @@ function PaymentsContent() {
                             <tbody>
                                 {students.map((student) => (
                                     <tr key={student.id} className="border-b border-[#464752]/20 hover:bg-white/5 transition-colors group">
-                                        <td className="px-6 py-4 text-sm text-[#f0f0fd] font-bold whitespace-nowrap border-r border-[#464752]/40 sticky left-0 bg-[#171924] group-hover:bg-[#1f2231] transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                        <td className="px-6 py-5 text-base text-[#f0f0fd] font-bold whitespace-nowrap border-r border-[#464752]/40 sticky left-0 bg-[#171924] group-hover:bg-[#1f2231] transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                             {student.name}
                                         </td>
                                         {MONTHS_SHORT.map((_, mi) => {
@@ -183,12 +177,12 @@ function PaymentsContent() {
                                             const stBg = p.status === "Paid"
                                                 ? "bg-[#4af8e3]/10 border-[#4af8e3]/30 text-[#4af8e3]"
                                                 : p.status === "Pending_Verification"
-                                                    ? "bg-[#ff9dac]/10 border-[#ff9dac]/30 text-[#ff9dac]"
+                                                    ? "bg-[#3b82f6]/10 border-[#3b82f6]/30 text-[#3b82f6]"
                                                     : "bg-[#ff6e84]/10 border-[#ff6e84]/30 text-[#ff6e84]";
                                             const stGlow = p.status === "Paid"
                                                 ? "0 0 8px rgba(74,248,227,0.4), 0 0 2px rgba(74,248,227,0.2)"
                                                 : p.status === "Pending_Verification"
-                                                    ? "0 0 8px rgba(255,157,172,0.4), 0 0 2px rgba(255,157,172,0.2)"
+                                                    ? "0 0 8px rgba(59,130,246,0.4), 0 0 2px rgba(59,130,246,0.2)"
                                                     : "0 0 8px rgba(255,110,132,0.4), 0 0 2px rgba(255,110,132,0.2)";
                                             return (
                                                 <td key={mi} className="px-4 py-5 border-r border-[#464752]/40 bg-black/10">
@@ -227,10 +221,10 @@ function PaymentsContent() {
     );
 }
 
-export default function AllPayments() {
+export default function TeacherPayments() {
     return (
-        <ProtectedRoute allowedRoles={["admin"]}>
-            <AdminLayout>
+        <ProtectedRoute allowedRoles={["teacher"]}>
+            <TeacherLayout>
                 <style dangerouslySetInnerHTML={{__html: `
                     .custom-scrollbar::-webkit-scrollbar {
                         height: 8px;
@@ -248,7 +242,7 @@ export default function AllPayments() {
                     }
                 `}} />
                 <PaymentsContent />
-            </AdminLayout>
+            </TeacherLayout>
         </ProtectedRoute>
     );
 }

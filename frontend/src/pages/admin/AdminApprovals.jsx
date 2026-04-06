@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import DashboardLayout from "@/components/DashboardLayout";
+import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
@@ -78,89 +78,105 @@ function ApprovalContent() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#3861fb]/30 border-t-[#3861fb] rounded-full animate-spin" />
+                <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
             </div>
         );
     }
 
     return (
-        <div>
+        <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
-                <div>
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Approval Queue ✅</h1>
-                    <p className="text-[#8a8f98] text-sm mt-1">
+                <div className="space-y-1">
+                    <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-[#f0f0fd] flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                        Approval Queue <span className="text-2xl drop-shadow-md">✅</span>
+                    </h1>
+                    <p className="text-[#aaaab7] text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
                         {filtered.length} of {pending.length} payment(s) awaiting verification
                     </p>
                 </div>
-                <select
-                    value={filterBatch}
-                    onChange={(e) => setFilterBatch(e.target.value)}
-                    className="w-full sm:w-auto px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50"
-                >
-                    <option value="">All Batches</option>
-                    {batches.map((b) => (
-                        <option key={b.id} value={b.id}>{b.batch_name}</option>
-                    ))}
-                </select>
+                <div className="relative w-full sm:w-auto">
+                    <select
+                        value={filterBatch}
+                        onChange={(e) => setFilterBatch(e.target.value)}
+                        className="w-full sm:w-auto bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3.5 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer min-w-[200px]"
+                    >
+                        <option value="">All Batches</option>
+                        {batches.map((b) => (
+                            <option key={b.id} value={b.id}>{b.batch_name}</option>
+                        ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                </div>
             </div>
 
             {error && (
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-                    {error} <button onClick={() => setError("")} className="ml-2 cursor-pointer">✕</button>
+                <div className="mb-4 p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#ff6e84]/30 shadow-lg text-[#ff9dac] text-sm flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#ff6e84]">error</span>
+                    <span className="flex-1">{error}</span>
+                    <button onClick={() => setError("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
                 </div>
             )}
             {success && (
-                <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm">
-                    {success} <button onClick={() => setSuccess("")} className="ml-2 cursor-pointer">✕</button>
+                <div className="mb-4 p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#4af8e3]/30 shadow-lg text-[#dcfff8] text-sm flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#4af8e3]">check_circle</span>
+                    <span className="flex-1">{success}</span>
+                    <button onClick={() => setSuccess("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
                 </div>
             )}
 
             {filtered.length === 0 ? (
-                <div className="glass-card rounded-xl p-10 sm:p-12 text-center animate-fade-in-up">
-                    <span className="text-5xl block mb-4">🎉</span>
-                    <p className="text-white text-lg font-semibold">All clear!</p>
-                    <p className="text-[#8a8f98] text-sm mt-1">No pending approvals at the moment.</p>
+                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl p-10 sm:p-12 text-center animate-fade-in-up">
+                    <span className="text-5xl block mb-4 drop-shadow-md">🎉</span>
+                    <p className="text-[#f0f0fd] text-xl font-bold" style={{ fontFamily: "'Manrope', sans-serif" }}>All clear!</p>
+                    <p className="text-[#aaaab7] text-sm mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>No pending approvals at the moment.</p>
                 </div>
             ) : (
-                <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-4">
                     {filtered.map((item, idx) => (
-                        <div key={item.id} className="glass-card rounded-xl p-4 sm:p-5 animate-fade-in-up" style={{ animationDelay: `${idx * 80}ms` }}>
+                        <div key={item.id} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 sm:p-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80" style={{ animationDelay: `${idx * 80}ms` }}>
                             {/* Top: Name + Badge */}
-                            <div className="flex items-center gap-2 mb-3">
-                                <h3 className="text-white font-semibold text-sm sm:text-base truncate flex-1">{item.student_name || "Unknown Student"}</h3>
-                                <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold border
-                                    ${item.mode === "online" ? "bg-blue-500/20 text-blue-300 border-blue-500/30" : "bg-orange-500/20 text-orange-300 border-orange-500/30"}`}>
+                            <div className="flex items-center gap-3 mb-4">
+                                <h3 className="text-[#f0f0fd] font-bold text-base sm:text-lg truncate flex-1" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                    {item.student_name || "Unknown Student"}
+                                </h3>
+                                <span className={`shrink-0 px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border
+                                    ${item.mode === "online" ? "bg-[#c799ff]/10 text-[#c799ff] border-[#c799ff]/30" : "bg-[#ff9dac]/10 text-[#ff9dac] border-[#ff9dac]/30"}`}>
                                     {item.mode === "online" ? "📱 Online" : "💵 Offline"}
                                 </span>
                             </div>
 
                             {/* Details row */}
-                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-[#8a8f98] mb-4">
-                                <span>📅 {MONTHS[item.month - 1]} {item.year}</span>
-                                <span>💰 ₹{item.amount}</span>
-                                {item.batch_name && <span>📋 {item.batch_name}</span>}
-                                {item.teacher_name && <span>👨‍🏫 {item.teacher_name}</span>}
+                            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs sm:text-sm text-[#aaaab7] mb-6 font-medium">
+                                <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-[#c799ff] text-base">calendar_today</span> {MONTHS[item.month - 1]} {item.year}</span>
+                                <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-[#4af8e3] text-base">payments</span> ₹{item.amount}</span>
+                                {item.batch_name && <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-[#ff9dac] text-base">group</span> {item.batch_name}</span>}
+                                {item.teacher_name && <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-white/70 text-base">person</span> {item.teacher_name}</span>}
                             </div>
 
                             {/* Screenshot + Actions */}
-                            <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center justify-between gap-4">
                                 {item.screenshot_url ? (
                                     <button onClick={() => setPreviewImg(item.screenshot_url)}
-                                        className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border border-[#1a1f2e]/50 active:border-[#3861fb]/50 transition-all cursor-pointer">
-                                        <img src={item.screenshot_url} alt="Screenshot" className="w-full h-full object-cover" />
+                                        className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-[#464752]/50 active:border-[#c799ff] transition-all cursor-pointer group relative">
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
+                                            <span className="material-symbols-outlined text-white">zoom_in</span>
+                                        </div>
+                                        <img src={item.screenshot_url} alt="Screenshot" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                     </button>
                                 ) : <div />}
 
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 sm:gap-3">
                                     <button onClick={() => handleApprove(item.id)} disabled={actionLoading === item.id}
-                                        className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm font-medium
-                                            active:bg-emerald-500/30 disabled:opacity-50 cursor-pointer">
-                                        ✅ Approve
+                                        className="flex-1 sm:flex-none px-4 sm:px-6 py-3 rounded-xl bg-[#4af8e3]/10 border border-[#4af8e3]/30 text-[#4af8e3] text-xs sm:text-sm shadow-sm transition-all
+                                            hover:bg-[#4af8e3]/20 hover:border-[#4af8e3]/50 disabled:opacity-50 cursor-pointer flex items-center gap-2 font-bold uppercase tracking-wider" style={{ fontFamily: "'Inter', sans-serif" }}>
+                                        <span className="material-symbols-outlined text-base">check_circle</span>
+                                        <span className="hidden sm:inline">Approve</span>
                                     </button>
                                     <button onClick={() => handleReject(item.id)} disabled={actionLoading === item.id}
-                                        className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-xs sm:text-sm font-medium
-                                            active:bg-red-500/30 disabled:opacity-50 cursor-pointer">
-                                        ❌ Reject
+                                        className="flex-1 sm:flex-none px-4 sm:px-6 py-3 rounded-xl bg-[#ff6e84]/10 border border-[#ff6e84]/30 text-[#ff6e84] text-xs sm:text-sm shadow-sm transition-all
+                                            hover:bg-[#ff6e84]/20 hover:border-[#ff6e84]/50 disabled:opacity-50 cursor-pointer flex items-center gap-2 font-bold uppercase tracking-wider" style={{ fontFamily: "'Inter', sans-serif" }}>
+                                        <span className="material-symbols-outlined text-base">cancel</span>
+                                        <span className="hidden sm:inline">Reject</span>
                                     </button>
                                 </div>
                             </div>
@@ -170,11 +186,13 @@ function ApprovalContent() {
             )}
 
             {previewImg && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setPreviewImg(null)}>
-                    <div className="relative max-w-2xl w-full max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4" onClick={() => setPreviewImg(null)}>
+                    <div className="relative max-w-2xl w-full max-h-[80vh] flex justify-center" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => setPreviewImg(null)}
-                            className="absolute -top-3 -right-3 w-9 h-9 rounded-full bg-[#1a1f2e] border border-[#1a1f2e]/60 text-white flex items-center justify-center active:bg-[#252a3a] cursor-pointer z-10">✕</button>
-                        <img src={previewImg} alt="Payment Screenshot" className="rounded-xl max-h-[80vh] w-full object-contain border border-[#1a1f2e]/50" />
+                            className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-[#171924] border border-white/10 text-white flex items-center justify-center hover:bg-white/10 cursor-pointer z-10 transition-colors shadow-xl">
+                            <span className="material-symbols-outlined text-lg">close</span>
+                        </button>
+                        <img src={previewImg} alt="Payment Screenshot" className="rounded-3xl max-h-[80vh] w-auto max-w-full object-contain border border-[#464752]/50 shadow-2xl shadow-black/80" />
                     </div>
                 </div>
             )}
@@ -185,9 +203,9 @@ function ApprovalContent() {
 export default function AdminApprovals() {
     return (
         <ProtectedRoute allowedRoles={["admin"]}>
-            <DashboardLayout>
+            <AdminLayout>
                 <ApprovalContent />
-            </DashboardLayout>
+            </AdminLayout>
         </ProtectedRoute>
     );
 }

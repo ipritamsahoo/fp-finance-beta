@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import DashboardLayout from "@/components/DashboardLayout";
+import AdminLayout from "@/components/AdminLayout";
 import UserDevicesModal from "@/components/UserDevicesModal";
 import { api } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
@@ -186,66 +186,88 @@ function StudentsContent() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#3861fb]/30 border-t-[#3861fb] rounded-full animate-spin" />
+                <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
             </div>
         );
     }
 
     return (
-        <>
+        <div className="space-y-6">
             <div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
-                    <div>
-                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Manage Students 🎓</h1>
-                        <p className="text-[#8a8f98] text-sm mt-1">{filtered.length} of {students.length} student(s)</p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+                    {/* Hide title on mobile as it's in the Sub-Page Header */}
+                    <div className="hidden md:block">
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#f0f0fd] tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                            Manage Students <span className="text-2xl drop-shadow-md">🎓</span>
+                        </h1>
+                        <p className="text-[#aaaab7] text-sm mt-1 font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
+                            {filtered.length} of {students.length} student(s)
+                        </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                         <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)}
-                            className="px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50">
+                            className="px-4 py-3 rounded-xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors">
                             <option value="">All Batches</option>
                             {batches.map((b) => <option key={b.id} value={b.id}>{b.batch_name}</option>)}
                         </select>
                         <button
                             onClick={() => { setShowForm(!showForm); cancelEdit(); cancelOverride(); }}
-                            className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-[#3861fb] to-[#2b4fcf] text-white text-sm font-medium
-                            hover:from-[#4a73ff] hover:to-[#3861fb] transition-all shadow-lg cursor-pointer whitespace-nowrap"
+                            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
+                            hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(199,153,255,0.15)] cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
                         >
-                            {showForm ? "✕ Cancel" : "➕ Add"}
+                            <span className="material-symbols-outlined text-[18px]">
+                                {showForm ? "close" : "add"}
+                            </span>
+                            {showForm ? "Cancel" : "Add"}
                         </button>
                     </div>
                 </div>
 
                 {error && (
-                    <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-                        {error} <button onClick={() => setError("")} className="ml-2 cursor-pointer">✕</button>
+                    <div className="mb-4 p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#ff6e84]/30 shadow-lg text-[#ff9dac] text-sm flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[#ff6e84]">error</span>
+                        <span className="flex-1">{error}</span>
+                        <button onClick={() => setError("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
                     </div>
                 )}
                 {success && (
-                    <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm">
-                        {success} <button onClick={() => setSuccess("")} className="ml-2 cursor-pointer">✕</button>
+                    <div className="mb-4 p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#4af8e3]/30 shadow-lg text-[#dcfff8] text-sm flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[#4af8e3]">check_circle</span>
+                        <span className="flex-1">{success}</span>
+                        <button onClick={() => setSuccess("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
                     </div>
                 )}
 
                 {/* Add Form */}
                 {showForm && (
-                    <form onSubmit={handleSubmit} className="glass-card rounded-xl p-4 sm:p-5 mb-6 animate-fade-in-up">
-                        <h3 className="text-white font-semibold mb-4">New Student</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                    <form onSubmit={handleSubmit} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 sm:p-8 mb-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80">
+                        <h3 className="text-[#f0f0fd] font-bold mb-6 text-lg flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                            <span className="w-8 h-8 rounded-xl bg-[#c799ff]/10 border border-[#c799ff]/30 flex items-center justify-center text-sm font-extrabold text-[#c799ff] shadow-[0_0_10px_rgba(199,153,255,0.2)]">
+                                <span className="material-symbols-outlined text-[16px]">person_add</span>
+                            </span>
+                            New Student
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
                             <input placeholder="Full Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required
-                                className="w-full px-3 py-3 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50" />
+                                className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors placeholder:text-[#aaaab7]/70" />
                             <input placeholder="Username or Mobile" type="text" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required
-                                className="w-full px-3 py-3 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50" />
+                                className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors placeholder:text-[#aaaab7]/70" />
                             <input placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6}
-                                className="w-full px-3 py-3 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50" />
+                                className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors placeholder:text-[#aaaab7]/70" />
                             <select value={form.batch_id} onChange={(e) => setForm({ ...form, batch_id: e.target.value })} required
-                                className="w-full px-3 py-3 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50">
+                                className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors appearance-none cursor-pointer">
                                 <option value="">Select Batch</option>
                                 {batches.map((b) => <option key={b.id} value={b.id}>{b.batch_name}</option>)}
                             </select>
                         </div>
                         <button type="submit" disabled={formLoading}
-                            className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-gradient-to-r from-[#3861fb] to-[#2b4fcf] text-white text-sm font-medium
-                            hover:from-[#4a73ff] hover:to-[#3861fb] transition-all disabled:opacity-50 cursor-pointer">
+                            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
+                            hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(199,153,255,0.15)] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-3">
+                            {formLoading ? (
+                                <span className="w-5 h-5 rounded-full border-2 border-[#c799ff]/30 border-t-[#c799ff] animate-spin" />
+                            ) : (
+                                <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                            )}
                             {formLoading ? "Adding..." : "Add Student"}
                         </button>
                     </form>
@@ -253,49 +275,55 @@ function StudentsContent() {
 
                 {/* Edit Form Modal */}
                 {editingStudent && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
-                        <form onSubmit={handleEditSubmit} className="glass-card rounded-xl p-5 sm:p-6 w-full max-w-lg border border-amber-500/30 shadow-2xl relative animate-fade-in-up m-auto">
-                            <div className="flex items-center justify-between mb-5">
-                                <h3 className="text-white font-semibold text-lg">✏️ Edit Student</h3>
-                                <button type="button" onClick={cancelEdit} className="text-[#8a8f98] hover:text-white transition-colors cursor-pointer p-1 rounded-full hover:bg-white/10">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto">
+                        <form onSubmit={handleEditSubmit} className="bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2rem] p-6 sm:p-8 w-full max-w-lg border border-[#737580]/20 shadow-2xl relative animate-fade-in-up m-auto">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-[#f0f0fd] font-bold text-xl flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                    <span className="material-symbols-outlined text-[#c799ff]">edit</span>
+                                    Edit Student
+                                </h3>
+                                <button type="button" onClick={cancelEdit} className="text-[#aaaab7] hover:text-[#ff6e84] transition-colors cursor-pointer p-2 rounded-full hover:bg-white/5 flex items-center justify-center">
+                                    <span className="material-symbols-outlined">close</span>
                                 </button>
                             </div>
-                            <div className="space-y-4 mb-6">
+                            <div className="space-y-5 mb-8">
                                 <div>
-                                    <label className="block text-[#8a8f98] text-xs mb-1">Full Name</label>
+                                    <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Full Name</label>
                                     <input placeholder="Full Name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                        className="w-full px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg bg-[#0f1320]/80 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+                                        className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors" />
                                 </div>
                                 <div>
-                                    <label className="block text-[#8a8f98] text-xs mb-1">Username or Mobile</label>
+                                    <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Username or Mobile</label>
                                     <input placeholder="Username or Mobile" type="text" value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                                        className="w-full px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg bg-[#0f1320]/80 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+                                        className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors" />
                                 </div>
                                 <div>
-                                    <label className="block text-[#8a8f98] text-xs mb-1">New Password (Optional)</label>
+                                    <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">New Password (Optional)</label>
                                     <input placeholder="Leave blank to keep current" type="password" value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} minLength={editForm.password ? 6 : undefined}
-                                        className="w-full px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg bg-[#0f1320]/80 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+                                        className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors" />
                                 </div>
                                 <div>
-                                    <label className="block text-[#8a8f98] text-xs mb-1">Batch</label>
+                                    <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Batch</label>
                                     <select value={editForm.batch_id} onChange={(e) => setEditForm({ ...editForm, batch_id: e.target.value })}
-                                        className="w-full px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg bg-[#0f1320]/80 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                                        className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors appearance-none cursor-pointer">
                                         <option value="">Select Batch</option>
                                         {batches.map((b) => <option key={b.id} value={b.id}>{b.batch_name}</option>)}
                                     </select>
                                 </div>
                             </div>
-                            <div className="flex justify-end gap-3 pt-4 border-t border-[#1a1f2e]/50">
-                                <button type="button" onClick={cancelEdit} className="px-5 py-2.5 rounded-lg text-sm font-medium text-[#8a8f98] hover:text-white transition-colors cursor-pointer">
+                            <div className="flex justify-end gap-4 pt-6 border-t border-[#464752]/30">
+                                <button type="button" onClick={cancelEdit} className="px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-widest text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 transition-all cursor-pointer">
                                     Cancel
                                 </button>
                                 <button type="submit" disabled={editLoading}
-                                    className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 text-white text-sm font-medium
-                                    hover:from-amber-500 hover:to-orange-500 transition-all disabled:opacity-50 cursor-pointer shadow-lg shadow-amber-500/20">
-                                    {editLoading ? "Saving..." : "💾 Save Changes"}
+                                    className="px-6 py-3 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
+                                    hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(199,153,255,0.15)] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2">
+                                    {editLoading ? (
+                                        <span className="w-5 h-5 rounded-full border-2 border-[#c799ff]/30 border-t-[#c799ff] animate-spin" />
+                                    ) : (
+                                        <span className="material-symbols-outlined text-[18px]">save</span>
+                                    )}
+                                    {editLoading ? "Saving..." : "Save Changes"}
                                 </button>
                             </div>
                         </form>
@@ -304,60 +332,72 @@ function StudentsContent() {
 
                 {/* Fee Override Form Modal */}
                 {overrideStudent && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
-                        <form onSubmit={handleOverrideSubmit} className="glass-card rounded-xl p-5 sm:p-6 w-full max-w-lg border border-[#f5c542]/30 shadow-2xl relative animate-fade-in-up m-auto">
-                            <div className="flex items-center justify-between mb-5">
-                                <h3 className="text-white font-semibold text-lg">💰 Fee Override: {overrideStudent.name}</h3>
-                                <button type="button" onClick={cancelOverride} className="text-[#8a8f98] hover:text-white transition-colors cursor-pointer p-1 rounded-full hover:bg-white/10">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto">
+                        <form onSubmit={handleOverrideSubmit} className="bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2rem] p-6 sm:p-8 w-full max-w-lg border border-[#f5c542]/20 shadow-2xl relative animate-fade-in-up m-auto">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-[#f0f0fd] font-bold text-xl flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                    <span className="material-symbols-outlined text-[#f5c542]">payments</span>
+                                    Override: {overrideStudent.name}
+                                </h3>
+                                <button type="button" onClick={cancelOverride} className="text-[#aaaab7] hover:text-[#ff6e84] transition-colors cursor-pointer p-2 rounded-full hover:bg-white/5 flex items-center justify-center">
+                                    <span className="material-symbols-outlined">close</span>
                                 </button>
                             </div>
-                            <div className="flex gap-2 mb-5">
+                            <div className="flex gap-3 mb-6">
                                 <button type="button" onClick={() => setOverrideType("permanent")}
-                                    className={`flex-1 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium border transition-all cursor-pointer
-                                    ${overrideType === "permanent" ? "bg-violet-500/20 border-violet-500/50 text-violet-300 shadow-[0_0_10px_rgba(139,92,246,0.3)]" : "bg-[#0f1320]/60 border-[#1a1f2e]/50 text-[#8a8f98] hover:bg-white/5"}`}>
-                                    🔒 All-Time
+                                    className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-widest border transition-all duration-300 cursor-pointer
+                                    ${overrideType === "permanent" ? "bg-[#c799ff]/10 border-[#c799ff]/50 text-[#c799ff] shadow-[0_0_15px_rgba(199,153,255,0.2)]" : "bg-[#222532]/50 border-[#464752]/50 text-[#aaaab7] hover:bg-[#222532]/80"}`}>
+                                    All-Time
                                 </button>
                                 <button type="button" onClick={() => setOverrideType("monthly")}
-                                    className={`flex-1 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium border transition-all cursor-pointer
-                                    ${overrideType === "monthly" ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.3)]" : "bg-[#0f1320]/60 border-[#1a1f2e]/50 text-[#8a8f98] hover:bg-white/5"}`}>
-                                    📅 Specific Month
+                                    className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-widest border transition-all duration-300 cursor-pointer
+                                    ${overrideType === "monthly" ? "bg-[#4af8e3]/10 border-[#4af8e3]/50 text-[#4af8e3] shadow-[0_0_15px_rgba(74,248,227,0.2)]" : "bg-[#222532]/50 border-[#464752]/50 text-[#aaaab7] hover:bg-[#222532]/80"}`}>
+                                    Specific Month
                                 </button>
                             </div>
-                            <div className="space-y-4 mb-6">
+                            <div className="space-y-5 mb-8">
                                 <div>
-                                    <label className="block text-[#8a8f98] text-xs mb-1">Custom Fee (₹)</label>
+                                    <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Custom Fee (₹)</label>
                                     <input type="number" value={overrideAmount} onChange={(e) => setOverrideAmount(e.target.value)} placeholder="Leave blank to reset"
-                                        className="w-full px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg bg-[#0f1320]/80 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50" />
+                                        className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50 transition-colors placeholder:text-[#aaaab7]/50" />
                                 </div>
                                 {overrideType === "monthly" && (
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-[#8a8f98] text-xs mb-1">Month</label>
-                                            <select value={overrideMonth} onChange={(e) => setOverrideMonth(Number(e.target.value))}
-                                                className="w-full px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg bg-[#0f1320]/80 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50">
-                                                {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-                                            </select>
+                                            <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Month</label>
+                                            <div className="relative">
+                                                <select value={overrideMonth} onChange={(e) => setOverrideMonth(Number(e.target.value))}
+                                                    className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50 transition-colors appearance-none cursor-pointer">
+                                                    {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                                                </select>
+                                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                                            </div>
                                         </div>
                                         <div>
-                                            <label className="block text-[#8a8f98] text-xs mb-1">Year</label>
-                                            <select value={overrideYear} onChange={(e) => setOverrideYear(Number(e.target.value))}
-                                                className="w-full px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg bg-[#0f1320]/80 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50">
-                                                {getYearOptions().map((y) => <option key={y} value={y}>{y}</option>)}
-                                            </select>
+                                            <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Year</label>
+                                            <div className="relative">
+                                                <select value={overrideYear} onChange={(e) => setOverrideYear(Number(e.target.value))}
+                                                    className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50 transition-colors appearance-none cursor-pointer">
+                                                    {getYearOptions().map((y) => <option key={y} value={y}>{y}</option>)}
+                                                </select>
+                                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
                             </div>
-                            <div className="flex justify-end gap-3 pt-4 border-t border-[#1a1f2e]/50">
-                                <button type="button" onClick={cancelOverride} className="px-5 py-2.5 rounded-lg text-sm font-medium text-[#8a8f98] hover:text-white transition-colors cursor-pointer">
+                            <div className="flex justify-end gap-4 pt-6 border-t border-[#464752]/30">
+                                <button type="button" onClick={cancelOverride} className="px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-widest text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 transition-all cursor-pointer">
                                     Cancel
                                 </button>
                                 <button type="submit" disabled={overrideLoading}
-                                    className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-[#f5c542] to-amber-600 text-slate-900 text-sm font-bold
-                                    hover:from-[#f5d062] hover:to-amber-500 transition-all disabled:opacity-50 cursor-pointer shadow-lg shadow-amber-500/20">
+                                    className="px-6 py-3 rounded-xl bg-[#f5c542]/10 text-[#f5c542] border border-[#f5c542]/30 text-sm font-bold uppercase tracking-widest
+                                    hover:bg-[#f5c542]/20 hover:border-[#f5c542]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(245,197,66,0.15)] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2">
+                                    {overrideLoading ? (
+                                        <span className="w-5 h-5 rounded-full border-2 border-[#f5c542]/30 border-t-[#f5c542] animate-spin" />
+                                    ) : (
+                                        <span className="material-symbols-outlined text-[18px]">save</span>
+                                    )}
                                     {overrideLoading ? "Saving..." : "Set Fee Override"}
                                 </button>
                             </div>
@@ -366,103 +406,140 @@ function StudentsContent() {
                 )}
 
                 {/* Mobile: Card layout */}
-                <div className="space-y-3 md:hidden">
+                <div className="space-y-4 md:hidden">
                     {filtered.map((s, idx) => (
-                        <div key={s.uid || s.id} className="glass-card rounded-xl p-4 animate-fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                                <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                                    <p className="text-white font-medium text-sm truncate">{s.name}</p>
-                                </div>
-                                <div className="flex gap-1 shrink-0">
-                                    <button onClick={() => setDevicesStudent(s)}
-                                        className="px-2 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs cursor-pointer">📱</button>
-                                    <button onClick={() => startOverride(s)}
-                                        className="px-2 py-1.5 rounded-lg bg-[#f5c542]/20 border border-[#f5c542]/30 text-[#f5c542] text-xs cursor-pointer">💰</button>
-                                    <button onClick={() => startEdit(s)}
-                                        className="px-2 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs cursor-pointer">✏️</button>
-
-                                    <button onClick={() => handleDelete(s.uid || s.id)} disabled={deleting === (s.uid || s.id)}
-                                        className="px-2 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-xs disabled:opacity-50 cursor-pointer">🗑️</button>
-                                </div>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                                <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-xs border border-blue-500/30">
-                                    {s.batch_name || "No Batch"}
-                                </span>
-                                {s.custom_fee != null && (
-                                    <span className="px-2 py-0.5 rounded-full bg-[#f5c542]/20 text-[#f5c542] text-xs border border-[#f5c542]/30 font-medium">
-                                        ₹{s.custom_fee}/mo
+                        <div key={s.uid || s.id} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-2xl p-5 animate-fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center gap-3">
+                                    <span className="w-10 h-10 rounded-full bg-[#c799ff]/10 flex items-center justify-center text-[#c799ff] font-bold text-lg border border-[#c799ff]/30 shadow-[0_0_10px_rgba(199,153,255,0.2)]">
+                                        {s.name.charAt(0).toUpperCase()}
                                     </span>
-                                )}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[#f0f0fd] font-bold text-base truncate tracking-wide" style={{ fontFamily: "'Manrope', sans-serif" }}>{s.name}</p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap gap-2 ml-13">
+                                    <span className="px-3 py-1 rounded-full bg-[#c799ff]/10 text-[#c799ff] text-[11px] border border-[#c799ff]/30 font-bold uppercase tracking-widest whitespace-nowrap">
+                                        {s.batch_name || "No Batch"}
+                                    </span>
+                                    {s.custom_fee != null && (
+                                        <span className="px-3 py-1 rounded-full bg-[#f5c542]/10 text-[#f5c542] text-[11px] border border-[#f5c542]/30 font-bold uppercase tracking-widest whitespace-nowrap">
+                                            ₹{s.custom_fee}/mo
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex gap-2 justify-end w-full border-t border-[#464752]/30 pt-4">
+                                    <button onClick={() => setDevicesStudent(s)}
+                                        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:bg-[#4af8e3]/10 hover:border-[#4af8e3]/30 hover:text-[#4af8e3] transition-all cursor-pointer flex-1 flex justify-center">
+                                        <span className="material-symbols-outlined text-[20px]">devices</span>
+                                    </button>
+                                    <button onClick={() => startOverride(s)}
+                                        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:bg-[#f5c542]/10 hover:border-[#f5c542]/30 hover:text-[#f5c542] transition-all cursor-pointer flex-1 flex justify-center">
+                                        <span className="material-symbols-outlined text-[20px]">payments</span>
+                                    </button>
+                                    <button onClick={() => startEdit(s)}
+                                        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:bg-[#c799ff]/10 hover:border-[#c799ff]/30 hover:text-[#c799ff] transition-all cursor-pointer flex-1 flex justify-center">
+                                        <span className="material-symbols-outlined text-[20px]">edit</span>
+                                    </button>
+                                    <button onClick={() => handleDelete(s.uid || s.id)} disabled={deleting === (s.uid || s.id)}
+                                        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:bg-[#ff6e84]/10 hover:border-[#ff6e84]/30 hover:text-[#ff6e84] transition-all disabled:opacity-50 cursor-pointer flex-1 flex justify-center">
+                                        {deleting === (s.uid || s.id) ? (
+                                            <span className="w-5 h-5 rounded-full border-2 border-[#ff6e84]/30 border-t-[#ff6e84] animate-spin" />
+                                        ) : (
+                                            <span className="material-symbols-outlined text-[20px]">delete</span>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
                     {filtered.length === 0 && (
-                        <div className="glass-card rounded-xl p-8 text-center text-[#8a8f98] text-sm">No students found.</div>
+                        <div className="bg-[#171924]/60 backdrop-blur-[20px] rounded-[2rem] p-10 text-center text-[#aaaab7] border border-[#737580]/10 flex flex-col items-center justify-center gap-4">
+                            <span className="material-symbols-outlined text-4xl text-[#464752]">group</span>
+                            <p className="font-medium text-lg">No students found.</p>
+                        </div>
                     )}
                 </div>
 
                 {/* Desktop: Table */}
-                <div className="hidden md:block glass-card rounded-xl overflow-hidden">
-                    <div className="overflow-x-auto">
+                <div className="hidden md:block bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] overflow-hidden shadow-lg animate-fade-in-up">
+                    <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full">
-                            <thead className="bg-[#0f1320]/40">
+                            <thead className="bg-[#222532]/50 border-b border-[#464752]/50">
                                 <tr>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-[#8a8f98] uppercase tracking-wider">Name</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-[#8a8f98] uppercase tracking-wider">Batch</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-[#8a8f98] uppercase tracking-wider">All time Custom Fee</th>
-                                    <th className="px-5 py-3 text-right text-xs font-semibold text-[#8a8f98] uppercase tracking-wider">Actions</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap">Student Details</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap">Batch</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap">All time Custom Fee</th>
+                                    <th className="px-6 py-4 text-right text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-[#1a1f2e]/30">
+                            <tbody className="divide-y divide-[#464752]/30">
                                 {filtered.map((s) => (
-                                    <tr key={s.uid || s.id} className="hover:bg-[#0f1320]/20 transition-colors">
-                                        <td className="px-5 py-3.5 text-sm text-white font-medium">
-                                            {s.name}
+                                    <tr key={s.uid || s.id} className="hover:bg-[#222532]/30 transition-colors group">
+                                        <td className="px-6 py-5 whitespace-nowrap">
+                                            <div className="flex items-center gap-3">
+                                                <span className="w-10 h-10 rounded-xl bg-[#c799ff]/10 flex items-center justify-center text-[#c799ff] font-bold text-lg border border-[#c799ff]/30 shadow-[0_0_10px_rgba(199,153,255,0.2)]">
+                                                    {s.name.charAt(0).toUpperCase()}
+                                                </span>
+                                                <div>
+                                                    <p className="text-[#f0f0fd] font-bold tracking-wide">{s.name}</p>
+                                                    <p className="text-[#aaaab7] text-xs mt-0.5">{s.username || "—"}</p>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td className="px-5 py-3.5 text-sm">
-                                            <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-xs border border-blue-500/30">
+                                        <td className="px-6 py-5">
+                                            <span className="px-3 py-1 rounded-full bg-[#c799ff]/10 text-[#c799ff] text-[11px] border border-[#c799ff]/30 font-bold uppercase tracking-widest whitespace-nowrap">
                                                 {s.batch_name || "None"}
                                             </span>
                                         </td>
-                                        <td className="px-5 py-3.5">
+                                        <td className="px-6 py-5">
                                             {s.custom_fee != null ? (
-                                                <span className="px-2 py-0.5 rounded-full bg-[#f5c542]/20 text-[#f5c542] text-xs border border-[#f5c542]/30 font-medium">
+                                                <span className="px-3 py-1 rounded-full bg-[#f5c542]/10 text-[#f5c542] text-[11px] border border-[#f5c542]/30 font-bold uppercase tracking-widest whitespace-nowrap shadow-[0_0_10px_rgba(245,197,66,0.1)]">
                                                     ₹{s.custom_fee}
                                                 </span>
                                             ) : (
-                                                <span className="text-[#5a5f68] text-xs">—</span>
+                                                <span className="text-[#aaaab7] text-xs font-bold tracking-widest uppercase">—</span>
                                             )}
                                         </td>
-                                        <td className="px-5 py-3.5 text-right">
-                                            <div className="flex justify-end gap-2">
+                                        <td className="px-6 py-5 whitespace-nowrap">
+                                            <div className="flex justify-end gap-2 outline-none">
                                                 <button onClick={() => setDevicesStudent(s)}
-                                                    className="px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-medium
-                                                    hover:bg-cyan-500/30 transition-all cursor-pointer">
-                                                    📱 Devices
+                                                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[#aaaab7] hover:text-[#4af8e3] hover:bg-[#4af8e3]/10 hover:border-[#4af8e3]/30 transition-all cursor-pointer flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-[16px]">devices</span>
+                                                    <span className="text-xs font-bold tracking-wide uppercase">Devices</span>
                                                 </button>
                                                 <button onClick={() => startOverride(s)}
-                                                    className="px-3 py-1.5 rounded-lg bg-[#f5c542]/20 border border-[#f5c542]/30 text-[#f5c542] text-xs font-medium
-                                                    hover:bg-[#f5c542]/30 transition-all cursor-pointer">
-                                                    💰 Fee
+                                                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[#aaaab7] hover:text-[#f5c542] hover:bg-[#f5c542]/10 hover:border-[#f5c542]/30 transition-all cursor-pointer flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-[16px]">payments</span>
+                                                    <span className="text-xs font-bold tracking-wide uppercase">Fee</span>
                                                 </button>
                                                 <button onClick={() => startEdit(s)}
-                                                    className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-medium
-                                                    hover:bg-amber-500/30 transition-all cursor-pointer">
-                                                    ✏️ Edit
+                                                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[#aaaab7] hover:text-[#c799ff] hover:bg-[#c799ff]/10 hover:border-[#c799ff]/30 transition-all cursor-pointer flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-[16px]">edit</span>
+                                                    <span className="text-xs font-bold tracking-wide uppercase">Edit</span>
                                                 </button>
-
                                                 <button onClick={() => handleDelete(s.uid || s.id)} disabled={deleting === (s.uid || s.id)}
-                                                    className="px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-xs font-medium
-                                                    hover:bg-red-500/30 transition-all disabled:opacity-50 cursor-pointer">
-                                                    🗑️
+                                                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[#aaaab7] hover:text-[#ff6e84] hover:bg-[#ff6e84]/10 hover:border-[#ff6e84]/30 transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2">
+                                                    {deleting === (s.uid || s.id) ? (
+                                                        <span className="w-4 h-4 rounded-full border-2 border-[#ff6e84]/30 border-t-[#ff6e84] animate-spin" />
+                                                    ) : (
+                                                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                                                    )}
+                                                    <span className="text-xs font-bold tracking-wide uppercase">Remove</span>
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
                                 {filtered.length === 0 && (
-                                    <tr><td colSpan={4} className="px-5 py-8 text-center text-[#8a8f98]">No students found.</td></tr>
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-8">
+                                            <div className="flex flex-col items-center justify-center gap-3 text-[#aaaab7]">
+                                                <span className="material-symbols-outlined text-3xl">group</span>
+                                                <p className="font-medium">No students found.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 )}
                             </tbody>
                         </table>
@@ -480,16 +557,16 @@ function StudentsContent() {
                     />
                 )
             }
-        </>
+        </div>
     );
 }
 
 export default function ManageStudents() {
     return (
         <ProtectedRoute allowedRoles={["admin"]}>
-            <DashboardLayout>
+            <AdminLayout>
                 <StudentsContent />
-            </DashboardLayout>
+            </AdminLayout>
         </ProtectedRoute>
     );
 }

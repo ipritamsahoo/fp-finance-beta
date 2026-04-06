@@ -43,22 +43,22 @@ export default function NotificationsPage() {
     return (
         <div className="min-h-screen bg-[#0a0a12] text-white flex flex-col">
             {/* Header */}
-            <header className="sticky top-0 z-40 bg-[#0f1117]/95 backdrop-blur-xl border-b border-[#1a1f2e]/60">
-                <div className="flex items-center px-4 h-14 gap-3">
+            <header className="sticky top-0 z-40 bg-[#0f1117]/80 backdrop-blur-2xl border-b border-white/10">
+                <div className="flex items-center px-4 h-16 gap-4">
                     <button 
                         onClick={() => navigate(-1)} 
-                        className="p-2 rounded-full hover:bg-[#1a1f2e]/60 text-[#8a8f98] hover:text-white transition-colors cursor-pointer"
+                        className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 hover:bg-white/10 text-white transition-all active:scale-90 cursor-pointer"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="m15 18-6-6 6-6"/>
-                        </svg>
+                        <span className="material-symbols-outlined">arrow_back</span>
                     </button>
-                    <h1 className="text-white font-bold text-lg">Notifications</h1>
-                    {unreadCount > 0 && (
-                        <span className="bg-[#3861fb] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                            {unreadCount}
-                        </span>
-                    )}
+                    <h1 className="text-white font-bold text-xl tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>Notifications</h1>
+                    <div className="ml-auto flex items-center gap-2">
+                        {unreadCount > 0 && (
+                            <span className="bg-[#3b82f6] text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center shadow-[0_0_10px_rgba(59,130,246,0.5)]">
+                                {unreadCount}
+                            </span>
+                        )}
+                    </div>
                 </div>
             </header>
 

@@ -3,91 +3,100 @@ import { useAuth } from "@/context/AuthContext";
 export default function MyDevicesModal({ onClose }) {
     const { user } = useAuth();
 
+    // The user object in AuthContext has activeSessions
     const activeSessions = user?.activeSessions || [];
     const currentSessionId = localStorage.getItem("current_device_session_id");
 
     const getDeviceIcon = (deviceName) => {
-        if (deviceName === "Android" || deviceName === "iOS") {
-            return (
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                    <line x1="12" y1="18" x2="12.01" y2="18"></line>
-                </svg>
-            );
-        }
+        const iconName = (deviceName === "Android" || deviceName === "iOS") ? "smartphone" : "desktop_windows";
         return (
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                <line x1="8" y1="21" x2="16" y2="21"></line>
-                <line x1="12" y1="17" x2="12" y2="21"></line>
-            </svg>
+            <span className="material-symbols-outlined text-[#3b82f6]">{iconName}</span>
         );
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
-            <div className="w-full max-w-md bg-[#1a1d23] rounded-2xl shadow-2xl flex flex-col max-h-[80vh] animate-fade-in-up overflow-hidden"
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fade-in overflow-y-auto" onClick={onClose}>
+            <div className="w-full max-w-lg bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2.5rem] border border-[#737580]/20 shadow-2xl flex flex-col max-h-[85vh] animate-fade-in-up overflow-hidden m-auto"
                 onClick={(e) => e.stopPropagation()}>
 
                 {/* Header */}
-                <div className="px-5 pt-5 pb-4">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-white font-semibold text-[17px] tracking-tight">Devices</h3>
+                <div className="px-8 pt-8 pb-6 border-b border-[#464752]/30 relative">
+                    <div className="flex items-center justify-between relative z-10">
+                        <div>
+                            <h3 className="text-[#f0f0fd] font-extrabold text-2xl tracking-tight flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                <span className="material-symbols-outlined text-3xl text-[#3b82f6]">devices</span>
+                                My Devices
+                            </h3>
+                        </div>
                         <button onClick={onClose}
-                            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-[#8a8f98] hover:text-white transition-colors cursor-pointer">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-[#aaaab7] hover:text-[#ff6e84] hover:bg-[#ff6e84]/10 hover:border-[#ff6e84]/30 transition-all cursor-pointer group">
+                            <span className="material-symbols-outlined transition-transform group-hover:rotate-90">close</span>
                         </button>
                     </div>
-                    <p className="text-[#6b7280] text-xs mt-1">Where you're logged in</p>
                 </div>
 
                 {/* Content */}
-                <div className="px-4 pb-5 overflow-y-auto flex-1">
+                <div className="px-6 py-6 overflow-y-auto flex-1 custom-scrollbar">
                     {activeSessions.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center text-center py-10">
-                            <div className="w-14 h-14 rounded-full bg-[#2a2d35] flex items-center justify-center mb-3 text-[#6b7280]">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                                    <line x1="12" y1="18" x2="12.01" y2="18"></line>
-                                </svg>
+                        <div className="flex flex-col items-center justify-center text-center py-16 animate-fade-in">
+                            <div className="w-20 h-20 rounded-[2rem] bg-[#3b82f6]/5 border border-[#3b82f6]/10 flex items-center justify-center mb-6 text-[#3b82f6]/40 relative">
+                                <span className="material-symbols-outlined text-5xl">devices</span>
+                                <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#0c0e17] border border-[#737580]/20 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-sm text-[#ff6e84]">block</span>
+                                </div>
                             </div>
-                            <p className="text-[#8a8f98] text-sm font-medium">No devices found</p>
-                            <p className="text-[#4a4f5a] text-xs mt-1">Log out and log back in to start tracking</p>
+                            <p className="text-[#f0f0fd] text-xl font-bold tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>No Active Devices</p>
                         </div>
                     ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-4">
                             {activeSessions.map((session, idx) => {
                                 const isCurrent = session.session_id === currentSessionId;
-                                const dateStr = new Date(session.last_active || session.created_at).toLocaleString();
-
+                                const dateStr = new Date(session.last_active || session.created_at).toLocaleString('en-IN', {
+                                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                                });
                                 return (
                                     <div key={idx}
-                                        className={`rounded-xl px-4 py-3.5 flex items-center gap-3.5 transition-all ${isCurrent
-                                            ? "bg-[#3861fb]/8 border border-[#3861fb]/20"
-                                            : "bg-[#22252d] border border-transparent hover:bg-[#282b33]"
-                                            }`}>
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isCurrent ? "bg-[#3861fb]/15 text-[#3861fb]" : "bg-[#2a2d35] text-[#6b7280]"
-                                            }`}>
-                                            {getDeviceIcon(session.device_name)}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-white text-sm font-medium truncate">
-                                                    {session.device_name || "Unknown"}
-                                                </span>
-                                                {isCurrent && (
-                                                    <span className="text-[9px] font-bold text-[#3861fb] bg-[#3861fb]/10 px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">This device</span>
-                                                )}
+                                        className={`rounded-[2.5rem] p-6 border transition-all animate-fade-in-up relative overflow-hidden group shadow-lg ${
+                                            isCurrent 
+                                            ? "bg-[#3b82f6]/10 border-[#3b82f6]/30" 
+                                            : "bg-[#171924]/60 border-[#737580]/10 hover:bg-[#171924]/80 hover:border-[#3b82f6]/20"
+                                        }`}
+                                        style={{ animationDelay: `${idx * 100}ms` }}>
+                                        
+                                        {isCurrent && (
+                                            <div className="absolute top-0 right-0 px-4 py-1.5 bg-[#3b82f6] text-white text-[9px] font-bold uppercase tracking-widest rounded-bl-2xl shadow-lg">
+                                                This Device
                                             </div>
-                                            <p className="text-[#6b7280] text-xs mt-0.5 truncate">
-                                                {session.platform || "Unknown"} • {session.location || "Unknown"}
-                                            </p>
-                                            <p className={`text-[10px] mt-1 font-medium ${isCurrent ? "text-emerald-400" : "text-[#4a4f5a]"}`}>
-                                                {isCurrent ? "Active" : `Last active: ${dateStr}`}
-                                            </p>
+                                        )}
+
+                                        <div className="flex items-center gap-5">
+                                            <div className={`w-14 h-14 rounded-3xl flex items-center justify-center shrink-0 transition-all border ${
+                                                isCurrent 
+                                                ? "bg-[#3b82f6]/20 border-[#3b82f6]/40 text-[#f0f0fd] shadow-[0_0_20px_rgba(59,130,246,0.25)]" 
+                                                : "bg-[#3b82f6]/10 border-[#3b82f6]/30 text-[#3b82f6] shadow-[0_0_15px_rgba(59,130,246,0.15)] group-hover:shadow-[0_0_25px_rgba(59,130,246,0.25)]"
+                                            }`}>
+                                                {getDeviceIcon(session.device_name)}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-[#f0f0fd] text-base font-bold truncate tracking-wide" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                                        {session.device_name || "Unknown Device"}
+                                                    </span>
+                                                    {isCurrent && (
+                                                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#4af8e3] bg-[#4af8e3]/10 px-2 py-0.5 rounded-md border border-[#4af8e3]/20 animate-pulse">
+                                                            Online
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-[#aaaab7] text-xs mt-1 font-medium flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-[14px]">public</span>
+                                                    {session.platform || "Unknown"} • {session.location || "Unknown"}
+                                                </p>
+                                                <p className={`text-[10px] mt-2 font-bold uppercase tracking-tighter flex items-center gap-1 ${isCurrent ? "text-[#3b82f6]/80" : "text-[#737580]"}`}>
+                                                    <span className="material-symbols-outlined text-[12px]">schedule</span>
+                                                    {isCurrent ? "Current Session" : `Last active: ${dateStr}`}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 );

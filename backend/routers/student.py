@@ -149,10 +149,20 @@ async def student_get_leaderboard(
         year = now.year
 
     try:
-        # ── Fetch all payments for this billing cycle ──
+        # ── Get student's batch ──
+        student_batch_id = user.get("batch_id")
+        if not student_batch_id:
+             return {
+                "month": month, "year": year, "top5": [], "current_position": None,
+                "is_current_paid": False, "has_bill": False, "total_paid": 0,
+                "total_students": 0, "cohort_progress": 0, "available_months": [],
+            }
+
+        # ── Fetch all payments for this billing cycle AND this batch ──
         all_payments_stream = db.collection("payments") \
             .where("month", "==", month) \
             .where("year", "==", year) \
+            .where("batch_id", "==", student_batch_id) \
             .stream()
 
         all_payments = []
@@ -168,7 +178,13 @@ async def student_get_leaderboard(
             if data.get("status") == "Paid":
                 paid_payments.append(data)
 
-        total_students = len(all_payments)
+        # ── Total students in this specific batch (Current Headcount) ──
+        batch_students_stream = db.collection("users") \
+            .where("batch_id", "==", student_batch_id) \
+            .where("role", "==", "student") \
+            .stream()
+        total_students = sum(1 for _ in batch_students_stream)
+        
         total_paid = len(paid_payments)
 
         # ── Sort paid payments by updated_at ascending (fastest first) ──

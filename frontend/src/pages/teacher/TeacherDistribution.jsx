@@ -56,10 +56,10 @@ function InitialAvatar({ name, size = 36, className = "" }) {
         .slice(0, 2)
         .toUpperCase();
     const palettes = [
-        { bg: "bg-[#c799ff]/20", text: "text-[#c799ff]", border: "border-[#c799ff]/20" },
+        { bg: "bg-[#3b82f6]/20", text: "text-[#3b82f6]", border: "border-[#3b82f6]/20" },
         { bg: "bg-[#4af8e3]/20", text: "text-[#4af8e3]", border: "border-[#4af8e3]/20" },
         { bg: "bg-[#ff9dac]/20", text: "text-[#ff9dac]", border: "border-[#ff9dac]/20" },
-        { bg: "bg-[#bc87fe]/20", text: "text-[#bc87fe]", border: "border-[#bc87fe]/20" },
+        { bg: "bg-[#464752]/20", text: "text-[#f0f0fd]", border: "border-[#464752]/20" },
         { bg: "bg-[#33e9d5]/20", text: "text-[#33e9d5]", border: "border-[#33e9d5]/20" },
     ];
     const p = palettes[(name || "").charCodeAt(0) % palettes.length];
@@ -176,15 +176,15 @@ function TeacherDistributionContent() {
 
             {loading ? (
                 <div className="flex items-center justify-center py-20">
-                    <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
+                    <div className="w-10 h-10 border-4 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
                 </div>
             ) : data ? (
                 <>
                     {/* ── Summary Bento Grid ── */}
                     <section className="grid grid-cols-2 gap-4 animate-fade-in-scale" style={{ animationDelay: "100ms" }}>
                         {/* My Earnings — Full Width */}
-                        <GlassCard className="col-span-2 p-6 relative overflow-hidden group shadow-2xl" style={{ border: "1px solid rgba(199,153,255,0.15)" }}>
-                            <div className="absolute top-0 right-0 w-48 h-48 bg-[#c799ff]/15 blur-3xl -mr-20 -mt-20 group-hover:bg-[#c799ff]/25 transition-all duration-500" />
+                        <GlassCard className="col-span-2 p-6 relative overflow-hidden group shadow-2xl" style={{ border: "1px solid rgba(59,130,246,0.15)" }}>
+                            <div className="absolute top-0 right-0 w-48 h-48 bg-[#3b82f6]/15 blur-3xl -mr-20 -mt-20 group-hover:bg-[#3b82f6]/25 transition-all duration-500" />
                             <p className="text-[#aaaab7] text-xs font-semibold uppercase tracking-widest mb-2">My Earnings</p>
                             <span
                                 className="text-[#4af8e3] font-extrabold text-5xl tracking-tight"

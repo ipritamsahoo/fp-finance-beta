@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import DashboardLayout from "@/components/DashboardLayout";
+import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 
@@ -90,84 +90,97 @@ function DistributionContent() {
     return (
         <div>
             {/* Header + Selectors */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
+            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between mb-6 gap-4">
                 <div>
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Revenue Distribution 💸</h1>
-                    <p className="text-[#8a8f98] text-sm mt-1">Teacher payment split based on confirmation date</p>
+                    <h1 className="text-2xl md:text-3xl font-extrabold text-[#f0f0fd] flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                        Revenue Distribution <span className="text-2xl drop-shadow-md">💸</span>
+                    </h1>
+                    <p className="text-[#aaaab7] text-sm mt-1">Teacher payment split based on confirmation date</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
-                        className="px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50">
-                        {MONTHS.map((m, i) => (
-                            <option key={i + 1} value={i + 1}>{m}</option>
-                        ))}
-                    </select>
-                    <select value={year} onChange={(e) => setYear(Number(e.target.value))}
-                        className="px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50">
-                        {yearOptions.map((y) => (
-                            <option key={y} value={y}>{y}</option>
-                        ))}
-                    </select>
-                    {batches.length > 0 ? (
-                        <select value={batchFilter} onChange={(e) => setBatchFilter(e.target.value)}
-                            className="px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3861fb]/50">
-                            {batches.map((b) => (
-                                <option key={b.id} value={b.id}>{b.batch_name}</option>
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative">
+                        <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
+                            className="bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer min-w-[140px]">
+                            {MONTHS.map((m, i) => (
+                                <option key={i + 1} value={i + 1}>{m}</option>
                             ))}
                         </select>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                    </div>
+                    <div className="relative">
+                        <select value={year} onChange={(e) => setYear(Number(e.target.value))}
+                            className="bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer min-w-[120px]">
+                            {yearOptions.map((y) => (
+                                <option key={y} value={y}>{y}</option>
+                            ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                    </div>
+                    {batches.length > 0 ? (
+                        <div className="relative w-full sm:w-auto">
+                            <select value={batchFilter} onChange={(e) => setBatchFilter(e.target.value)}
+                                className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer min-w-[180px]">
+                                {batches.map((b) => (
+                                    <option key={b.id} value={b.id}>{b.batch_name}</option>
+                                ))}
+                            </select>
+                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                        </div>
                     ) : (
-                        <div className="px-3 py-2.5 rounded-lg bg-[#0f1320]/60 border border-[#1a1f2e]/50 w-32 h-[38px] animate-pulse" />
+                        <div className="bg-[#222532]/50 border border-[#464752]/50 rounded-2xl w-[180px] h-[46px] animate-pulse" />
                     )}
                 </div>
             </div>
 
             {error && (
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-                    {error} <button onClick={() => setError("")} className="ml-2 cursor-pointer">✕</button>
+                <div className="mb-4 p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#ff6e84]/30 shadow-lg text-[#ff9dac] text-sm flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#ff6e84]">error</span>
+                    <span className="flex-1">{error}</span>
+                    <button onClick={() => setError("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
                 </div>
             )}
 
             {loading ? (
                 <div className="flex items-center justify-center py-20">
-                    <div className="w-10 h-10 border-4 border-[#3861fb]/30 border-t-[#3861fb] rounded-full animate-spin" />
+                    <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
                 </div>
             ) : data ? (
                 <>
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
-                        <div className="glass-card rounded-xl p-4 sm:p-5 animate-fade-in-up">
-                            <p className="text-[#8a8f98] text-xs uppercase tracking-wider mb-1">Total Collected</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-emerald-400">₹{data.total_collected.toLocaleString()}</p>
-                            <p className="text-[#5a5f68] text-xs mt-1">{MONTHS[month - 1]} {year}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl p-5 animate-fade-in-up transition-colors hover:bg-[#171924]/80">
+                            <p className="text-[#aaaab7] text-xs font-bold uppercase tracking-widest mb-1 pointer-events-none text-opacity-80">Total Collected</p>
+                            <p className="text-3xl sm:text-4xl font-extrabold text-[#4af8e3] mt-2 drop-shadow-md">₹{data.total_collected.toLocaleString()}</p>
+                            <p className="text-[#aaaab7] text-sm mt-3 font-medium opacity-80">{MONTHS[month - 1]} {year}</p>
                         </div>
-                        <div className="glass-card rounded-xl p-4 sm:p-5 animate-fade-in-up" style={{ animationDelay: "50ms" }}>
-                            <p className="text-[#8a8f98] text-xs uppercase tracking-wider mb-1">Teachers Earning</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-blue-400">{data.teacher_totals.length}</p>
-                            <p className="text-[#5a5f68] text-xs mt-1">Across {data.batches.length} batch(es)</p>
+                        <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl p-5 animate-fade-in-up transition-colors hover:bg-[#171924]/80" style={{ animationDelay: "50ms" }}>
+                            <p className="text-[#aaaab7] text-xs font-bold uppercase tracking-widest mb-1 pointer-events-none text-opacity-80">Teachers Earning</p>
+                            <p className="text-3xl sm:text-4xl font-extrabold text-[#c799ff] mt-2 drop-shadow-md">{data.teacher_totals.length}</p>
+                            <p className="text-[#aaaab7] text-sm mt-3 font-medium opacity-80">Across {data.batches.length} batch(es)</p>
                         </div>
                     </div>
 
                     {/* ═══ Tab Bar ═══ */}
-                    <div className="flex flex-col sm:flex-row gap-1 mb-6 p-1 rounded-xl bg-[#0f1320]/60 border border-[#1a1f2e]/50 animate-fade-in-up" style={{ animationDelay: "130ms" }}>
+                    <div className="flex flex-col sm:flex-row gap-2 mb-6 p-1.5 rounded-[1.25rem] bg-[#171924]/60 backdrop-blur-[20px] border border-[#464752]/40 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
                         <button
                             onClick={() => setActiveTab("datewise")}
-                            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
+                            className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 cursor-pointer flex items-center justify-center gap-2
                                 ${activeTab === "datewise"
-                                    ? "bg-gradient-to-r from-[#3861fb]/20 to-[#2b4fcf]/10 text-white border border-[#3861fb]/30 shadow-[0_0_15px_rgba(56,97,251,0.15)]"
-                                    : "text-[#8a8f98] hover:text-white hover:bg-[#1a1f2e]/40"
+                                    ? "bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/20 shadow-[0_4px_15px_rgba(199,153,255,0.1)]"
+                                    : "text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 border border-transparent"
                                 }`}
                         >
-                            📅 Date-wise Distribution
+                            <span className="material-symbols-outlined text-lg">calendar_month</span> Date-wise Distribution
                         </button>
                         <button
                             onClick={() => setActiveTab("earnings")}
-                            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
+                            className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 cursor-pointer flex items-center justify-center gap-2
                                 ${activeTab === "earnings"
-                                    ? "bg-gradient-to-r from-[#3861fb]/20 to-[#2b4fcf]/10 text-white border border-[#3861fb]/30 shadow-[0_0_15px_rgba(56,97,251,0.15)]"
-                                    : "text-[#8a8f98] hover:text-white hover:bg-[#1a1f2e]/40"
+                                    ? "bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/20 shadow-[0_4px_15px_rgba(199,153,255,0.1)]"
+                                    : "text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 border border-transparent"
                                 }`}
                         >
-                            👨‍🏫 Teacher Earnings
+                            <span className="material-symbols-outlined text-lg">account_balance_wallet</span> Teacher Earnings
                         </button>
                     </div>
 
@@ -176,132 +189,144 @@ function DistributionContent() {
                         <>
                             {data.dates && data.dates.length > 0 ? (
                                 <div className="animate-fade-in-up">
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                         {data.dates.map((dist) => {
                                             const isExpanded = expandedDate === dist.date;
                                             const formattedDate = (() => {
                                                 try {
                                                     const d = new Date(dist.date + "T00:00:00");
-                                                    return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+                                                    return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
                                                 } catch { return dist.date; }
                                             })();
                                             return (
-                                                <div key={dist.date} className={`glass-card rounded-xl overflow-hidden ${dist.settled ? "border border-emerald-500/20" : ""}`}>
+                                                <div key={dist.date} className={`bg-[#171924]/60 backdrop-blur-[20px] rounded-3xl overflow-hidden border transition-all ${dist.settled ? "border-[#4af8e3]/30 shadow-[0_4px_15px_rgba(74,248,227,0.05)]" : "border-[#737580]/10 hover:border-[#c799ff]/30 shadow-lg hover:shadow-[0_4px_15px_rgba(199,153,255,0.05)]"}`}>
                                                     {/* Row header — clickable */}
-                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 gap-2">
+                                                    <div className="flex flex-col md:flex-row md:items-center justify-between p-5 sm:p-6 gap-4">
                                                         <button
                                                             onClick={() => setExpandedDate(isExpanded ? null : dist.date)}
-                                                            className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
+                                                            className="flex items-center gap-4 cursor-pointer flex-1 min-w-0 group"
                                                         >
-                                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm shrink-0 ${dist.settled
-                                                                ? "bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-500/30"
-                                                                : "bg-gradient-to-br from-[#3861fb]/20 to-[#2b4fcf]/20 border border-[#3861fb]/30"
+                                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${dist.settled
+                                                                ? "bg-[#4af8e3]/10 text-[#4af8e3]"
+                                                                : "bg-[#c799ff]/10 text-[#c799ff]"
                                                                 }`}>
-                                                                {dist.settled ? "✅" : "📅"}
+                                                                <span className="material-symbols-outlined text-[24px]">
+                                                                    {dist.settled ? "task_alt" : "event"}
+                                                                </span>
                                                             </div>
-                                                            <div className="text-left">
-                                                                <p className="text-white font-semibold text-sm">{formattedDate}</p>
-                                                                <p className="text-[#5a5f68] text-xs">
-                                                                    {dist.payments_count} payment(s) · {dist.teachers.length} teacher(s)
-                                                                    {dist.settled && <span className="text-emerald-400 ml-1">· Permanently Settled</span>}
+                                                            <div className="text-left flex-1 min-w-0">
+                                                                <p className="text-[#f0f0fd] font-bold text-base md:text-lg tracking-wide truncate" style={{ fontFamily: "'Manrope', sans-serif" }}>{formattedDate}</p>
+                                                                <p className="text-[#aaaab7] text-xs font-medium tracking-wide mt-1 truncate flex items-center gap-2">
+                                                                    <span>{dist.payments_count} payment(s)</span>
+                                                                    <span className="w-1 h-1 rounded-full bg-[#aaaab7]/50"></span>
+                                                                    <span>{dist.teachers.length} teacher(s)</span>
+                                                                    {dist.settled && (
+                                                                        <>
+                                                                            <span className="w-1 h-1 rounded-full bg-[#4af8e3]/50"></span>
+                                                                            <span className="text-[#4af8e3]">Permanently Settled</span>
+                                                                        </>
+                                                                    )}
                                                                 </p>
                                                             </div>
                                                         </button>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                                                        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t border-[#464752]/30 md:border-t-0 pt-4 md:pt-0">
+                                                            <span className="px-4 py-1.5 rounded-full bg-[#4af8e3]/10 border border-[#4af8e3]/30 text-[#4af8e3] text-sm font-bold tracking-widest drop-shadow-md" style={{ boxShadow: "0 0 8px rgba(74,248,227,0.2)"}}>
                                                                 ₹{dist.total.toLocaleString()}
                                                             </span>
-                                                            {/* Settle button — only for unsettled dates */}
-                                                            {dist.settled ? (
-                                                                <span className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400/70 text-xs font-semibold select-none">
-                                                                    🔒 Settled
-                                                                </span>
-                                                            ) : (
+                                                            <div className="flex items-center gap-2">
+                                                                {/* Settle button — only for unsettled dates */}
+                                                                {dist.settled ? (
+                                                                    <span className="px-4 py-2 rounded-xl bg-[#4af8e3]/5 border border-[#4af8e3]/20 text-[#4af8e3]/60 text-xs font-bold tracking-widest uppercase select-none flex items-center gap-1.5 opacity-80">
+                                                                        <span className="material-symbols-outlined text-[16px]">lock</span> Settled
+                                                                    </span>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleSettle(dist.date, dist.payments_count); }}
+                                                                        disabled={settleLoading === dist.date}
+                                                                        className="px-4 py-2 rounded-xl bg-[#ff9dac]/10 border border-[#ff9dac]/30 text-[#ff9dac] text-xs font-bold tracking-widest uppercase hover:bg-[#ff9dac]/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 group"
+                                                                        title="Lock this date's distribution permanently (irreversible)"
+                                                                    >
+                                                                        {settleLoading === dist.date ? <span className="w-4 h-4 rounded-full border-2 border-[#ff9dac]/30 border-t-[#ff9dac] animate-spin" /> : <span className="material-symbols-outlined text-[16px] group-hover:scale-110 transition-transform">lock_open</span>}
+                                                                        <span>{settleLoading === dist.date ? "Settling..." : "Settle"}</span>
+                                                                    </button>
+                                                                )}
                                                                 <button
-                                                                    onClick={(e) => { e.stopPropagation(); handleSettle(dist.date, dist.payments_count); }}
-                                                                    disabled={settleLoading === dist.date}
-                                                                    className="px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-semibold
-                                                                        hover:bg-amber-500/25 transition-all cursor-pointer disabled:opacity-50"
-                                                                    title="Lock this date's distribution permanently (irreversible)"
-                                                                >
-                                                                    {settleLoading === dist.date ? "..." : "🔒 Settle"}
+                                                                    onClick={() => setExpandedDate(isExpanded ? null : dist.date)}
+                                                                    className={`w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/5 text-[#aaaab7] transition-all duration-300 cursor-pointer hover:bg-white/10 hover:text-white ${isExpanded ? "rotate-180 bg-white/10 text-white border-white/10" : ""}`}>
+                                                                    <span className="material-symbols-outlined">expand_more</span>
                                                                 </button>
-                                                            )}
-                                                            <button
-                                                                onClick={() => setExpandedDate(isExpanded ? null : dist.date)}
-                                                                className={`text-[#8a8f98] transition-transform duration-200 cursor-pointer ${isExpanded ? "rotate-180" : ""}`}>
-                                                                ▼
-                                                            </button>
+                                                            </div>
                                                         </div>
                                                     </div>
 
                                                     {/* Expanded teacher breakdown */}
-                                                    {isExpanded && (
-                                                        <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-[#1a1f2e]/30">
-                                                            <p className="text-[#8a8f98] text-xs uppercase tracking-wider mt-3 mb-2">
-                                                                Student Payments for {formattedDate}
-                                                                {dist.settled && <span className="text-emerald-400 ml-1">(Permanently frozen)</span>}
+                                                    <div className={`transition-all overflow-hidden ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}>
+                                                        <div className="px-5 pb-5 sm:px-6 sm:pb-6 border-t border-[#464752]/30 pt-4">
+                                                            <p className="text-[#c799ff] text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                                <span className="material-symbols-outlined text-sm">receipt_long</span> Student Payments
+                                                                {dist.settled && <span className="text-[#4af8e3] lowercase font-semibold text-[10px] bg-[#4af8e3]/10 px-2 py-0.5 rounded-full border border-[#4af8e3]/20 ml-2 shadow-[0_0_8px_rgba(74,248,227,0.2)]">frozen</span>}
                                                             </p>
 
                                                             {/* Mobile view */}
-                                                            <div className="space-y-2 md:hidden">
+                                                            <div className="space-y-3 md:hidden">
                                                                 {dist.payments && dist.payments.map((p, idx) => (
-                                                                    <div key={p.id || idx} className="flex items-center justify-between py-2 border-b border-[#1a1f2e]/20 last:border-0">
-                                                                        <div className="flex items-center gap-2 min-w-0">
-                                                                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#3861fb] to-[#2b4fcf] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                                                                    <div key={p.id || idx} className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-[#464752]/30">
+                                                                        <div className="flex items-center gap-3 min-w-0">
+                                                                            <div className="w-7 h-7 rounded-lg bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/20 flex items-center justify-center text-[11px] font-bold shrink-0">
                                                                                 {idx + 1}
                                                                             </div>
-                                                                            <p className="text-white text-sm truncate">{p.student_name}</p>
+                                                                            <p className="text-[#f0f0fd] text-sm truncate font-medium">{p.student_name}</p>
                                                                         </div>
-                                                                        <p className="text-emerald-400 text-sm font-bold whitespace-nowrap ml-2">
+                                                                        <p className="text-[#4af8e3] text-sm font-bold whitespace-nowrap ml-2">
                                                                             ₹{(p.amount || 0).toLocaleString()}
                                                                         </p>
                                                                     </div>
                                                                 ))}
                                                                 {(!dist.payments || dist.payments.length === 0) && (
-                                                                    <p className="text-[#5a5f68] text-sm py-2">No payment details available.</p>
+                                                                    <p className="text-[#aaaab7] text-sm py-3 text-center bg-black/10 rounded-xl border border-[#464752]/20">No payment details available.</p>
                                                                 )}
                                                             </div>
 
                                                             {/* Desktop table */}
-                                                            <div className="hidden md:block">
+                                                            <div className="hidden md:block rounded-xl overflow-hidden border border-[#464752]/30">
                                                                 <table className="w-full">
-                                                                    <thead>
-                                                                        <tr className="text-xs text-[#5a5f68] uppercase">
-                                                                            <th className="text-left py-2 w-12">#</th>
-                                                                            <th className="text-left py-2">Student</th>
-                                                                            <th className="text-right py-2">Amount</th>
+                                                                    <thead className="bg-[#0c0e17]/80">
+                                                                        <tr className="border-b border-[#464752]/30">
+                                                                            <th className="px-4 py-3 text-left text-[11px] font-bold text-[#aaaab7] uppercase tracking-widest w-12 text-center">#</th>
+                                                                            <th className="px-4 py-3 text-left text-[11px] font-bold text-[#aaaab7] uppercase tracking-widest">Student</th>
+                                                                            <th className="px-4 py-3 text-right text-[11px] font-bold text-[#aaaab7] uppercase tracking-widest">Amount</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody>
                                                                         {dist.payments && dist.payments.map((p, idx) => (
-                                                                            <tr key={p.id || idx} className="border-t border-[#1a1f2e]/20 hover:bg-slate-800/10 transition-colors">
-                                                                                <td className="py-2.5 text-sm text-[#5a5f68]">{idx + 1}</td>
-                                                                                <td className="py-2.5 text-sm text-white font-medium">{p.student_name}</td>
-                                                                                <td className="py-2.5 text-sm text-emerald-400 font-bold text-right">
+                                                                            <tr key={p.id || idx} className="border-b border-[#464752]/20 last:border-0 hover:bg-[#222532]/40 transition-colors bg-black/10">
+                                                                                <td className="px-4 py-3.5 text-xs text-[#aaaab7] font-semibold text-center">{idx + 1}</td>
+                                                                                <td className="px-4 py-3.5 text-sm text-[#f0f0fd] font-medium">{p.student_name}</td>
+                                                                                <td className="px-4 py-3.5 text-sm text-[#4af8e3] font-bold text-right tracking-wide">
                                                                                     ₹{(p.amount || 0).toLocaleString()}
                                                                                 </td>
                                                                             </tr>
                                                                         ))}
                                                                         {(!dist.payments || dist.payments.length === 0) && (
                                                                             <tr>
-                                                                                <td colSpan="3" className="py-4 text-[#5a5f68] text-sm text-center border-t border-[#1a1f2e]/20">No payment details available.</td>
+                                                                                <td colSpan="3" className="px-4 py-6 text-[#aaaab7] text-sm text-center bg-black/10 font-medium">No payment details available.</td>
                                                                             </tr>
                                                                         )}
                                                                     </tbody>
                                                                 </table>
                                                             </div>
                                                         </div>
-                                                    )}
+                                                    </div>
                                                 </div>
                                             );
                                         })}
                                     </div>
                                 </div>
                             ) : (
-                                <div className="glass-card rounded-xl p-8 text-center animate-fade-in-up">
-                                    <p className="text-[#8a8f98] text-lg mb-1">No payments confirmed in {MONTHS[month - 1]} {year}</p>
-                                    <p className="text-[#5a5f68] text-sm">Payments will appear here once approved by admin.</p>
+                                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-12 text-center animate-fade-in-up flex flex-col items-center shadow-lg">
+                                    <span className="material-symbols-outlined text-[64px] text-[#464752] mb-4">date_range</span>
+                                    <p className="text-[#f0f0fd] font-bold text-xl mb-1" style={{ fontFamily: "'Manrope', sans-serif" }}>No payments confirmed in {MONTHS[month - 1]} {year}</p>
+                                    <p className="text-[#aaaab7] text-sm">Payments will appear here once approved by admin.</p>
                                 </div>
                             )}
                         </>
@@ -313,13 +338,13 @@ function DistributionContent() {
                             {data.dates && data.dates.length > 0 && allTeachers.length > 0 ? (
                                 <>
                                     {/* Ledger table (scrollable on mobile) */}
-                                    <div className="glass-card rounded-xl overflow-hidden">
-                                        <div className="overflow-x-auto">
+                                    <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden shadow-xl" style={{ maxHeight: "calc(100vh - 380px)", display: "flex", flexDirection: "column" }}>
+                                        <div className="overflow-auto flex-1 custom-scrollbar">
                                             <table className="w-full border-collapse min-w-[600px]">
-                                                <thead className="bg-[#0f1320]/40 sticky top-0 z-20">
+                                                <thead className="bg-[#0c0e17]/80 backdrop-blur-xl sticky top-0 z-20">
                                                     {/* Summary row: Total Collected per teacher for the month */}
-                                                    <tr className="bg-[#0f1320]/80">
-                                                        <th className="px-4 py-3 text-left text-xs font-bold text-emerald-400 uppercase tracking-wider whitespace-nowrap border-b border-r border-[#1a1f2e]/40 min-w-[140px] sticky left-0 bg-[#0f1320]/95 z-30">
+                                                    <tr className="border-b border-[#464752]/40">
+                                                        <th className="px-5 py-4 text-left text-xs font-bold text-[#4af8e3] uppercase tracking-wider whitespace-nowrap border-r border-[#464752]/40 min-w-[140px] sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
                                                             Total Collected
                                                         </th>
                                                         {allTeachers.map((t) => {
@@ -328,24 +353,24 @@ function DistributionContent() {
                                                                 return s + (found ? found.amount : 0);
                                                             }, 0);
                                                             return (
-                                                                <th key={t.uid} className="px-4 py-3 text-center text-sm font-bold text-emerald-400 border-b border-r border-[#1a1f2e]/40 min-w-[130px]">
+                                                                <th key={t.uid} className="px-5 py-4 text-center text-sm font-bold text-[#4af8e3] tracking-widest border-r border-[#464752]/40 min-w-[130px]">
                                                                     ₹{teacherTotal.toLocaleString()}
                                                                 </th>
                                                             );
                                                         })}
-                                                        <th className="px-4 py-3 border-b border-[#1a1f2e]/40 min-w-[110px]"></th>
+                                                        <th className="px-5 py-4 min-w-[110px]"></th>
                                                     </tr>
                                                     {/* Column headers */}
-                                                    <tr className="bg-[#0a0a12]/95">
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-[#8a8f98] uppercase tracking-wider whitespace-nowrap border-b border-r border-[#1a1f2e]/40 sticky left-0 bg-[#0a0a12]/95 z-30">
+                                                    <tr className="border-b border-[#464752]/40 bg-black/20">
+                                                        <th className="px-5 py-3 text-left text-[10px] font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
                                                             Date
                                                         </th>
                                                         {allTeachers.map((t) => (
-                                                            <th key={t.uid} className="px-4 py-3 text-center text-xs font-semibold text-[#8a8f98] uppercase tracking-wider border-b border-r border-[#1a1f2e]/40">
+                                                            <th key={t.uid} className="px-5 py-3 text-center text-[10px] font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40">
                                                                 {t.name}
                                                             </th>
                                                         ))}
-                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-[#8a8f98] uppercase tracking-wider border-b border-[#1a1f2e]/40">
+                                                        <th className="px-5 py-3 text-center text-[10px] font-bold text-[#aaaab7] uppercase tracking-widest">
                                                             Status
                                                         </th>
                                                     </tr>
@@ -362,26 +387,23 @@ function DistributionContent() {
                                                         for (const t of dist.teachers) teacherMap[t.uid] = t.amount;
 
                                                         return (
-                                                            <tr key={dist.date} className="border-b border-[#1a1f2e]/20 hover:bg-[#0f1320]/10 transition-colors">
-                                                                <td className="px-4 py-3 text-sm text-white font-medium whitespace-nowrap border-r border-[#1a1f2e]/40 sticky left-0 bg-[#0a0a12]/95 z-10">{formattedDate}</td>
+                                                            <tr key={dist.date} className="border-b border-[#464752]/20 hover:bg-white/5 transition-colors group">
+                                                                <td className="px-5 py-4 text-sm text-[#f0f0fd] font-bold whitespace-nowrap border-r border-[#464752]/40 sticky left-0 bg-[#171924] group-hover:bg-[#1f2231] transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>{formattedDate}</td>
                                                                 {allTeachers.map((t) => (
-                                                                    <td key={t.uid} className="px-4 py-3 border-r border-[#1a1f2e]/40 text-center">
-                                                                        <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs font-semibold"
-                                                                            style={{ boxShadow: "0 0 8px rgba(59,130,246,0.4), 0 0 2px rgba(59,130,246,0.2)" }}>
-                                                                            ₹{(teacherMap[t.uid] || 0).toLocaleString()}
-                                                                        </span>
+                                                                    <td key={t.uid} className="px-5 py-4 border-r border-[#464752]/40 text-center bg-black/10 text-sm font-semibold text-[#c799ff] tracking-wide" style={{ textShadow: "0 0 8px rgba(199,153,255,0.4)" }}>
+                                                                        {(teacherMap[t.uid] || 0) > 0 ? `₹${teacherMap[t.uid].toLocaleString()}` : <span className="text-[#aaaab7]/50 text-xs">—</span>}
                                                                     </td>
                                                                 ))}
-                                                                <td className="px-4 py-3 text-center">
+                                                                <td className="px-5 py-4 text-center bg-black/10">
                                                                     {dist.settled ? (
-                                                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold"
-                                                                            style={{ boxShadow: "0 0 8px rgba(16,185,129,0.4), 0 0 2px rgba(16,185,129,0.2)" }}>
-                                                                            🔒 Settled
+                                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#4af8e3]/10 border border-[#4af8e3]/30 text-[#4af8e3] text-[10px] font-bold uppercase tracking-widest whitespace-nowrap drop-shadow-md"
+                                                                            style={{ boxShadow: "0 0 8px rgba(74,248,227,0.4), 0 0 2px rgba(74,248,227,0.2)" }}>
+                                                                            <span className="material-symbols-outlined text-[14px]">lock</span> Settled
                                                                         </span>
                                                                     ) : (
-                                                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-semibold"
-                                                                            style={{ boxShadow: "0 0 8px rgba(245,158,11,0.4), 0 0 2px rgba(245,158,11,0.2)" }}>
-                                                                            ⏳ Pending
+                                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ff9dac]/10 border border-[#ff9dac]/30 text-[#ff9dac] text-[10px] font-bold uppercase tracking-widest whitespace-nowrap drop-shadow-md"
+                                                                            style={{ boxShadow: "0 0 8px rgba(255,157,172,0.4), 0 0 2px rgba(255,157,172,0.2)" }}>
+                                                                            <span className="material-symbols-outlined text-[14px]">hourglass_empty</span> Pending
                                                                         </span>
                                                                     )}
                                                                 </td>
@@ -394,9 +416,10 @@ function DistributionContent() {
                                     </div>
                                 </>
                             ) : (
-                                <div className="glass-card rounded-xl p-8 text-center">
-                                    <p className="text-[#8a8f98] text-lg mb-1">No teacher earnings in {MONTHS[month - 1]} {year}</p>
-                                    <p className="text-[#5a5f68] text-sm">Earnings will appear once payments are confirmed.</p>
+                                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-12 text-center animate-fade-in-up flex flex-col items-center shadow-lg">
+                                    <span className="material-symbols-outlined text-[64px] text-[#464752] mb-4">account_balance_wallet</span>
+                                    <p className="text-[#f0f0fd] font-bold text-xl mb-1" style={{ fontFamily: "'Manrope', sans-serif" }}>No teacher earnings in {MONTHS[month - 1]} {year}</p>
+                                    <p className="text-[#aaaab7] text-sm">Earnings will appear once payments are confirmed.</p>
                                 </div>
                             )}
                         </div>
@@ -411,9 +434,25 @@ function DistributionContent() {
 export default function RevenueDistribution() {
     return (
         <ProtectedRoute allowedRoles={["admin"]}>
-            <DashboardLayout>
+            <AdminLayout>
+                <style dangerouslySetInnerHTML={{__html: `
+                    .custom-scrollbar::-webkit-scrollbar {
+                        height: 8px;
+                        width: 8px;
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-track {
+                        background: rgba(12, 14, 23, 0.5);
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-thumb {
+                        background: rgba(70, 71, 82, 0.8);
+                        border-radius: 4px;
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                        background: rgba(199, 153, 255, 0.8);
+                    }
+                `}} />
                 <DistributionContent />
-            </DashboardLayout>
+            </AdminLayout>
         </ProtectedRoute>
     );
 }

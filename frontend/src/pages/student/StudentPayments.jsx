@@ -32,9 +32,9 @@ function StatusBadge({ status }) {
             label: "Unpaid",
         },
         Pending_Verification: {
-            bg: "bg-[#c799ff]/15",
-            text: "text-[#c799ff]",
-            border: "border-[#c799ff]/20",
+            bg: "bg-[#3b82f6]/15",
+            text: "text-[#3b82f6]",
+            border: "border-[#3b82f6]/20",
             label: "Pending",
         },
     };
@@ -101,7 +101,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
 
                 <div className="px-6">
                     <p className="text-[#f0f0fd] text-sm font-semibold mb-3 flex items-center gap-2">
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#c799ff]/20 text-[#c799ff] text-xs font-bold">1</span>
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3b82f6]/20 text-[#3b82f6] text-xs font-bold">1</span>
                         Make Payment
                     </p>
                     {upiData && (
@@ -114,7 +114,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                     )}
                     {isMobile() && upiData && (
                         <button onClick={() => setUpiNotice(true)}
-                            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-[#c799ff]/10 border border-[#c799ff]/20 text-[#c799ff] text-sm font-medium hover:bg-[#c799ff]/20 transition-all mb-2 cursor-pointer">
+                            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#3b82f6] text-sm font-medium hover:bg-[#3b82f6]/20 transition-all mb-2 cursor-pointer">
                             <span className="material-symbols-outlined text-lg">credit_card</span> Open UPI App
                         </button>
                     )}
@@ -127,7 +127,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                     )}
                     {!upiData && (
                         <div className="flex items-center justify-center py-6">
-                            <div className="w-6 h-6 border-3 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
+                            <div className="w-6 h-6 border-3 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
                             <span className="text-[#aaaab7] text-sm ml-3">Loading payment info...</span>
                         </div>
                     )}
@@ -137,11 +137,11 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
 
                 <div className="px-6">
                     <p className="text-[#f0f0fd] text-sm font-semibold mb-3 flex items-center gap-2">
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#c799ff]/20 text-[#c799ff] text-xs font-bold">2</span>
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3b82f6]/20 text-[#3b82f6] text-xs font-bold">2</span>
                         Upload Payment Screenshot
                     </p>
                     {!preview ? (
-                        <label className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-white/10 bg-white/[0.02] hover:border-[#c799ff]/30 hover:bg-white/[0.04] transition-all cursor-pointer">
+                        <label className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-white/10 bg-white/[0.02] hover:border-[#3b82f6]/30 hover:bg-white/[0.04] transition-all cursor-pointer">
                             <span className="material-symbols-outlined text-4xl text-[#aaaab7] mb-2">cloud_upload</span>
                             <span className="text-[#aaaab7] text-sm">Tap to upload screenshot</span>
                             <span className="text-[#737580] text-xs mt-1">PNG, JPG up to 5MB</span>
@@ -164,10 +164,10 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
 
                 <div className="p-6 pt-5">
                     <button onClick={handleSubmit} disabled={!file || submitting}
-                        className="w-full py-3 rounded-full bg-[#c799ff] text-[#440080] font-bold text-sm hover:bg-[#ba85fb] transition-all shadow-[0_4px_20px_rgba(199,153,255,0.4)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer active:scale-95">
+                        className="w-full py-3 rounded-full bg-[#3b82f6] text-white font-bold text-sm hover:bg-[#2563eb] transition-all shadow-[0_4px_20px_rgba(59,130,246,0.4)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer active:scale-95">
                         {submitting ? (
                             <span className="flex items-center justify-center gap-2">
-                                <span className="w-4 h-4 border-2 border-[#440080]/30 border-t-[#440080] rounded-full animate-spin" /> Sending...
+                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending...
                             </span>
                         ) : "Proceed — Send for Verification"}
                     </button>
@@ -242,7 +242,7 @@ function StudentPaymentsContent() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
+                <div className="w-10 h-10 border-4 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
             </div>
         );
     }
@@ -313,7 +313,7 @@ function StudentPaymentsContent() {
                             {p.status === "Unpaid" && (
                                 <button
                                     onClick={() => openPayModal(p)}
-                                    className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full bg-[#c799ff] text-[#440080] font-bold text-sm shadow-[0_4px_20px_rgba(199,153,255,0.4)] active:scale-95 transition-transform cursor-pointer"
+                                    className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full bg-[#3b82f6] text-white font-bold text-sm shadow-[0_4px_20px_rgba(59,130,246,0.4)] active:scale-95 transition-transform cursor-pointer"
                                 >
                                     <span className="material-symbols-outlined text-[20px]">credit_card</span>
                                     Pay Now — ₹{p.amount}
@@ -321,9 +321,9 @@ function StudentPaymentsContent() {
                             )}
 
                             {p.status === "Pending_Verification" && (
-                                <div className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full bg-[#c799ff]/10 border border-[#c799ff]/20">
-                                    <span className="material-symbols-outlined text-[20px] text-[#c799ff]" style={{ fontVariationSettings: "'FILL' 1" }}>hourglass_top</span>
-                                    <span className="text-sm font-semibold text-[#c799ff]">Verification Pending</span>
+                                <div className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/20">
+                                    <span className="material-symbols-outlined text-[20px] text-[#3b82f6]" style={{ fontVariationSettings: "'FILL' 1" }}>hourglass_top</span>
+                                    <span className="text-sm font-semibold text-[#3b82f6]">Verification Pending</span>
                                     {p.screenshot_url && (
                                         <button
                                             onClick={() => setPreviewImg(p.screenshot_url)}

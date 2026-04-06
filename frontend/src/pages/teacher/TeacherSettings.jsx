@@ -1,6 +1,6 @@
 import { useState } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import StudentLayout from "@/components/StudentLayout";
+import TeacherLayout from "@/components/TeacherLayout";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { signInWithCustomToken } from "firebase/auth";
@@ -9,7 +9,7 @@ import ProfilePicture from "@/components/ProfilePicture";
 import ProfilePicUpload from "@/components/ProfilePicUpload";
 import MyDevicesModal from "@/components/MyDevicesModal";
 
-function StudentSettingsContent() {
+function TeacherSettingsContent() {
     const { user, logout, refreshUser } = useAuth();
     const [picModalOpen, setPicModalOpen] = useState(false);
     const [devicesModalOpen, setDevicesModalOpen] = useState(false);
@@ -84,15 +84,15 @@ function StudentSettingsContent() {
                         </div>
                     </div>
                     <h2 className="text-2xl font-extrabold tracking-tight text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                        {user?.name || "User"}
+                        {user?.name || "Teacher"}
                     </h2>
                     <p className="text-[#aaaab7] tracking-wider mt-1 text-sm">{displayUsername}</p>
                     <div className="mt-6 flex gap-2 flex-wrap justify-center">
                         <span className="px-3 py-1 bg-[#006a60]/40 text-[#4af8e3] text-[10px] font-bold uppercase tracking-widest rounded-full ring-1 ring-[#4af8e3]/20">
-                            Active Student
+                            Active Teacher
                         </span>
                         <span className="px-3 py-1 bg-[#3b82f6]/20 text-[#3b82f6] text-[10px] font-bold uppercase tracking-widest rounded-full ring-1 ring-[#3b82f6]/20">
-                            Premium Tier
+                            Verified
                         </span>
                     </div>
                 </div>
@@ -295,12 +295,12 @@ function StudentSettingsContent() {
     );
 }
 
-export default function StudentSettings() {
+export default function TeacherSettings() {
     return (
-        <ProtectedRoute allowedRoles={["student"]}>
-            <StudentLayout>
-                <StudentSettingsContent />
-            </StudentLayout>
+        <ProtectedRoute allowedRoles={["teacher"]}>
+            <TeacherLayout>
+                <TeacherSettingsContent />
+            </TeacherLayout>
         </ProtectedRoute>
     );
 }

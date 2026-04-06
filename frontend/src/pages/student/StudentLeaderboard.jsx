@@ -4,6 +4,7 @@ import StudentLayout from "@/components/StudentLayout";
 import ProfilePicture from "@/components/ProfilePicture";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { getYearOptions } from "@/lib/yearOptions";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTH_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -63,48 +64,28 @@ function PodiumAvatar({ entry, rank, size = "lg" }) {
                     style={rank === 1 ? { textShadow: "0 0 15px rgba(199,153,255,0.5)" } : {}}>
                     {entry.student_name}
                 </p>
-                <p className={`font-medium ${rank === 1 ? "text-[11px] text-[#4af8e3] font-bold tracking-widest uppercase" : "text-[10px] text-[#aaaab7]"}`}
-                    style={rank === 1 ? { textShadow: "0 0 15px rgba(74,248,227,0.5)" } : {}}>
-                    {formatTime(entry.paid_at)}
-                </p>
+                {/* Time removed as requested */}
             </div>
         </div>
     );
 }
 
-// ── Month Selector ──
-function MonthSelector({ current, available, onChange }) {
-    const [open, setOpen] = useState(false);
-    const label = `${MONTH_NAMES[current.month - 1]} ${current.year}`;
-
+// ── Pill Select ──
+function PillSelect({ icon, value, onChange, children }) {
     return (
-        <div className="relative inline-block">
-            <button
-                onClick={() => setOpen(!open)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#aaaab7] hover:bg-white/10 transition-all cursor-pointer"
+        <label className="relative inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#f0f0fd] cursor-pointer hover:bg-white/10 transition-all">
+            <span className="material-symbols-outlined text-[#aaaab7] text-base">{icon}</span>
+            <select
+                value={value}
+                onChange={onChange}
+                className="bg-transparent border-none text-sm font-semibold text-[#f0f0fd] appearance-none cursor-pointer focus:outline-none pr-4"
             >
-                <span className="material-symbols-outlined text-sm">calendar_month</span>
-                {label}
-                <span className="material-symbols-outlined text-sm">expand_more</span>
-            </button>
-            {open && (
-                <div className="absolute top-full mt-2 left-0 z-50 bg-[#171924] border border-white/10 rounded-2xl shadow-2xl py-2 min-w-[160px] max-h-60 overflow-y-auto">
-                    {available.map((m) => {
-                        const isActive = m.month === current.month && m.year === current.year;
-                        return (
-                            <button
-                                key={`${m.month}-${m.year}`}
-                                onClick={() => { onChange(m); setOpen(false); }}
-                                className={`w-full px-4 py-2.5 text-left text-sm cursor-pointer transition-colors
-                                    ${isActive ? "bg-[#c799ff]/15 text-[#c799ff] font-semibold" : "text-[#aaaab7] hover:bg-white/5 hover:text-white"}`}
-                            >
-                                {MONTH_NAMES[m.month - 1]} {m.year}
-                            </button>
-                        );
-                    })}
-                </div>
-            )}
-        </div>
+                {children}
+            </select>
+            <span className="material-symbols-outlined text-[#aaaab7] text-sm absolute -right-0.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                expand_more
+            </span>
+        </label>
     );
 }
 
@@ -114,36 +95,36 @@ function StudentLeaderboardContent() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [selectedMonth, setSelectedMonth] = useState(null);
+    
+    const now = new Date();
+    const [month, setMonth] = useState(now.getMonth() + 1);
+    const [year, setYear] = useState(now.getFullYear());
+    const [hasInit, setHasInit] = useState(false);
 
-    const fetchLeaderboard = useCallback(async (month, year) => {
+    const fetchLeaderboard = useCallback(async (m, y) => {
         setError("");
         setLoading(true);
         try {
-            const params = month && year ? `?month=${month}&year=${year}` : "";
+            const params = `?month=${m}&year=${y}`;
             const result = await api.get(`/api/student/leaderboard${params}`);
             setData(result);
-            if (!selectedMonth) {
-                setSelectedMonth({ month: result.month, year: result.year });
+            if (!hasInit) {
+                setMonth(result.month);
+                setYear(result.year);
+                setHasInit(true);
             }
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
         }
-    }, [selectedMonth]);
+    }, [hasInit]);
 
     useEffect(() => {
-        if (selectedMonth) {
-            fetchLeaderboard(selectedMonth.month, selectedMonth.year);
-        } else {
-            fetchLeaderboard();
-        }
-    }, [selectedMonth]);
+        fetchLeaderboard(month, year);
+    }, [month, year, fetchLeaderboard]);
 
-    const handleMonthChange = (m) => {
-        setSelectedMonth(m);
-    };
+    const yearOptions = getYearOptions();
 
     if (loading) {
         return (
@@ -159,7 +140,7 @@ function StudentLeaderboardContent() {
                 <div className="p-4 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff9dac] text-sm">
                     {error}
                 </div>
-                <button onClick={() => fetchLeaderboard(selectedMonth?.month, selectedMonth?.year)}
+                <button onClick={() => fetchLeaderboard(month, year)}
                     className="px-6 py-2 rounded-full bg-[#c799ff] text-[#440080] font-bold text-sm cursor-pointer">
                     Retry
                 </button>
@@ -182,16 +163,19 @@ function StudentLeaderboardContent() {
 
     return (
         <div className="space-y-8">
-            {/* Month Selector */}
-            {data.available_months?.length > 1 && (
-                <div className="flex justify-center animate-fade-in-scale">
-                    <MonthSelector
-                        current={selectedMonth || { month: data.month, year: data.year }}
-                        available={data.available_months}
-                        onChange={handleMonthChange}
-                    />
-                </div>
-            )}
+            {/* Date Filters */}
+            <div className="flex flex-wrap justify-center gap-2 animate-fade-in-scale">
+                <PillSelect icon="calendar_month" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+                    {MONTH_FULL.map((m, i) => (
+                        <option key={i + 1} value={i + 1}>{MONTH_NAMES[i]}</option>
+                    ))}
+                </PillSelect>
+                <PillSelect icon="event" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+                    {yearOptions.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                    ))}
+                </PillSelect>
+            </div>
 
             {/* Hero Section */}
             <section className="text-center space-y-2 animate-fade-in-scale">
@@ -200,7 +184,7 @@ function StudentLeaderboardContent() {
                     Fastest Payers
                 </h2>
                 <p className="text-[#aaaab7] text-sm font-medium">
-                    {MONTH_FULL[(selectedMonth?.month || data.month) - 1]} {selectedMonth?.year || data.year} Billing Cycle
+                    {MONTH_FULL[month - 1]} {year} Billing Cycle
                 </p>
             </section>
 
@@ -230,11 +214,7 @@ function StudentLeaderboardContent() {
             {/* Ranking Details (#4, #5) */}
             {rank4and5.length > 0 && (
                 <section className="space-y-4 animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-bold text-lg text-[#f0f0fd]/90" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                            Ranking Details
-                        </h3>
-                    </div>
+                    {/* Heading removed as requested */}
                     <div className="space-y-3">
                         {rank4and5.map((entry, idx) => (
                             <div key={entry.rank}
@@ -252,7 +232,7 @@ function StudentLeaderboardContent() {
                                 </div>
                                 <div className="flex-1">
                                     <p className="font-bold text-[#f0f0fd]">{entry.student_name}</p>
-                                    <p className="text-xs text-[#aaaab7]">Paid {formatTime(entry.paid_at)}</p>
+                                    {/* Subtitle removed as requested */}
                                 </div>
                                 <div className={`flex items-center gap-1 px-3 py-1 rounded-full
                                     ${entry.rank <= 5 ? "bg-[#4af8e3]/10" : "bg-white/5"}`}>
@@ -324,29 +304,6 @@ function StudentLeaderboardContent() {
                 )}
             </section>
 
-            {/* Stats Cards */}
-            <section className="grid grid-cols-2 gap-4 animate-fade-in-scale" style={{ animationDelay: "500ms" }}>
-                <div className="p-5 rounded-[32px] border border-white/5 flex flex-col gap-2"
-                    style={{ background: "rgba(34,37,50,0.4)", backdropFilter: "blur(24px)" }}>
-                    <span className="material-symbols-outlined text-[#4af8e3]">group</span>
-                    <div>
-                        <p className="text-2xl font-extrabold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                            {data.total_paid}/{data.total_students}
-                        </p>
-                        <p className="text-[10px] uppercase tracking-wider text-[#aaaab7] font-bold">Students Paid</p>
-                    </div>
-                </div>
-                <div className="p-5 rounded-[32px] border border-white/5 flex flex-col gap-2"
-                    style={{ background: "rgba(34,37,50,0.4)", backdropFilter: "blur(24px)" }}>
-                    <span className="material-symbols-outlined text-[#ff9dac]">percent</span>
-                    <div>
-                        <p className="text-2xl font-extrabold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                            {data.cohort_progress}%
-                        </p>
-                        <p className="text-[10px] uppercase tracking-wider text-[#aaaab7] font-bold">Cohort Progress</p>
-                    </div>
-                </div>
-            </section>
         </div>
     );
 }

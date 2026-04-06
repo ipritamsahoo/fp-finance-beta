@@ -18,7 +18,9 @@ import StudentPayments from "@/pages/student/StudentPayments";
 import StudentLeaderboard from "@/pages/student/StudentLeaderboard";
 import StudentSettings from "@/pages/student/StudentSettings";
 import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
+import TeacherPayments from "@/pages/teacher/TeacherPayments";
 import TeacherDistribution from "@/pages/teacher/TeacherDistribution";
+import TeacherSettings from "@/pages/teacher/TeacherSettings";
 import NotificationsPage from "@/pages/NotificationsPage";
 
 export default function App() {
@@ -44,7 +46,9 @@ export default function App() {
                         <Route path="/student/leaderboard" element={<StudentLeaderboard />} />
                         <Route path="/student/settings" element={<StudentSettings />} />
                         <Route path="/teacher" element={<TeacherDashboard />} />
+                        <Route path="/teacher/payments" element={<TeacherPayments />} />
                         <Route path="/teacher/distribution" element={<TeacherDistribution />} />
+                        <Route path="/teacher/settings" element={<TeacherSettings />} />
                         <Route path="/notifications" element={<NotificationsPage />} />
                     </Routes>
                 </NotificationProvider>
