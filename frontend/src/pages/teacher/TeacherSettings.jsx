@@ -103,7 +103,7 @@ function TeacherSettingsContent() {
                 {/* Change Profile Photo */}
                 <button
                     onClick={() => setPicModalOpen(true)}
-                    className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl hover:bg-[#1c1f2b] transition-all group cursor-pointer"
+                    className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
                 >
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl group-hover:bg-[#3b82f6]/20 transition-colors">
@@ -159,7 +159,7 @@ function TeacherSettingsContent() {
                 </button>
 
                 {/* Notifications */}
-                <div className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl">
+                <div className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl">
                             <span className="material-symbols-outlined text-[#3b82f6]">notifications</span>
@@ -175,7 +175,7 @@ function TeacherSettingsContent() {
                 </div>
 
                 {/* Theme */}
-                <div className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl">
+                <div className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl">
                             <span className="material-symbols-outlined text-[#3b82f6]">dark_mode</span>

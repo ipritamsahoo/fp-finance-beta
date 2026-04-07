@@ -202,7 +202,7 @@ export default function StudentLayout({ children }) {
             </aside>
 
             {/* ── Main Content ── */}
-            <main className={`relative md:ml-64 min-h-screen flex flex-col pt-24 ${!isSubPageMobile ? "pb-24" : "pb-12"} md:pt-8 md:pb-8 px-6 md:px-12`}>
+            <main className={`relative md:ml-64 min-h-screen flex flex-col pt-28 ${!isSubPageMobile ? "pb-24" : "pb-12"} md:pt-8 md:pb-8 px-6 md:px-12`}>
                 <div className="max-w-4xl w-full mx-auto flex-1">
                     {children}
                 </div>

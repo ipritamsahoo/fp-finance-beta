@@ -227,7 +227,6 @@ function StudentDashboardContent() {
     const { user } = useAuth();
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [previewImg, setPreviewImg] = useState(null);
 
@@ -236,13 +235,11 @@ function StudentDashboardContent() {
     const [payModalUpi, setPayModalUpi] = useState(null);
 
     const fetchPayments = useCallback(async () => {
-        setError("");
         try {
             const data = await api.get("/api/student/payments");
             setPayments(data);
-            setError("");
         } catch (err) {
-            setError(err.message);
+            // GlobalErrorModal handles systemic errors automatically via lib/api.js
         } finally {
             setLoading(false);
         }
@@ -251,7 +248,6 @@ function StudentDashboardContent() {
     useEffect(() => {
         fetchPayments();
         const handleOnline = () => {
-            setError("");
             fetchPayments();
         };
         window.addEventListener("online", handleOnline);
@@ -279,7 +275,7 @@ function StudentDashboardContent() {
             const data = await api.get(`/api/student/upi-link?amount=${payment.amount}&month=${payment.month}&year=${payment.year}`);
             setPayModalUpi(data);
         } catch (err) {
-            setError(err.message);
+            // Handled globally
         }
     };
 
@@ -329,15 +325,7 @@ function StudentDashboardContent() {
                 </h1>
             </section>
 
-            {/* ── Error/Success Alerts ── */}
-            {error && (
-                <div className="p-3 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff9dac] text-sm flex items-center justify-between animate-fade-in-scale">
-                    <span>{error}</span>
-                    <button onClick={() => setError("")} className="ml-2 cursor-pointer text-[#ff6e84] hover:text-white">
-                        <span className="material-symbols-outlined text-lg">close</span>
-                    </button>
-                </div>
-            )}
+            {/* ── Alerts ── */}
             {success && (
                 <div className="p-3 rounded-2xl bg-[#4af8e3]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-sm flex items-center justify-between animate-fade-in-scale">
                     <span>{success}</span>

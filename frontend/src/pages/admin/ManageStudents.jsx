@@ -48,7 +48,7 @@ function StudentsContent() {
             setStudents(s);
             setBatches(b);
         } catch (err) {
-            setError(err.message);
+            // Handled globally
         } finally {
             setLoading(false);
         }

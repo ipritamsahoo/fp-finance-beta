@@ -53,17 +53,13 @@ async def run_scheduler():
     print("🧪 [Scheduler] TEST MODE ENABLED: Sending reminders every 20 seconds!")
     
     while True:
+        now = datetime.now(IST)
+        target = now.replace(hour=10, minute=0, second=0, microsecond=0)
+        if now >= target:
+            target += timedelta(days=1)
+        wait_seconds = (target - now).total_seconds()
+        print(f"⏳ [Scheduler] Next due reminder scheduled in {wait_seconds / 3600:.2f} hours (at {target.strftime('%d-%b-%Y %H:%M %p')} IST).")
+        await asyncio.sleep(wait_seconds)
         await send_daily_due_reminders()
-        print("⏳ [Scheduler] Waiting 20 seconds for next test cycle...")
-        await asyncio.sleep(20)
 
-    # --- ORIGINAL DAILY LOGIC (Restore after testing) ---
-    # while True:
-    #     now = datetime.now(IST)
-    #     target = now.replace(hour=10, minute=0, second=0, microsecond=0)
-    #     if now >= target:
-    #         target += timedelta(days=1)
-    #     wait_seconds = (target - now).total_seconds()
-    #     print(f"⏳ [Scheduler] Next due reminder scheduled in {wait_seconds / 3600:.2f} hours (at {target.strftime('%d-%b-%Y %H:%M %p')} IST).")
-    #     await asyncio.sleep(wait_seconds)
-    #     await send_daily_due_reminders()
+    

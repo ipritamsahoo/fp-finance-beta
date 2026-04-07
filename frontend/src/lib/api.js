@@ -2,28 +2,31 @@ import { auth } from "./firebase";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+let globalErrorHandler = null;
+
+/**
+ * Register a global error handler (used by ErrorProvider)
+ */
+export function registerGlobalErrorHandler(handler) {
+    globalErrorHandler = handler;
+}
+
 /**
  * Make an authenticated request to the FastAPI backend.
  */
 export async function apiFetch(endpoint, options = {}) {
     let token = null;
     if (auth.currentUser) {
-        // getIdToken() returns the cached token. If it expires in <5 mins, it automatically refreshes it first.
         token = await auth.currentUser.getIdToken();
-        localStorage.setItem("idToken", token); // Keep localStorage updated for redundancy
+        localStorage.setItem("idToken", token);
     } else {
         token = localStorage.getItem("idToken");
     }
 
-    const headers = {
-        ...options.headers,
-    };
-
-    // Don't set Content-Type for FormData (browser sets it automatically with boundary)
+    const headers = { ...options.headers };
     if (!(options.body instanceof FormData)) {
         headers["Content-Type"] = "application/json";
     }
-
     if (token) {
         headers["Authorization"] = `Bearer ${token}`;
     }
@@ -35,22 +38,33 @@ export async function apiFetch(endpoint, options = {}) {
             headers,
         });
     } catch (err) {
-        // Intercept network-level failures. Give it 1.5s and try once more.
-        // This handles "reconnect jitter" where OS says online but DNS/connection isn't ready.
+        // Network-level failures (offline, timeout, server down)
         try {
             await new Promise(resolve => setTimeout(resolve, 1500));
-            res = await fetch(`${API_BASE}${endpoint}`, {
-                ...options,
-                headers,
-            });
+            res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
         } catch (retryErr) {
-            throw new Error("No Connection/ Check your internet connection, try again");
+            if (globalErrorHandler) globalErrorHandler("NETWORK_ERROR");
+            throw new Error("NETWORK_ERROR");
         }
     }
 
     if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: "Request failed" }));
-        throw new Error(err.detail || `HTTP ${res.status}`);
+        let errorType = "SERVER_ERROR";
+        if (res.status === 401 || res.status === 403) errorType = "AUTH_ERROR";
+        if (res.status === 422) errorType = "VALIDATION_ERROR";
+        
+        const errData = await res.json().catch(() => ({ detail: "Request failed" }));
+        const errorMessage = errData.detail || `HTTP ${res.status}`;
+
+        if (globalErrorHandler) {
+            // Only trigger global modal for systemic failures (401, 500, etc.)
+            // Validation errors (422) are often better handled inline
+            if (errorType !== "VALIDATION_ERROR") {
+                globalErrorHandler(errorType, { message: errorMessage });
+            }
+        }
+
+        throw new Error(errorMessage);
     }
 
     return res.json();

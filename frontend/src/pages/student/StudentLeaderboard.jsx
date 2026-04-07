@@ -162,7 +162,7 @@ function StudentLeaderboardContent() {
     const hasAnyPodium = top3.length > 0;
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 pt-2 md:pt-0">
             {/* Date Filters */}
             <div className="flex flex-wrap justify-center gap-2 animate-fade-in-scale">
                 <PillSelect icon="calendar_month" value={month} onChange={(e) => setMonth(Number(e.target.value))}>

@@ -59,7 +59,6 @@ function AdminDashboardContent() {
     const [error, setError] = useState("");
 
     const fetchStats = useCallback(async () => {
-        setError(""); // Clear persistent error before trying again
         try {
             const [statsData, batchData] = await Promise.all([
                 api.get("/api/admin/stats"),
@@ -67,9 +66,8 @@ function AdminDashboardContent() {
             ]);
             setStats(statsData);
             setBatches(batchData);
-            setError(""); // Clear error on successful fetch
         } catch (err) {
-            setError(err.message);
+            // Handled globally
         } finally {
             setLoading(false);
         }
@@ -79,7 +77,6 @@ function AdminDashboardContent() {
         fetchStats();
 
         const handleOnline = () => {
-            setError("");
             fetchStats();
         };
         window.addEventListener("online", handleOnline);

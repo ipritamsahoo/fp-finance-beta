@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import { ErrorProvider } from "@/context/ErrorContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import OfflineIndicator from "@/components/OfflineIndicator";
+import GlobalErrorModal from "@/components/GlobalErrorModal";
 import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import WelcomePage from "@/pages/WelcomePage";
@@ -28,32 +30,35 @@ export default function App() {
     return (
         <BrowserRouter>
             <AuthProvider>
-                <NotificationProvider>
-                    <OfflineIndicator />
-                    <Routes>
-                        <Route path="/" element={<HomePage />} />
-                        <Route path="/welcome" element={<WelcomePage />} />
-                        <Route path="/login" element={<LoginPage />} />
-                        <Route path="/admin" element={<AdminDashboard />} />
-                        <Route path="/admin/approvals" element={<AdminApprovals />} />
-                        <Route path="/admin/students" element={<ManageStudents />} />
-                        <Route path="/admin/teachers" element={<ManageTeachers />} />
-                        <Route path="/admin/batches" element={<ManageBatches />} />
-                        <Route path="/admin/payments" element={<AllPayments />} />
-                        <Route path="/admin/distribution" element={<RevenueDistribution />} />
-                        <Route path="/admin/reports" element={<ReportExport />} />
-                        <Route path="/admin/profile" element={<AdminProfile />} />
-                        <Route path="/student" element={<StudentDashboard />} />
-                        <Route path="/student/payments" element={<StudentPayments />} />
-                        <Route path="/student/leaderboard" element={<StudentLeaderboard />} />
-                        <Route path="/student/settings" element={<StudentSettings />} />
-                        <Route path="/teacher" element={<TeacherDashboard />} />
-                        <Route path="/teacher/payments" element={<TeacherPayments />} />
-                        <Route path="/teacher/distribution" element={<TeacherDistribution />} />
-                        <Route path="/teacher/settings" element={<TeacherSettings />} />
-                        <Route path="/notifications" element={<NotificationsPage />} />
-                    </Routes>
-                </NotificationProvider>
+                <ErrorProvider>
+                    <NotificationProvider>
+                        <OfflineIndicator />
+                        <GlobalErrorModal />
+                        <Routes>
+                            <Route path="/" element={<HomePage />} />
+                            <Route path="/welcome" element={<WelcomePage />} />
+                            <Route path="/login" element={<LoginPage />} />
+                            <Route path="/admin" element={<AdminDashboard />} />
+                            <Route path="/admin/approvals" element={<AdminApprovals />} />
+                            <Route path="/admin/students" element={<ManageStudents />} />
+                            <Route path="/admin/teachers" element={<ManageTeachers />} />
+                            <Route path="/admin/batches" element={<ManageBatches />} />
+                            <Route path="/admin/payments" element={<AllPayments />} />
+                            <Route path="/admin/distribution" element={<RevenueDistribution />} />
+                            <Route path="/admin/reports" element={<ReportExport />} />
+                            <Route path="/admin/profile" element={<AdminProfile />} />
+                            <Route path="/student" element={<StudentDashboard />} />
+                            <Route path="/student/payments" element={<StudentPayments />} />
+                            <Route path="/student/leaderboard" element={<StudentLeaderboard />} />
+                            <Route path="/student/settings" element={<StudentSettings />} />
+                            <Route path="/teacher" element={<TeacherDashboard />} />
+                            <Route path="/teacher/payments" element={<TeacherPayments />} />
+                            <Route path="/teacher/distribution" element={<TeacherDistribution />} />
+                            <Route path="/teacher/settings" element={<TeacherSettings />} />
+                            <Route path="/notifications" element={<NotificationsPage />} />
+                        </Routes>
+                    </NotificationProvider>
+                </ErrorProvider>
             </AuthProvider>
         </BrowserRouter>
     );

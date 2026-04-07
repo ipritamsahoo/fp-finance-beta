@@ -60,8 +60,9 @@ export default function LoginPage() {
 
                     {/* Error */}
                     {error && (
-                        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-                            {error}
+                        <div className="mb-6 p-4 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/30 text-[#ff9dac] text-[13px] font-medium flex items-center gap-3 animate-fade-in-scale">
+                            <span className="material-symbols-outlined text-[20px] text-[#ff6e84]">error</span>
+                            <span className="flex-1">{error}</span>
                         </div>
                     )}
 
