@@ -103,7 +103,7 @@ function StudentSettingsContent() {
                 {/* Change Profile Photo */}
                 <button
                     onClick={() => setPicModalOpen(true)}
-                    className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl hover:bg-[#1c1f2b] transition-all group cursor-pointer"
+                    className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
                 >
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl group-hover:bg-[#3b82f6]/20 transition-colors">
@@ -117,7 +117,7 @@ function StudentSettingsContent() {
                 {/* Change Username or Mobile */}
                 <button
                     onClick={() => setUsernameModalOpen(true)}
-                    className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl hover:bg-[#1c1f2b] transition-all group cursor-pointer"
+                    className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
                 >
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl group-hover:bg-[#3b82f6]/20 transition-colors">
@@ -131,7 +131,7 @@ function StudentSettingsContent() {
                 {/* Change Password */}
                 <button
                     onClick={() => setPasswordModalOpen(true)}
-                    className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl hover:bg-[#1c1f2b] transition-all group cursor-pointer"
+                    className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
                 >
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl group-hover:bg-[#3b82f6]/20 transition-colors">
@@ -145,7 +145,7 @@ function StudentSettingsContent() {
                 {/* Devices */}
                 <button
                     onClick={() => setDevicesModalOpen(true)}
-                    className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl hover:bg-[#1c1f2b] transition-all group cursor-pointer"
+                    className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
                 >
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl group-hover:bg-[#3b82f6]/20 transition-colors">
@@ -159,7 +159,7 @@ function StudentSettingsContent() {
                 </button>
 
                 {/* Notifications */}
-                <div className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl">
+                <div className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl">
                             <span className="material-symbols-outlined text-[#3b82f6]">notifications</span>
@@ -175,7 +175,7 @@ function StudentSettingsContent() {
                 </div>
 
                 {/* Theme */}
-                <div className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl">
+                <div className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl">
                             <span className="material-symbols-outlined text-[#3b82f6]">dark_mode</span>
@@ -190,7 +190,7 @@ function StudentSettingsContent() {
                     href="https://wa.me/917001637243"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl hover:bg-[#1c1f2b] transition-all group cursor-pointer"
+                    className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
                 >
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl group-hover:bg-[#3b82f6]/20 transition-colors">
@@ -213,7 +213,6 @@ function StudentSettingsContent() {
                 </button>
                 <div className="text-center">
                     <p className="text-[10px] text-[#aaaab7] uppercase tracking-[0.2em]">FP Finance v{__APP_VERSION__}</p>
-                    <p className="mt-2 text-[10px] text-[#737580] italic">Securely encrypted by Luminous Ether Systems</p>
                 </div>
             </footer>
 
@@ -225,7 +224,7 @@ function StudentSettingsContent() {
             {/* Change Username Modal */}
             {usernameModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={closeCredModals}>
-                    <div className="w-full max-w-sm mx-4 bg-[#0c0e17] border border-white/10 rounded-[32px] shadow-2xl p-6 animate-fade-in-scale" onClick={(e) => e.stopPropagation()}>
+                    <div className="w-full max-w-sm mx-4 bg-[#0c0e17]/80 backdrop-blur-3xl border border-white/10 rounded-[32px] shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] p-6 animate-fade-in-scale" onClick={(e) => e.stopPropagation()}>
                         <h3 className="text-[#f0f0fd] font-bold text-lg mb-4" style={{ fontFamily: "'Manrope', sans-serif" }}>Change Username or Mobile</h3>
                         {credError && <div className="mb-3 p-2.5 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff9dac] text-xs">{credError}</div>}
                         {credSuccess && <div className="mb-3 p-2.5 rounded-2xl bg-[#4af8e3]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-xs">{credSuccess}</div>}
@@ -254,7 +253,7 @@ function StudentSettingsContent() {
             {/* Change Password Modal */}
             {passwordModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={closeCredModals}>
-                    <div className="w-full max-w-sm mx-4 bg-[#0c0e17] border border-white/10 rounded-[32px] shadow-2xl p-6 animate-fade-in-scale" onClick={(e) => e.stopPropagation()}>
+                    <div className="w-full max-w-sm mx-4 bg-[#0c0e17]/80 backdrop-blur-3xl border border-white/10 rounded-[32px] shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] p-6 animate-fade-in-scale" onClick={(e) => e.stopPropagation()}>
                         <h3 className="text-[#f0f0fd] font-bold text-lg mb-1" style={{ fontFamily: "'Manrope', sans-serif" }}>Change Password</h3>
                         <p className="text-[#aaaab7] text-xs mb-4">Must include letters, numbers & special characters.</p>
                         {credError && <div className="mb-3 p-2.5 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff9dac] text-xs">{credError}</div>}

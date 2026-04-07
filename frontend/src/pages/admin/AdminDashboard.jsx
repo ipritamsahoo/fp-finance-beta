@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
+import AnimatedGreeting from "@/components/AnimatedGreeting";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
@@ -136,12 +137,13 @@ function AdminDashboardContent() {
     return (
         <>
             <section className="mb-10">
-                <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-[#f0f0fd] flex items-center gap-3" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                    Welcome, {user?.name} <span className="text-4xl md:text-6xl animate-wave origin-bottom-right drop-shadow-md">👋</span>
+                <h2
+                    className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#f0f0fd]"
+                    style={{ fontFamily: "'Manrope', sans-serif" }}
+                >
+                    <AnimatedGreeting name={user?.name || "Admin"} />
                 </h2>
-                <p className="text-[#aaaab7] text-sm mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>
-                    Here is what's happening today in your nebula.
-                </p>
+
             </section>
 
             {/* Messages */}

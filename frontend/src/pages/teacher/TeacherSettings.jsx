@@ -213,7 +213,6 @@ function TeacherSettingsContent() {
                 </button>
                 <div className="text-center">
                     <p className="text-[10px] text-[#aaaab7] uppercase tracking-[0.2em]">FP Finance v{__APP_VERSION__}</p>
-                    <p className="mt-2 text-[10px] text-[#737580] italic">Securely encrypted by Luminous Ether Systems</p>
                 </div>
             </footer>
 

@@ -138,7 +138,7 @@ function PaymentsContent() {
                         <table className="w-full border-collapse min-w-[1200px]">
                             <thead className="bg-[#0c0e17]/80 backdrop-blur-xl sticky top-0 z-20">
                                 <tr className="border-b border-white/5">
-                                    <th className="px-6 py-4 text-left text-sm font-bold text-[#3b82f6] uppercase tracking-wider whitespace-nowrap border-r border-[#464752]/40 min-w-[220px] sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                                    <th className="px-4 py-4 text-left text-sm font-bold text-[#3b82f6] uppercase tracking-wider whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
                                         Monthly Totals
                                     </th>
                                     {MONTHS_SHORT.map((_, i) => (
@@ -148,7 +148,7 @@ function PaymentsContent() {
                                     ))}
                                 </tr>
                                 <tr className="border-b border-[#464752]/40">
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap border-r border-[#464752]/40 min-w-[200px] sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
                                         Student Name
                                     </th>
                                     {MONTHS_SHORT.map((m, i) => (
@@ -161,7 +161,7 @@ function PaymentsContent() {
                             <tbody>
                                 {students.map((student) => (
                                     <tr key={student.id} className="border-b border-[#464752]/20 hover:bg-white/5 transition-colors group">
-                                        <td className="px-6 py-5 text-base text-[#f0f0fd] font-bold whitespace-nowrap border-r border-[#464752]/40 sticky left-0 bg-[#171924] group-hover:bg-[#1f2231] transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                        <td className="px-4 py-5 text-base text-[#f0f0fd] font-bold whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#171924] group-hover:bg-[#1f2231] transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                             {student.name}
                                         </td>
                                         {MONTHS_SHORT.map((_, mi) => {

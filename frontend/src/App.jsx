@@ -13,6 +13,7 @@ import ManageBatches from "@/pages/admin/ManageBatches";
 import AllPayments from "@/pages/admin/AllPayments";
 import RevenueDistribution from "@/pages/admin/RevenueDistribution";
 import ReportExport from "@/pages/admin/ReportExport";
+import AdminProfile from "@/pages/admin/AdminProfile";
 import StudentDashboard from "@/pages/student/StudentDashboard";
 import StudentPayments from "@/pages/student/StudentPayments";
 import StudentLeaderboard from "@/pages/student/StudentLeaderboard";
@@ -41,6 +42,7 @@ export default function App() {
                         <Route path="/admin/payments" element={<AllPayments />} />
                         <Route path="/admin/distribution" element={<RevenueDistribution />} />
                         <Route path="/admin/reports" element={<ReportExport />} />
+                        <Route path="/admin/profile" element={<AdminProfile />} />
                         <Route path="/student" element={<StudentDashboard />} />
                         <Route path="/student/payments" element={<StudentPayments />} />
                         <Route path="/student/leaderboard" element={<StudentLeaderboard />} />

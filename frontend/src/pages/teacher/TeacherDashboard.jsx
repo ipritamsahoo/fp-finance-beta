@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import TeacherLayout from "@/components/TeacherLayout";
 import ProfilePicture from "@/components/ProfilePicture";
+import AnimatedGreeting from "@/components/AnimatedGreeting";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
@@ -217,10 +218,10 @@ function TeacherDashboardContent() {
             {/* ── Welcome ── */}
             <div className="animate-fade-in-scale">
                 <h1
-                    className="text-lg font-bold text-[#f0f0fd]"
+                    className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#f0f0fd]"
                     style={{ fontFamily: "'Manrope', sans-serif" }}
                 >
-                    Welcome, {user?.name} 👋
+                    <AnimatedGreeting name={user?.name || "Teacher"} />
                 </h1>
             </div>
 

@@ -110,18 +110,18 @@ function PaymentsContent() {
 
             {/* Filters */}
             <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 animate-fade-in-up transition-colors">
-                <div className="flex flex-wrap gap-4">
-                    <div className="relative">
+                <div className="flex gap-3">
+                    <div className="relative flex-1">
                         <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)}
-                            className="w-full sm:w-auto bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm cursor-pointer min-w-[180px]">
+                            className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm cursor-pointer">
                             <option value="">Select Batch</option>
                             {batches.map((b) => <option key={b.id} value={b.id}>{b.batch_name}</option>)}
                         </select>
                         <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
                     </div>
-                    <div className="relative">
+                    <div className="relative flex-1">
                         <select value={filterYear} onChange={(e) => setFilterYear(Number(e.target.value))}
-                            className="w-full sm:w-auto bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm cursor-pointer min-w-[140px]">
+                            className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm cursor-pointer">
                             {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
                         </select>
                         <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
@@ -130,7 +130,7 @@ function PaymentsContent() {
             </div>
 
             {/* Pivot Table */}
-            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden animate-fade-in-up transition-colors shadow-xl h-[calc(100vh-240px)] flex flex-col">
+            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden animate-fade-in-up transition-colors shadow-xl">
                 {loading ? (
                     <div className="flex-1 flex items-center justify-center p-12">
                         <div className="w-8 h-8 border-4 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
@@ -140,25 +140,25 @@ function PaymentsContent() {
                 ) : students.length === 0 ? (
                     <div className="flex-1 flex items-center justify-center p-12 text-[#aaaab7]" style={{ fontFamily: "'Inter', sans-serif" }}>No payment records found.</div>
                 ) : (
-                    <div className="overflow-auto flex-1 custom-scrollbar">
+                    <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full border-collapse min-w-[1200px]">
                             <thead className="bg-[#0c0e17]/80 backdrop-blur-xl sticky top-0 z-20">
                                 <tr className="border-b border-white/5">
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-[#4af8e3] uppercase tracking-wider whitespace-nowrap border-r border-[#464752]/40 min-w-[200px] sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-[#4af8e3] uppercase tracking-wider whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/60 backdrop-blur-md z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
                                         Total Collected
                                     </th>
                                     {MONTHS_SHORT.map((_, i) => (
-                                        <th key={i} className="px-4 py-3 text-center text-sm font-bold text-[#4af8e3] tracking-widest border-r border-[#464752]/40 min-w-[170px]">
+                                        <th key={i} className="px-4 py-3 text-center text-sm font-bold text-[#4af8e3] tracking-widest border-r border-[#464752]/40 min-w-[130px]">
                                             ₹{monthTotals[i].toLocaleString()}
                                         </th>
                                     ))}
                                 </tr>
                                 <tr className="border-b border-[#464752]/40">
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap border-r border-[#464752]/40 min-w-[200px] sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/60 backdrop-blur-md z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
                                         Student Name
                                     </th>
                                     {MONTHS_SHORT.map((m, i) => (
-                                        <th key={i} className="px-4 py-3 text-center text-xs font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40 min-w-[170px]">
+                                        <th key={i} className="px-4 py-3 text-center text-xs font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40 min-w-[130px]">
                                             {m}
                                         </th>
                                     ))}
@@ -167,7 +167,7 @@ function PaymentsContent() {
                             <tbody>
                                 {students.map((student) => (
                                     <tr key={student.id} className="border-b border-[#464752]/20 hover:bg-white/5 transition-colors group">
-                                        <td className="px-6 py-4 text-sm text-[#f0f0fd] font-bold whitespace-nowrap border-r border-[#464752]/40 sticky left-0 bg-[#171924] group-hover:bg-[#1f2231] transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                        <td className="px-4 py-4 text-sm text-[#f0f0fd] font-bold whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#171924]/60 backdrop-blur-md group-hover:bg-[#1f2231]/80 transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                             {student.name}
                                         </td>
                                         {MONTHS_SHORT.map((_, mi) => {
@@ -191,24 +191,24 @@ function PaymentsContent() {
                                                     ? "0 0 8px rgba(255,157,172,0.4), 0 0 2px rgba(255,157,172,0.2)"
                                                     : "0 0 8px rgba(255,110,132,0.4), 0 0 2px rgba(255,110,132,0.2)";
                                             return (
-                                                <td key={mi} className="px-4 py-5 border-r border-[#464752]/40 bg-black/10">
-                                                    <div className="flex flex-col gap-2 w-[160px] mx-auto">
+                                                <td key={mi} className="px-2 py-4 border-r border-[#464752]/40 bg-black/10">
+                                                    <div className="flex flex-col gap-1.5 w-[130px] mx-auto">
                                                         {/* Top Row: Amount & Status */}
-                                                        <div className="grid grid-cols-2 gap-2 w-full">
-                                                            <span className="flex items-center justify-center px-2 py-1.5 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] text-[10px] font-bold tracking-widest whitespace-nowrap shadow-[0_0_10px_rgba(59,130,246,0.2)]">
+                                                        <div className="grid grid-cols-2 gap-1.5 w-full">
+                                                            <span className="flex items-center justify-center px-1.5 py-1 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] text-[10px] font-bold tracking-widest whitespace-nowrap shadow-[0_0_10px_rgba(59,130,246,0.2)]">
                                                                 ₹{p.amount}
                                                             </span>
-                                                            <span className={`flex items-center justify-center px-2 py-1.5 rounded-full border text-[10px] uppercase font-bold tracking-widest whitespace-nowrap ${stBg}`}
+                                                            <span className={`flex items-center justify-center px-1.5 py-1 rounded-full border text-[10px] uppercase font-bold tracking-widest whitespace-nowrap ${stBg}`}
                                                                 style={{ boxShadow: stGlow }}>
                                                                 {statusLabel(p.status)}
                                                             </span>
                                                         </div>
                                                         {/* Bottom Row: Mode & Date */}
-                                                        <div className="grid grid-cols-2 gap-2 w-full">
-                                                            <span className="flex items-center justify-center px-2 py-1.5 rounded-full bg-[#222532]/50 border border-[#464752]/50 text-[#aaaab7] text-[10px] font-bold tracking-widest whitespace-nowrap">
+                                                        <div className="grid grid-cols-2 gap-1.5 w-full">
+                                                            <span className="flex items-center justify-center px-1.5 py-1 rounded-full bg-[#222532]/50 border border-[#464752]/50 text-[#aaaab7] text-[10px] font-bold tracking-widest whitespace-nowrap">
                                                                 {p.mode ? p.mode.charAt(0).toUpperCase() + p.mode.slice(1) : "—"}
                                                             </span>
-                                                            <span className="flex items-center justify-center px-2 py-1.5 rounded-full bg-[#171924]/60 border border-[#464752]/30 text-[#f0f0fd] text-[10px] font-bold tracking-widest whitespace-nowrap opacity-80">
+                                                            <span className="flex items-center justify-center px-1.5 py-1 rounded-full bg-[#171924]/60 border border-[#464752]/30 text-[#f0f0fd] text-[10px] font-bold tracking-widest whitespace-nowrap opacity-80">
                                                                 {p.status === "Paid" && p.updated_at ? formatDate(p.updated_at) : "—"}
                                                             </span>
                                                         </div>

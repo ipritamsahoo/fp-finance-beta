@@ -218,10 +218,8 @@ function StudentLeaderboardContent() {
                     <div className="space-y-3">
                         {rank4and5.map((entry, idx) => (
                             <div key={entry.rank}
-                                className="rounded-3xl p-4 flex items-center gap-4 border border-white/5 hover:border-[#c799ff]/20 transition-all animate-fade-in-scale"
+                                className="glass-card-student rounded-3xl p-4 flex items-center gap-4 hover:border-[#c799ff]/30 transition-all animate-fade-in-scale"
                                 style={{
-                                    background: "rgba(34,37,50,0.4)",
-                                    backdropFilter: "blur(24px)",
                                     animationDelay: `${300 + idx * 80}ms`,
                                 }}>
                                 <span className="text-[#aaaab7] font-bold w-6" style={{ fontFamily: "'Manrope', sans-serif" }}>
@@ -252,7 +250,7 @@ function StudentLeaderboardContent() {
             {/* Your Current Position */}
             <section className="animate-fade-in-scale" style={{ animationDelay: "400ms" }}>
                 {data.is_current_paid ? (
-                    <div className="p-4 rounded-3xl bg-gradient-to-r from-[#c799ff]/20 to-[#4af8e3]/10 border border-[#c799ff]/20 backdrop-blur-md">
+                    <div className="p-4 rounded-3xl bg-gradient-to-r from-[#c799ff]/20 to-[#4af8e3]/10 border border-[#c799ff]/30 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)]">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-full bg-[#c799ff]/20 flex items-center justify-center">
@@ -276,7 +274,7 @@ function StudentLeaderboardContent() {
                         </div>
                     </div>
                 ) : data.has_bill ? (
-                    <div className="p-4 rounded-3xl bg-[#ff6e84]/10 border border-[#ff6e84]/20">
+                    <div className="p-4 rounded-3xl bg-[#ff6e84]/10 backdrop-blur-2xl border border-[#ff6e84]/30 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]">
                         <div className="flex items-center gap-4">
                             <div className="w-10 h-10 rounded-full bg-[#ff6e84]/20 flex items-center justify-center">
                                 <span className="material-symbols-outlined text-[#ff6e84]">lock</span>
@@ -290,7 +288,7 @@ function StudentLeaderboardContent() {
                         </div>
                     </div>
                 ) : (
-                    <div className="p-4 rounded-3xl bg-white/5 border border-white/10">
+                    <div className="p-4 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]">
                         <div className="flex items-center gap-4">
                             <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
                                 <span className="material-symbols-outlined text-[#737580]">info</span>

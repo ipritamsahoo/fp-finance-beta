@@ -52,6 +52,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
     const [preview, setPreview] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [upiNotice, setUpiNotice] = useState(false);
+    const [showPreviewModal, setShowPreviewModal] = useState(false);
 
     const handleFileChange = (e) => {
         const selected = e.target.files?.[0];
@@ -80,36 +81,54 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
     if (!payment) return null;
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
-            <div className="relative bg-[#0c0e17] border border-white/10 rounded-[32px] w-full max-w-md max-h-[90vh] overflow-y-auto animate-fade-in-scale"
+        <div className="fixed inset-0 z-[100] bg-[#0c0e17] flex flex-col sm:bg-black/80 sm:backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose}>
+            <div className="relative bg-[#0c0e17] w-full h-full sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:rounded-[28px] sm:border sm:border-white/10 sm:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col animate-fade-in-scale"
                 onClick={(e) => e.stopPropagation()}>
-                <button onClick={onClose}
-                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 border border-white/10 text-[#aaaab7] flex items-center justify-center hover:bg-white/10 hover:text-white cursor-pointer z-10 transition-colors">
-                    <span className="material-symbols-outlined text-lg">close</span>
-                </button>
 
-                <div className="p-6 pb-0 text-center">
-                    <h3 className="text-[#f0f0fd] font-extrabold text-xl" style={{ fontFamily: "'Manrope', sans-serif" }}>Pay Now</h3>
-                    <p className="text-[#aaaab7] text-sm mt-1">{MONTHS[payment.month - 1]} {payment.year}</p>
-                    <div className="mt-3 inline-flex items-baseline gap-1">
-                        <span className="text-[#aaaab7] text-sm">₹</span>
-                        <span className="text-[#f0f0fd] font-bold text-3xl" style={{ fontFamily: "'Manrope', sans-serif" }}>{payment.amount}</span>
+                {/* ── Header Bar ── */}
+                <div className="flex items-center gap-3 px-4 h-16 border-b border-white/5 shrink-0 bg-gradient-to-r from-[#0c0e17] via-[#111427] to-[#0c0e17]">
+                    <button onClick={onClose}
+                        className="w-10 h-10 rounded-full hover:bg-white/5 flex items-center justify-center text-[#aaaab7] active:scale-90 transition-all cursor-pointer">
+                        <span className="material-symbols-outlined">arrow_back</span>
+                    </button>
+                    <div className="flex-1 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-[#f0f0fd] font-bold text-lg leading-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>Secure Checkout</h3>
+                            <p className="text-[#4af8e3] text-[11px] font-medium tracking-wide flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[12px] material-symbols-filled">verified</span> 100% SECURE
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <h3 className="text-[#f0f0fd] font-extrabold text-xl leading-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>₹{payment.amount}</h3>
+                            <p className="text-[#aaaab7] text-[11px] uppercase tracking-wider">{MONTHS[payment.month - 1]} {payment.year}</p>
+                        </div>
                     </div>
                 </div>
 
-                <div className="mx-6 my-4 border-t border-white/5" />
+                {/* ── Scrollable Content ── */}
+                <div className="flex-1 overflow-y-auto overscroll-contain px-5 pt-4">
 
-                <div className="px-6">
+                <div className="mb-4 border-t border-white/5" />
+
+                <div>
                     <p className="text-[#f0f0fd] text-sm font-semibold mb-3 flex items-center gap-2">
                         <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3b82f6]/20 text-[#3b82f6] text-xs font-bold">1</span>
                         Make Payment
                     </p>
                     {upiData && (
-                        <div className="text-center mb-4">
-                            <div className="inline-block p-3 bg-white rounded-xl mb-3">
-                                <QRCodeSVG value={upiData.upi_link} size={180} level="H" includeMargin={false} />
+                        <div className="text-center mb-5 mt-2">
+                            <div className="relative inline-block mx-auto">
+                                {/* Glowing backdrop */}
+                                <div className="absolute -inset-1 bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] rounded-[1.25rem] blur opacity-40"></div>
+                                {/* QR Container */}
+                                <div className="relative p-3.5 bg-white rounded-2xl shadow-xl flex flex-col items-center border border-white/20">
+                                    <QRCodeSVG value={upiData.upi_link} size={160} level="H" includeMargin={false} />
+                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 w-full justify-center">
+                                        <span className="text-[11px] font-extrabold text-gray-400 tracking-wider">BHIM UPI</span>
+                                    </div>
+                                </div>
                             </div>
-                            <p className="text-[#737580] text-xs">Scan with any UPI app</p>
+                            <p className="text-[#737580] text-[13px] mt-4 font-medium">Scan with any UPI app to pay</p>
                         </div>
                     )}
                     {isMobile() && upiData && (
@@ -133,23 +152,28 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                     )}
                 </div>
 
-                <div className="mx-6 my-4 border-t border-white/5" />
+                <div className="my-4 border-t border-white/5" />
 
-                <div className="px-6">
+                <div>
                     <p className="text-[#f0f0fd] text-sm font-semibold mb-3 flex items-center gap-2">
                         <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3b82f6]/20 text-[#3b82f6] text-xs font-bold">2</span>
                         Upload Payment Screenshot
                     </p>
                     {!preview ? (
-                        <label className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-white/10 bg-white/[0.02] hover:border-[#3b82f6]/30 hover:bg-white/[0.04] transition-all cursor-pointer">
-                            <span className="material-symbols-outlined text-4xl text-[#aaaab7] mb-2">cloud_upload</span>
+                        <label className="flex flex-col items-center justify-center w-full py-6 rounded-2xl border-2 border-dashed border-white/10 bg-white/[0.02] hover:border-[#3b82f6]/30 hover:bg-white/[0.04] transition-all cursor-pointer">
+                            <span className="material-symbols-outlined text-3xl text-[#aaaab7] mb-1">cloud_upload</span>
                             <span className="text-[#aaaab7] text-sm">Tap to upload screenshot</span>
-                            <span className="text-[#737580] text-xs mt-1">PNG, JPG up to 5MB</span>
+                            <span className="text-[#737580] text-xs mt-0.5">PNG, JPG up to 5MB</span>
                             <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                         </label>
                     ) : (
                         <div className="relative">
-                            <img src={preview} alt="Preview" className="w-full rounded-2xl border border-white/10 max-h-48 object-contain bg-white/[0.02]" />
+                            <div className="relative group p-1 bg-white/[0.02] rounded-2xl border border-white/10 hover:border-[#3b82f6]/30 transition-all cursor-zoom-in" onClick={() => setShowPreviewModal(true)}>
+                                <img src={preview} alt="Preview" className="w-full h-auto max-h-48 object-cover rounded-xl" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl pointer-events-none">
+                                    <span className="material-symbols-outlined text-white text-3xl">zoom_in</span>
+                                </div>
+                            </div>
                             <button onClick={handleRemoveFile}
                                 className="absolute top-2 right-2 w-7 h-7 rounded-full bg-[#ff6e84]/80 text-white flex items-center justify-center hover:bg-[#ff6e84] cursor-pointer">
                                 <span className="material-symbols-outlined text-sm">close</span>
@@ -161,8 +185,10 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                         </div>
                     )}
                 </div>
+                </div>
 
-                <div className="p-6 pt-5">
+                {/* ── Sticky Proceed Button ── */}
+                <div className="p-5 pt-3 border-t border-white/5 bg-[#0c0e17] shrink-0">
                     <button onClick={handleSubmit} disabled={!file || submitting}
                         className="w-full py-3 rounded-full bg-[#3b82f6] text-white font-bold text-sm hover:bg-[#2563eb] transition-all shadow-[0_4px_20px_rgba(59,130,246,0.4)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer active:scale-95">
                         {submitting ? (
@@ -171,8 +197,22 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                             </span>
                         ) : "Proceed — Send for Verification"}
                     </button>
-                    {!file && <p className="text-[#737580] text-xs text-center mt-2">Upload a screenshot to enable proceed</p>}
+                    {!file && <p className="text-[#737580] text-xs text-center mt-1.5">Upload a screenshot to enable proceed</p>}
                 </div>
+
+                {/* ── Fullscreen Image Preview Modal ── */}
+                {showPreviewModal && preview && (
+                    <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex flex-col animate-fade-in" onClick={() => setShowPreviewModal(false)}>
+                        <div className="flex justify-end p-5">
+                            <button className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white cursor-pointer hover:bg-white/20 active:scale-90 transition-all">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-hidden flex items-center justify-center p-4">
+                            <img src={preview} alt="Fullscreen Preview" className="max-w-full max-h-full object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -282,7 +322,7 @@ function StudentPaymentsContent() {
                         {/* Subtle glow behind card */}
                         <div className="absolute inset-0 bg-white/[0.03] blur-sm rounded-3xl -z-10 group-hover:bg-white/[0.06] transition-all" />
 
-                        <div className="bg-[#1c1f2b]/60 backdrop-blur-2xl p-6 rounded-3xl border border-[#464752]/10 shadow-2xl flex flex-col gap-4">
+                        <div className="glass-card-student p-6 rounded-3xl flex flex-col gap-4">
                             {/* Top row: Billing info + Amount + Status */}
                             <div className="flex justify-between items-start">
                                 <div className="space-y-1">
@@ -303,7 +343,7 @@ function StudentPaymentsContent() {
                             {p.status === "Paid" && (
                                 <button
                                     onClick={() => generateReceiptPDF(p, user)}
-                                    className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full bg-white/5 border border-[#464752]/20 hover:bg-white/10 transition-colors active:scale-[0.98] cursor-pointer"
+                                    className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 hover:bg-white/10 transition-colors active:scale-[0.98] cursor-pointer"
                                 >
                                     <span className="material-symbols-outlined text-[20px]">description</span>
                                     <span className="text-sm font-semibold">Download Receipt</span>
@@ -321,7 +361,7 @@ function StudentPaymentsContent() {
                             )}
 
                             {p.status === "Pending_Verification" && (
-                                <div className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/20">
+                                <div className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full bg-[#3b82f6]/10 backdrop-blur-md border border-[#3b82f6]/20">
                                     <span className="material-symbols-outlined text-[20px] text-[#3b82f6]" style={{ fontVariationSettings: "'FILL' 1" }}>hourglass_top</span>
                                     <span className="text-sm font-semibold text-[#3b82f6]">Verification Pending</span>
                                     {p.screenshot_url && (

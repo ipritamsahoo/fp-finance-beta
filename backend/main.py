@@ -11,6 +11,8 @@ import uvicorn
 import cloudinary
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import asyncio
+from scheduler import run_scheduler
 
 from config import HOST, PORT, CRON_SECRET
 from config import CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
@@ -57,6 +59,14 @@ async def health_check(x_cron_secret: str = Header(None, alias="X-Cron-Secret"))
     if x_cron_secret != CRON_SECRET:
         raise HTTPException(status_code=403, detail="Invalid cron secret")
     return {"status": "ok", "message": "Server is active"}
+
+# ──────────────────────────────────────────────
+# STARTUP EVENT
+# ──────────────────────────────────────────────
+@app.on_event("startup")
+async def startup_event():
+    # Start the background task for daily due reminders
+    asyncio.create_task(run_scheduler())
 
 # ──────────────────────────────────────────────
 # RUN

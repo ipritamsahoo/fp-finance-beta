@@ -21,10 +21,17 @@ function DistributionContent() {
     const [expandedDate, setExpandedDate] = useState(null);
     const [settleLoading, setSettleLoading] = useState(null);
     const [activeTab, setActiveTab] = useState("datewise");
+    const [confirmModal, setConfirmModal] = useState(null); // { date, paymentsCount }
 
     // Settle a date's distribution (one-time, irreversible)
-    const handleSettle = async (date, paymentsCount) => {
-        if (!confirm(`⚠️ PERMANENT ACTION\n\nSettle distribution for ${date}?\nThis will freeze ${paymentsCount} payment(s) and teacher shares permanently.\n\nThis action CANNOT be undone.`)) return;
+    const handleSettle = (date, paymentsCount) => {
+        setConfirmModal({ date, paymentsCount });
+    };
+
+    const confirmSettle = async () => {
+        if (!confirmModal) return;
+        const { date } = confirmModal;
+        setConfirmModal(null);
         setSettleLoading(date);
         setError("");
         try {
@@ -97,29 +104,31 @@ function DistributionContent() {
                     </h1>
                     <p className="text-[#aaaab7] text-sm mt-1">Teacher payment split based on confirmation date</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="relative">
-                        <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
-                            className="bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer min-w-[140px]">
-                            {MONTHS.map((m, i) => (
-                                <option key={i + 1} value={i + 1}>{m}</option>
-                            ))}
-                        </select>
-                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
-                    </div>
-                    <div className="relative">
-                        <select value={year} onChange={(e) => setYear(Number(e.target.value))}
-                            className="bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer min-w-[120px]">
-                            {yearOptions.map((y) => (
-                                <option key={y} value={y}>{y}</option>
-                            ))}
-                        </select>
-                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                <div className="flex flex-col xl:flex-row xl:items-end gap-3 w-full">
+                    <div className="flex gap-3 w-full xl:w-auto">
+                        <div className="relative flex-1 xl:flex-none">
+                            <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
+                                className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer xl:min-w-[140px]">
+                                {MONTHS.map((m, i) => (
+                                    <option key={i + 1} value={i + 1}>{m}</option>
+                                ))}
+                            </select>
+                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                        </div>
+                        <div className="relative flex-1 xl:flex-none">
+                            <select value={year} onChange={(e) => setYear(Number(e.target.value))}
+                                className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer xl:min-w-[120px]">
+                                {yearOptions.map((y) => (
+                                    <option key={y} value={y}>{y}</option>
+                                ))}
+                            </select>
+                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                        </div>
                     </div>
                     {batches.length > 0 ? (
-                        <div className="relative w-full sm:w-auto">
+                        <div className="relative w-full xl:w-auto">
                             <select value={batchFilter} onChange={(e) => setBatchFilter(e.target.value)}
-                                className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer min-w-[180px]">
+                                className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer xl:min-w-[180px]">
                                 {batches.map((b) => (
                                     <option key={b.id} value={b.id}>{b.batch_name}</option>
                                 ))}
@@ -127,7 +136,7 @@ function DistributionContent() {
                             <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
                         </div>
                     ) : (
-                        <div className="bg-[#222532]/50 border border-[#464752]/50 rounded-2xl w-[180px] h-[46px] animate-pulse" />
+                        <div className="bg-[#222532]/50 border border-[#464752]/50 rounded-2xl w-full xl:w-[180px] h-[46px] animate-pulse" />
                     )}
                 </div>
             </div>
@@ -147,9 +156,9 @@ function DistributionContent() {
             ) : data ? (
                 <>
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <div className="grid grid-cols-2 gap-3 mb-6">
                         <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl p-5 animate-fade-in-up transition-colors hover:bg-[#171924]/80">
-                            <p className="text-[#aaaab7] text-xs font-bold uppercase tracking-widest mb-1 pointer-events-none text-opacity-80">Total Collected</p>
+                            <p className="text-[#aaaab7] text-xs font-bold uppercase tracking-widest mb-1 pointer-events-none text-opacity-80">Total Distributed</p>
                             <p className="text-3xl sm:text-4xl font-extrabold text-[#4af8e3] mt-2 drop-shadow-md">₹{data.total_collected.toLocaleString()}</p>
                             <p className="text-[#aaaab7] text-sm mt-3 font-medium opacity-80">{MONTHS[month - 1]} {year}</p>
                         </div>
@@ -199,12 +208,18 @@ function DistributionContent() {
                                                 } catch { return dist.date; }
                                             })();
                                             return (
-                                                <div key={dist.date} className={`bg-[#171924]/60 backdrop-blur-[20px] rounded-3xl overflow-hidden border transition-all ${dist.settled ? "border-[#4af8e3]/30 shadow-[0_4px_15px_rgba(74,248,227,0.05)]" : "border-[#737580]/10 hover:border-[#c799ff]/30 shadow-lg hover:shadow-[0_4px_15px_rgba(199,153,255,0.05)]"}`}>
+                                                <div key={dist.date} className={`relative bg-[#171924]/60 backdrop-blur-[20px] rounded-3xl overflow-hidden border transition-all ${dist.settled ? "border-[#4af8e3]/30 shadow-[0_4px_15px_rgba(74,248,227,0.05)]" : "border-[#737580]/10 hover:border-[#c799ff]/30 shadow-lg hover:shadow-[0_4px_15px_rgba(199,153,255,0.05)]"}`}>
+                                                    {/* Expand/collapse arrow — top right corner */}
+                                                    <button
+                                                        onClick={() => setExpandedDate(isExpanded ? null : dist.date)}
+                                                        className={`absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 border border-white/5 text-[#aaaab7] transition-all duration-300 cursor-pointer hover:bg-white/10 hover:text-white z-10 ${isExpanded ? "rotate-180 bg-white/10 text-white border-white/10" : ""}`}>
+                                                        <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                                                    </button>
                                                     {/* Row header — clickable */}
-                                                    <div className="flex flex-col md:flex-row md:items-center justify-between p-5 sm:p-6 gap-4">
+                                                    <div className="flex flex-col md:flex-row md:items-center justify-between p-4 sm:p-6 pr-14 gap-3 md:gap-4">
                                                         <button
                                                             onClick={() => setExpandedDate(isExpanded ? null : dist.date)}
-                                                            className="flex items-center gap-4 cursor-pointer flex-1 min-w-0 group"
+                                                            className="flex items-center gap-3 md:gap-4 cursor-pointer flex-1 min-w-0 group"
                                                         >
                                                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${dist.settled
                                                                 ? "bg-[#4af8e3]/10 text-[#4af8e3]"
@@ -215,47 +230,41 @@ function DistributionContent() {
                                                                 </span>
                                                             </div>
                                                             <div className="text-left flex-1 min-w-0">
-                                                                <p className="text-[#f0f0fd] font-bold text-base md:text-lg tracking-wide truncate" style={{ fontFamily: "'Manrope', sans-serif" }}>{formattedDate}</p>
-                                                                <p className="text-[#aaaab7] text-xs font-medium tracking-wide mt-1 truncate flex items-center gap-2">
+                                                                <p className="text-[#f0f0fd] font-bold text-sm md:text-lg tracking-wide truncate" style={{ fontFamily: "'Manrope', sans-serif" }}>{formattedDate}</p>
+                                                                <p className="text-[#aaaab7] text-[11px] md:text-xs font-medium tracking-wide mt-0.5 md:mt-1 flex items-center gap-1.5 md:gap-2 flex-wrap">
                                                                     <span>{dist.payments_count} payment(s)</span>
                                                                     <span className="w-1 h-1 rounded-full bg-[#aaaab7]/50"></span>
                                                                     <span>{dist.teachers.length} teacher(s)</span>
                                                                     {dist.settled && (
                                                                         <>
                                                                             <span className="w-1 h-1 rounded-full bg-[#4af8e3]/50"></span>
-                                                                            <span className="text-[#4af8e3]">Permanently Settled</span>
+                                                                            <span className="text-[#4af8e3] hidden sm:inline">Permanently Settled</span>
+                                                                            <span className="text-[#4af8e3] sm:hidden">Settled</span>
                                                                         </>
                                                                     )}
                                                                 </p>
                                                             </div>
                                                         </button>
-                                                        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t border-[#464752]/30 md:border-t-0 pt-4 md:pt-0">
-                                                            <span className="px-4 py-1.5 rounded-full bg-[#4af8e3]/10 border border-[#4af8e3]/30 text-[#4af8e3] text-sm font-bold tracking-widest drop-shadow-md" style={{ boxShadow: "0 0 8px rgba(74,248,227,0.2)"}}>
+                                                        <div className="flex items-center gap-2 border-t border-[#464752]/30 md:border-t-0 pt-3 md:pt-0">
+                                                            <span className="px-3 md:px-4 py-1.5 rounded-full bg-[#4af8e3]/10 border border-[#4af8e3]/30 text-[#4af8e3] text-xs md:text-sm font-bold tracking-widest drop-shadow-md" style={{ boxShadow: "0 0 8px rgba(74,248,227,0.2)"}}>
                                                                 ₹{dist.total.toLocaleString()}
                                                             </span>
-                                                            <div className="flex items-center gap-2">
-                                                                {/* Settle button — only for unsettled dates */}
-                                                                {dist.settled ? (
-                                                                    <span className="px-4 py-2 rounded-xl bg-[#4af8e3]/5 border border-[#4af8e3]/20 text-[#4af8e3]/60 text-xs font-bold tracking-widest uppercase select-none flex items-center gap-1.5 opacity-80">
-                                                                        <span className="material-symbols-outlined text-[16px]">lock</span> Settled
-                                                                    </span>
-                                                                ) : (
-                                                                    <button
-                                                                        onClick={(e) => { e.stopPropagation(); handleSettle(dist.date, dist.payments_count); }}
-                                                                        disabled={settleLoading === dist.date}
-                                                                        className="px-4 py-2 rounded-xl bg-[#ff9dac]/10 border border-[#ff9dac]/30 text-[#ff9dac] text-xs font-bold tracking-widest uppercase hover:bg-[#ff9dac]/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 group"
-                                                                        title="Lock this date's distribution permanently (irreversible)"
-                                                                    >
-                                                                        {settleLoading === dist.date ? <span className="w-4 h-4 rounded-full border-2 border-[#ff9dac]/30 border-t-[#ff9dac] animate-spin" /> : <span className="material-symbols-outlined text-[16px] group-hover:scale-110 transition-transform">lock_open</span>}
-                                                                        <span>{settleLoading === dist.date ? "Settling..." : "Settle"}</span>
-                                                                    </button>
-                                                                )}
+                                                            {/* Settle button — only for unsettled dates */}
+                                                            {dist.settled ? (
+                                                                <span className="px-3 md:px-4 py-1.5 md:py-2 rounded-xl bg-[#4af8e3]/5 border border-[#4af8e3]/20 text-[#4af8e3]/60 text-[10px] md:text-xs font-bold tracking-widest uppercase select-none flex items-center gap-1 md:gap-1.5 opacity-80">
+                                                                    <span className="material-symbols-outlined text-[14px] md:text-[16px]">lock</span> Settled
+                                                                </span>
+                                                            ) : (
                                                                 <button
-                                                                    onClick={() => setExpandedDate(isExpanded ? null : dist.date)}
-                                                                    className={`w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/5 text-[#aaaab7] transition-all duration-300 cursor-pointer hover:bg-white/10 hover:text-white ${isExpanded ? "rotate-180 bg-white/10 text-white border-white/10" : ""}`}>
-                                                                    <span className="material-symbols-outlined">expand_more</span>
+                                                                    onClick={(e) => { e.stopPropagation(); handleSettle(dist.date, dist.payments_count); }}
+                                                                    disabled={settleLoading === dist.date}
+                                                                    className="px-3 md:px-4 py-1.5 md:py-2 rounded-xl bg-[#ff9dac]/10 border border-[#ff9dac]/30 text-[#ff9dac] text-[10px] md:text-xs font-bold tracking-widest uppercase hover:bg-[#ff9dac]/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1 md:gap-1.5 group"
+                                                                    title="Lock this date's distribution permanently (irreversible)"
+                                                                >
+                                                                    {settleLoading === dist.date ? <span className="w-4 h-4 rounded-full border-2 border-[#ff9dac]/30 border-t-[#ff9dac] animate-spin" /> : <span className="material-symbols-outlined text-[14px] md:text-[16px] group-hover:scale-110 transition-transform">lock_open</span>}
+                                                                    <span>{settleLoading === dist.date ? "..." : "Settle"}</span>
                                                                 </button>
-                                                            </div>
+                                                            )}
                                                         </div>
                                                     </div>
 
@@ -342,10 +351,10 @@ function DistributionContent() {
                                         <div className="overflow-auto flex-1 custom-scrollbar">
                                             <table className="w-full border-collapse min-w-[600px]">
                                                 <thead className="bg-[#0c0e17]/80 backdrop-blur-xl sticky top-0 z-20">
-                                                    {/* Summary row: Total Collected per teacher for the month */}
+                                                    {/* Summary row: Total Distributed per teacher for the month */}
                                                     <tr className="border-b border-[#464752]/40">
-                                                        <th className="px-5 py-4 text-left text-xs font-bold text-[#4af8e3] uppercase tracking-wider whitespace-nowrap border-r border-[#464752]/40 min-w-[140px] sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
-                                                            Total Collected
+                                                        <th className="px-5 py-4 text-left text-xs font-bold text-[#4af8e3] uppercase tracking-wider whitespace-nowrap border-r border-[#464752]/40 min-w-[140px] sticky left-0 bg-[#0c0e17]/80 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                                                            Total Distributed
                                                         </th>
                                                         {allTeachers.map((t) => {
                                                             const teacherTotal = data.dates.reduce((s, d) => {
@@ -362,7 +371,7 @@ function DistributionContent() {
                                                     </tr>
                                                     {/* Column headers */}
                                                     <tr className="border-b border-[#464752]/40 bg-black/20">
-                                                        <th className="px-5 py-3 text-left text-[10px] font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                                                        <th className="px-5 py-3 text-left text-[10px] font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/80 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
                                                             Date
                                                         </th>
                                                         {allTeachers.map((t) => (
@@ -388,7 +397,7 @@ function DistributionContent() {
 
                                                         return (
                                                             <tr key={dist.date} className="border-b border-[#464752]/20 hover:bg-white/5 transition-colors group">
-                                                                <td className="px-5 py-4 text-sm text-[#f0f0fd] font-bold whitespace-nowrap border-r border-[#464752]/40 sticky left-0 bg-[#171924] group-hover:bg-[#1f2231] transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>{formattedDate}</td>
+                                                                <td className="px-5 py-4 text-sm text-[#f0f0fd] font-bold whitespace-nowrap border-r border-[#464752]/40 sticky left-0 bg-[#171924]/80 backdrop-blur-xl group-hover:bg-[#1f2231]/80 transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>{formattedDate}</td>
                                                                 {allTeachers.map((t) => (
                                                                     <td key={t.uid} className="px-5 py-4 border-r border-[#464752]/40 text-center bg-black/10 text-sm font-semibold text-[#c799ff] tracking-wide" style={{ textShadow: "0 0 8px rgba(199,153,255,0.4)" }}>
                                                                         {(teacherMap[t.uid] || 0) > 0 ? `₹${teacherMap[t.uid].toLocaleString()}` : <span className="text-[#aaaab7]/50 text-xs">—</span>}
@@ -427,6 +436,50 @@ function DistributionContent() {
                 </>
             ) : null
             }
+
+            {/* ═══ Custom Confirmation Modal ═══ */}
+            {confirmModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6" onClick={() => setConfirmModal(null)}>
+                    {/* Backdrop */}
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                    {/* Modal */}
+                    <div
+                        className="relative w-full max-w-sm bg-[#171924]/95 backdrop-blur-2xl border border-[#464752]/50 rounded-3xl p-6 shadow-[0_24px_80px_rgba(0,0,0,0.6)] animate-[modalIn_0.3s_ease-out]"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Warning icon */}
+                        <div className="w-14 h-14 rounded-2xl bg-[#ff9dac]/10 border border-[#ff9dac]/20 flex items-center justify-center mx-auto mb-4">
+                            <span className="material-symbols-outlined text-[28px] text-[#ff9dac]">warning</span>
+                        </div>
+                        <h3 className="text-[#f0f0fd] text-lg font-bold text-center mb-2" style={{ fontFamily: "'Manrope', sans-serif" }}>Permanent Action</h3>
+                        <p className="text-[#aaaab7] text-sm text-center leading-relaxed mb-1">
+                            Settle distribution for <span className="text-[#f0f0fd] font-semibold">{confirmModal.date}</span>?
+                        </p>
+                        <p className="text-[#aaaab7] text-sm text-center leading-relaxed mb-2">
+                            This will freeze <span className="text-[#4af8e3] font-semibold">{confirmModal.paymentsCount} payment(s)</span> and teacher shares permanently.
+                        </p>
+                        <div className="flex items-center gap-2 justify-center mb-5 mt-4">
+                            <span className="material-symbols-outlined text-[14px] text-[#ff9dac]/70">info</span>
+                            <p className="text-[#ff9dac]/70 text-xs font-semibold tracking-wide">This action CANNOT be undone.</p>
+                        </div>
+                        {/* Buttons */}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setConfirmModal(null)}
+                                className="flex-1 px-4 py-3 rounded-2xl bg-white/5 border border-[#464752]/50 text-[#aaaab7] text-sm font-bold hover:bg-white/10 hover:text-white transition-all cursor-pointer active:scale-95"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmSettle}
+                                className="flex-1 px-4 py-3 rounded-2xl bg-[#ff9dac]/15 border border-[#ff9dac]/30 text-[#ff9dac] text-sm font-bold hover:bg-[#ff9dac]/25 transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-[16px]">lock</span> Settle
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 }
@@ -449,6 +502,10 @@ export default function RevenueDistribution() {
                     }
                     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
                         background: rgba(199, 153, 255, 0.8);
+                    }
+                    @keyframes modalIn {
+                        from { opacity: 0; transform: scale(0.9) translateY(10px); }
+                        to { opacity: 1; transform: scale(1) translateY(0); }
                     }
                 `}} />
                 <DistributionContent />
