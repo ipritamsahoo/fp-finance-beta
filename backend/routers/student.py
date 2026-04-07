@@ -97,6 +97,7 @@ async def student_upload_screenshot(
         "screenshot_public_id": screenshot_public_id,
         "status": "Pending_Verification",
         "mode": "online",
+        "requested_at": ts_now(),
         "updated_at": ts_now(),
     })
 

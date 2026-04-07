@@ -131,6 +131,7 @@ async def teacher_offline_request(
             "status": "Pending_Verification",
             "mode": "offline",
             "requested_by_teacher": user["uid"],
+            "requested_at": ts_now(),
             "updated_at": ts_now(),
         })
         # Notify student + admins
@@ -153,6 +154,7 @@ async def teacher_offline_request(
             "screenshot_url": None,
             "requested_by_teacher": user["uid"],
             "status": "Pending_Verification",
+            "requested_at": ts_now(),
             "created_at": ts_now(),
             "updated_at": ts_now(),
         }

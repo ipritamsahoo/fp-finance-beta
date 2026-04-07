@@ -134,8 +134,8 @@ function ApprovalContent() {
                 <div className="space-y-4">
                     {filtered.map((item, idx) => (
                         <div key={item.id} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 sm:p-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80" style={{ animationDelay: `${idx * 80}ms` }}>
-                            {/* Top: Name + Badge */}
-                            <div className="flex items-center gap-3 mb-4">
+                            {/* Top: Name + Badges */}
+                            <div className="flex items-center gap-2 mb-4 flex-wrap">
                                 <h3 className="text-[#f0f0fd] font-bold text-base sm:text-lg truncate flex-1" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                     {item.student_name || "Unknown Student"}
                                 </h3>

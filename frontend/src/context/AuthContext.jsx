@@ -69,6 +69,7 @@ export function AuthProvider({ children }) {
             name: profile.name || "",
             role: profile.role || "student",
             batchId: profile.batch_id || null,
+            currentBadge: profile.current_badge || null,
             profilePicUrl: picUrl,
             picVersion: picVersion,
             profilePicDataUrl: cachedPicDataUrl,

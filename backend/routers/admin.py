@@ -97,7 +97,8 @@ async def admin_get_pending(user=Depends(require_role("admin"))):
 
 @router.put("/approve/{payment_id}")
 async def admin_approve(payment_id: str, user=Depends(require_role("admin"))):
-    """Approve a pending payment — sets status to Paid and deletes the screenshot from Cloudinary."""
+    """Approve a pending payment — sets status to Paid, calculates achievement badge,
+    deletes the screenshot from Cloudinary."""
     payment_ref = db.collection("payments").document(payment_id)
     payment_doc = payment_ref.get()
 
@@ -116,20 +117,75 @@ async def admin_approve(payment_id: str, user=Depends(require_role("admin"))):
         except Exception as e:
             print(f"Cloudinary delete failed (approve): {e}")
 
+    # ── Calculate Achievement Badge ──
+    badge_tier = None
+    created_at_raw = payment.get("created_at")
+    requested_at_raw = payment.get("requested_at")
+    print(f"[BADGE DEBUG] created_at raw = {created_at_raw!r} (type={type(created_at_raw).__name__})")
+    print(f"[BADGE DEBUG] requested_at raw = {requested_at_raw!r} (type={type(requested_at_raw).__name__})")
+    if created_at_raw and requested_at_raw:
+        try:
+            # Parse created_at (T1)
+            if isinstance(created_at_raw, str):
+                t1 = datetime.fromisoformat(created_at_raw)
+            elif hasattr(created_at_raw, "isoformat"):
+                t1 = created_at_raw
+            else:
+                t1 = datetime.fromisoformat(str(created_at_raw))
+
+            # Parse requested_at (T2)
+            if isinstance(requested_at_raw, str):
+                t2 = datetime.fromisoformat(requested_at_raw)
+            elif hasattr(requested_at_raw, "isoformat"):
+                t2 = requested_at_raw
+            else:
+                t2 = datetime.fromisoformat(str(requested_at_raw))
+
+            print(f"[BADGE DEBUG] t1 = {t1}, t2 = {t2}")
+            diff_seconds = (t2 - t1).total_seconds()
+            diff_minutes = diff_seconds / 60
+            print(f"[BADGE DEBUG] diff_seconds = {diff_seconds}, diff_minutes = {diff_minutes:.2f}")
+
+            if diff_minutes < 1:
+                badge_tier = "prime"
+            elif diff_minutes < 3:
+                badge_tier = "golden"
+            else:
+                badge_tier = "silver"
+            print(f"[BADGE DEBUG] Calculated badge_tier = {badge_tier}")
+        except Exception as e:
+            import traceback
+            print(f"[BADGE DEBUG] ERROR: {e}")
+            traceback.print_exc()
+    else:
+        print(f"[BADGE DEBUG] SKIPPED — missing created_at or requested_at")
+
     payment_ref.update({
         "status": "Paid",
         "approved_by": user["uid"],
+        "badge_tier": badge_tier,
         "screenshot_url": None,
         "screenshot_public_id": None,
         "updated_at": ts_now(),
     })
 
-    # Notify student
+    # Save badge on the student's user doc (AuthContext picks this up real-time)
     student_id = payment.get("student_id")
+    if student_id and badge_tier:
+        try:
+            db.collection("users").document(student_id).update({
+                "current_badge": badge_tier,
+                "badge_month": payment.get("month"),
+                "badge_year": payment.get("year"),
+            })
+        except Exception as e:
+            print(f"Badge save to user doc failed: {e}")
+
+    # Notify student
     if student_id:
         notify_user(student_id, "Success! Your payment has been approved.", "payment_approved")
 
-    return {"message": "Payment approved", "payment_id": payment_id}
+    return {"message": "Payment approved", "payment_id": payment_id, "badge_tier": badge_tier}
 
 
 @router.put("/reject/{payment_id}")
@@ -157,6 +213,8 @@ async def admin_reject(payment_id: str, user=Depends(require_role("admin"))):
         "rejected_by": user["uid"],
         "screenshot_url": None,
         "screenshot_public_id": None,
+        "requested_at": None,
+        "badge_tier": None,
         "updated_at": ts_now(),
     })
 
@@ -721,6 +779,22 @@ async def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role
                 }
 
     fallback_amount = req.amount or DEFAULT_FEE_AMOUNT
+
+    # ── Reset all student badges for the target scope ──
+    reset_query = db.collection("users").where("role", "==", "student")
+    if req.batch_id:
+        reset_query = reset_query.where("batch_id", "==", req.batch_id)
+    badges_reset = 0
+    for s in reset_query.stream():
+        if s.to_dict().get("current_badge"):
+            db.collection("users").document(s.id).update({
+                "current_badge": None,
+                "badge_month": None,
+                "badge_year": None,
+            })
+            badges_reset += 1
+    if badges_reset > 0:
+        print(f"Badge reset: cleared {badges_reset} student badge(s)")
 
     # Filter students by batch if specified
     query = db.collection("users").where("role", "==", "student")

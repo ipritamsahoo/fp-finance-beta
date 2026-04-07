@@ -91,9 +91,24 @@ function StudentSettingsContent() {
                         <span className="px-3 py-1 bg-[#006a60]/40 text-[#4af8e3] text-[10px] font-bold uppercase tracking-widest rounded-full ring-1 ring-[#4af8e3]/20">
                             Active Student
                         </span>
-                        <span className="px-3 py-1 bg-[#3b82f6]/20 text-[#3b82f6] text-[10px] font-bold uppercase tracking-widest rounded-full ring-1 ring-[#3b82f6]/20">
-                            Premium Tier
-                        </span>
+                        {user?.currentBadge === "prime" && (
+                            <span className="px-3 py-1 bg-[#a855f7]/20 text-[#c084fc] text-[10px] font-bold uppercase tracking-widest rounded-full ring-1 ring-[#a855f7]/30 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                                Prime
+                            </span>
+                        )}
+                        {user?.currentBadge === "golden" && (
+                            <span className="px-3 py-1 bg-[#f59e0b]/20 text-[#fbbf24] text-[10px] font-bold uppercase tracking-widest rounded-full ring-1 ring-[#f59e0b]/30 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                                Golden
+                            </span>
+                        )}
+                        {user?.currentBadge === "silver" && (
+                            <span className="px-3 py-1 bg-[#94a3b8]/20 text-[#cbd5e1] text-[10px] font-bold uppercase tracking-widest rounded-full ring-1 ring-[#94a3b8]/30 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
+                                Silver
+                            </span>
+                        )}
                     </div>
                 </div>
             </section>
