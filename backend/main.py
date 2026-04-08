@@ -54,6 +54,7 @@ app.include_router(admin.router)
 # ──────────────────────────────────────────────
 # HEALTH / PING
 # ──────────────────────────────────────────────
+@app.head("/")
 @app.get("/")
 async def root_health_check():
     return {"status": "ok", "message": "FP Finance Backend API is running."}
@@ -69,8 +70,9 @@ async def health_check(x_cron_secret: str = Header(None, alias="X-Cron-Secret"))
 # ──────────────────────────────────────────────
 @app.on_event("startup")
 async def startup_event():
-    # Start the background task for daily due reminders
-    asyncio.create_task(run_scheduler())
+    # disabled temporarily for stability
+    # asyncio.create_task(run_scheduler())
+    pass
 
 # ──────────────────────────────────────────────
 # RUN
