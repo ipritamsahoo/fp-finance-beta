@@ -54,6 +54,10 @@ app.include_router(admin.router)
 # ──────────────────────────────────────────────
 # HEALTH / PING
 # ──────────────────────────────────────────────
+@app.get("/")
+async def root_health_check():
+    return {"status": "ok", "message": "FP Finance Backend API is running."}
+
 @app.get("/health")
 async def health_check(x_cron_secret: str = Header(None, alias="X-Cron-Secret")):
     if x_cron_secret != CRON_SECRET:
