@@ -19,8 +19,8 @@ COPY . .
 # Create uploads directory
 RUN mkdir -p uploads
 
-# Expose port (Cloud Run uses PORT env variable)
-EXPOSE 8080
+# Expose port — Render injects PORT env variable (default 10000)
+EXPOSE ${PORT:-10000}
 
-# Run with uvicorn — Cloud Run injects PORT env var
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Run with uvicorn — use Render's PORT env var
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000}"]
