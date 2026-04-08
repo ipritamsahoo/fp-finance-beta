@@ -231,13 +231,42 @@ function StudentDashboardContent() {
     const [success, setSuccess] = useState("");
     const [previewImg, setPreviewImg] = useState(null);
 
-    // Track recently approved payments to show the animation before they disappear
-    const [recentlyApprovedIds, setRecentlyApprovedIds] = useState(new Set());
-    const prevPaymentsRef = useRef([]);
+    // Persist seen approvals across sessions to guarantee the student sees the animation
+    const [seenApprovals, setSeenApprovals] = useState(() => {
+        try {
+            // Need user.uid, but we are initializing state synchronously. We will handle user.uid changes via a useEffect if needed.
+            // Actually, we can just do it without user.uid globally, or initialize inside useEffect.
+            return new Set(JSON.parse(localStorage.getItem(`fp_seen_approvals`) || "[]"));
+        } catch {
+            return new Set();
+        }
+    });
+
+    const [isVisible, setIsVisible] = useState(document.visibilityState === "visible");
+
+    useEffect(() => {
+        const handleVisibilityChange = () => setIsVisible(document.visibilityState === "visible");
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }, []);
 
     // Pay Now modal state
     const [payModalPayment, setPayModalPayment] = useState(null);
     const [payModalUpi, setPayModalUpi] = useState(null);
+
+    useEffect(() => {
+        if (user?.uid) {
+            // Load user-specific seen approvals from localStorage once we have user context
+            try {
+                const stored = localStorage.getItem(`fp_seen_approvals_${user.uid}`);
+                if (stored) {
+                    setSeenApprovals(new Set(JSON.parse(stored)));
+                }
+            } catch (e) {
+                // Ignore parse errors
+            }
+        }
+    }, [user?.uid]);
 
     const fetchPayments = useCallback(async () => {
         try {
@@ -272,38 +301,28 @@ function StudentDashboardContent() {
         return () => unsubscribe();
     }, [user?.uid, fetchPayments]);
 
-    // Detect state changes for Payment Progress Tracker animation
+    // Detect unseen "Paid" payments and give the user 4 seconds to watch them
     useEffect(() => {
-        const prev = prevPaymentsRef.current;
-        const newlyApproved = [];
+        if (!isVisible || !user?.uid) return;
 
-        payments.forEach(p => {
-            const oldP = prev.find(old => old.id === p.id);
-            // If it transitioned from pending to paid
-            if (oldP && oldP.status === "Pending_Verification" && p.status === "Paid") {
-                newlyApproved.push(p.id);
-            }
-        });
+        const unseenPaid = payments.filter(p => p.status === "Paid" && !seenApprovals.has(p.id));
+        if (unseenPaid.length === 0) return;
 
-        if (newlyApproved.length > 0) {
-            setRecentlyApprovedIds(prevSet => {
-                const newSet = new Set(prevSet);
-                newlyApproved.forEach(id => newSet.add(id));
+        // Since the user might be logged in, let's also sync the local storage key on first run just in case
+        const userKey = `fp_seen_approvals_${user.uid}`;
+        
+        // Start a 4-second timer to mark them as seen
+        const timer = setTimeout(() => {
+            setSeenApprovals(prev => {
+                const newSet = new Set(prev);
+                unseenPaid.forEach(p => newSet.add(p.id));
+                localStorage.setItem(userKey, JSON.stringify([...newSet]));
                 return newSet;
             });
+        }, 4000);
 
-            // Give the GSAP animation 4 seconds to complete before removing the card
-            setTimeout(() => {
-                setRecentlyApprovedIds(prevSet => {
-                    const newSet = new Set(prevSet);
-                    newlyApproved.forEach(id => newSet.delete(id));
-                    return newSet;
-                });
-            }, 4000);
-        }
-
-        prevPaymentsRef.current = payments;
-    }, [payments]);
+        return () => clearTimeout(timer);
+    }, [payments, seenApprovals, isVisible, user?.uid]);
 
     // Open Pay Now modal → fetch UPI link
     const openPayModal = async (payment) => {
@@ -343,7 +362,7 @@ function StudentDashboardContent() {
     const actionPayments = payments.filter((p) => 
         p.status === "Unpaid" || 
         p.status === "Pending_Verification" ||
-        recentlyApprovedIds.has(p.id)
+        (p.status === "Paid" && !seenApprovals.has(p.id))
     );
     const paidProgress = totalPaid > 0 && (totalPaid + totalDue) > 0 ? (totalPaid / (totalPaid + totalDue)) * 100 : (totalDue === 0 && totalPaid > 0 ? 100 : 0);
 
