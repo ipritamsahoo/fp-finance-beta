@@ -34,23 +34,23 @@ router = APIRouter(prefix="/api/admin", tags=["Admin"])
 # ══════════════════════════════════════════════
 
 @router.get("/stats")
-async def admin_stats(user=Depends(require_role("admin"))):
+def admin_stats(user=Depends(require_role("admin"))):
     """Dashboard stats: total students, pending, monthly revenue."""
     # Count students
-    students = list(db.collection("users").where("role", "==", "student").stream())
-    total_students = len(students)
+    student_query = db.collection("users").where("role", "==", "student").count()
+    total_students = student_query.get()[0][0].value
 
     # Count teachers
-    teachers = list(db.collection("users").where("role", "==", "teacher").stream())
-    total_teachers = len(teachers)
+    teacher_query = db.collection("users").where("role", "==", "teacher").count()
+    total_teachers = teacher_query.get()[0][0].value
 
     # Count batches
-    batches = list(db.collection("batches").stream())
-    total_batches = len(batches)
+    batch_query = db.collection("batches").count()
+    total_batches = batch_query.get()[0][0].value
 
     # Count pending payments
-    pending = list(db.collection("payments").where("status", "==", "Pending_Verification").stream())
-    total_pending = len(pending)
+    pending_query = db.collection("payments").where("status", "==", "Pending_Verification").count()
+    total_pending = pending_query.get()[0][0].value
 
     return {
         "total_students": total_students,
@@ -65,7 +65,7 @@ async def admin_stats(user=Depends(require_role("admin"))):
 # ══════════════════════════════════════════════
 
 @router.get("/pending")
-async def admin_get_pending(user=Depends(require_role("admin"))):
+def admin_get_pending(user=Depends(require_role("admin"))):
     """Get all payments with Pending_Verification status."""
     payments = db.collection("payments") \
         .where("status", "==", "Pending_Verification") \
@@ -96,7 +96,7 @@ async def admin_get_pending(user=Depends(require_role("admin"))):
 
 
 @router.put("/approve/{payment_id}")
-async def admin_approve(payment_id: str, user=Depends(require_role("admin"))):
+def admin_approve(payment_id: str, user=Depends(require_role("admin"))):
     """Approve a pending payment — sets status to Paid, calculates achievement badge,
     deletes the screenshot from Cloudinary."""
     payment_ref = db.collection("payments").document(payment_id)
@@ -189,7 +189,7 @@ async def admin_approve(payment_id: str, user=Depends(require_role("admin"))):
 
 
 @router.put("/reject/{payment_id}")
-async def admin_reject(payment_id: str, user=Depends(require_role("admin"))):
+def admin_reject(payment_id: str, user=Depends(require_role("admin"))):
     """Reject a pending payment — resets status to Unpaid and deletes the screenshot from Cloudinary."""
     payment_ref = db.collection("payments").document(payment_id)
     payment_doc = payment_ref.get()
@@ -231,7 +231,7 @@ async def admin_reject(payment_id: str, user=Depends(require_role("admin"))):
 # ══════════════════════════════════════════════
 
 @router.delete("/user/{uid}/profile-pic")
-async def admin_delete_user_profile_pic(uid: str, user=Depends(require_role("admin"))):
+def admin_delete_user_profile_pic(uid: str, user=Depends(require_role("admin"))):
     """Admin-only: Remove any user's profile picture."""
     target_doc = db.collection("users").document(uid).get()
     if not target_doc.exists:
@@ -255,7 +255,7 @@ async def admin_delete_user_profile_pic(uid: str, user=Depends(require_role("adm
 # ══════════════════════════════════════════════
 
 @router.delete("/users/{uid}/sessions/{session_id}")
-async def admin_delete_user_session(uid: str, session_id: str, user=Depends(require_role("admin"))):
+def admin_delete_user_session(uid: str, session_id: str, user=Depends(require_role("admin"))):
     """Admin-only: Forcefully delete a specific active session from any user."""
     target_doc = db.collection("users").document(uid).get()
     if not target_doc.exists:
@@ -277,7 +277,7 @@ async def admin_delete_user_session(uid: str, session_id: str, user=Depends(requ
 # ══════════════════════════════════════════════
 
 @router.get("/batches")
-async def admin_list_batches(user=Depends(require_role("admin"))):
+def admin_list_batches(user=Depends(require_role("admin"))):
     """List all batches."""
     batches = db.collection("batches").stream()
     results = []
@@ -301,7 +301,7 @@ async def admin_list_batches(user=Depends(require_role("admin"))):
 
 
 @router.post("/batches")
-async def admin_create_batch(req: BatchCreate, user=Depends(require_role("admin"))):
+def admin_create_batch(req: BatchCreate, user=Depends(require_role("admin"))):
     """Create a new batch."""
     batch_data = {
         "batch_name": req.batch_name,
@@ -315,7 +315,7 @@ async def admin_create_batch(req: BatchCreate, user=Depends(require_role("admin"
 
 
 @router.put("/batches/{batch_id}")
-async def admin_update_batch(batch_id: str, req: BatchCreate, user=Depends(require_role("admin"))):
+def admin_update_batch(batch_id: str, req: BatchCreate, user=Depends(require_role("admin"))):
     """Update a batch."""
     batch_ref = db.collection("batches").document(batch_id)
     if not batch_ref.get().exists:
@@ -334,7 +334,7 @@ async def admin_update_batch(batch_id: str, req: BatchCreate, user=Depends(requi
 
 
 @router.delete("/batches/{batch_id}")
-async def admin_delete_batch(batch_id: str, user=Depends(require_role("admin"))):
+def admin_delete_batch(batch_id: str, user=Depends(require_role("admin"))):
     """Delete a batch."""
     batch_ref = db.collection("batches").document(batch_id)
     if not batch_ref.get().exists:
@@ -422,7 +422,7 @@ def _auto_generate_for_student(student_id: str, student_name: str, batch_id: str
 
 
 @router.get("/students")
-async def admin_list_students(
+def admin_list_students(
     batch_id: Optional[str] = None,
     user=Depends(require_role("admin")),
 ):
@@ -450,7 +450,7 @@ async def admin_list_students(
 
 
 @router.post("/students")
-async def admin_add_student(req: StudentCreate, user=Depends(require_role("admin"))):
+def admin_add_student(req: StudentCreate, user=Depends(require_role("admin"))):
     """Create a new student user."""
     email = to_firebase_email(req.username)
     try:
@@ -486,7 +486,7 @@ async def admin_add_student(req: StudentCreate, user=Depends(require_role("admin
 
 
 @router.put("/students/{uid}")
-async def admin_update_student(uid: str, req: StudentUpdate, user=Depends(require_role("admin"))):
+def admin_update_student(uid: str, req: StudentUpdate, user=Depends(require_role("admin"))):
     """Update a student's details. Optionally reset their password.
     When custom_fee changes, all Unpaid payment records are synced automatically."""
     user_ref = db.collection("users").document(uid)
@@ -566,7 +566,7 @@ async def admin_update_student(uid: str, req: StudentUpdate, user=Depends(requir
 
 
 @router.delete("/students/{uid}")
-async def admin_remove_student(uid: str, user=Depends(require_role("admin"))):
+def admin_remove_student(uid: str, user=Depends(require_role("admin"))):
     """Remove a student (Firestore doc + Firebase Auth)."""
     # Delete Firestore doc
     db.collection("users").document(uid).delete()
@@ -590,7 +590,7 @@ async def admin_remove_student(uid: str, user=Depends(require_role("admin"))):
 # ══════════════════════════════════════════════
 
 @router.get("/teachers")
-async def admin_list_teachers(user=Depends(require_role("admin"))):
+def admin_list_teachers(user=Depends(require_role("admin"))):
     """List all teachers with their assigned batches."""
     teachers = db.collection("users").where("role", "==", "teacher").stream()
     results = []
@@ -610,7 +610,7 @@ async def admin_list_teachers(user=Depends(require_role("admin"))):
 
 
 @router.post("/teachers")
-async def admin_add_teacher(req: TeacherCreate, user=Depends(require_role("admin"))):
+def admin_add_teacher(req: TeacherCreate, user=Depends(require_role("admin"))):
     """Create a new teacher user and optionally assign to batches."""
     email = to_firebase_email(req.username)
     try:
@@ -651,7 +651,7 @@ async def admin_add_teacher(req: TeacherCreate, user=Depends(require_role("admin
 
 
 @router.put("/teachers/{uid}")
-async def admin_update_teacher(uid: str, req: TeacherUpdate, user=Depends(require_role("admin"))):
+def admin_update_teacher(uid: str, req: TeacherUpdate, user=Depends(require_role("admin"))):
     """Update a teacher's details. Optionally reset their password."""
     user_ref = db.collection("users").document(uid)
     user_doc = user_ref.get()
@@ -711,7 +711,7 @@ async def admin_update_teacher(uid: str, req: TeacherUpdate, user=Depends(requir
 
 
 @router.delete("/teachers/{uid}")
-async def admin_remove_teacher(uid: str, user=Depends(require_role("admin"))):
+def admin_remove_teacher(uid: str, user=Depends(require_role("admin"))):
     """Remove a teacher and unassign from all batches."""
     # Remove from all batches
     batches = db.collection("batches") \
@@ -740,7 +740,7 @@ async def admin_remove_teacher(uid: str, user=Depends(require_role("admin"))):
 # ══════════════════════════════════════════════
 
 @router.post("/generate-monthly")
-async def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role("admin"))):
+def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role("admin"))):
     """Generate unpaid payment records for students for a given month/year.
     If batch_id is provided, only generate for that batch; otherwise for all students.
     Fee hierarchy: student.custom_fee → batch.batch_fee → req.amount → DEFAULT_FEE_AMOUNT."""
@@ -895,7 +895,7 @@ async def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role
 
 
 @router.post("/undo-monthly")
-async def admin_undo_monthly(req: UndoMonthly, user=Depends(require_role("admin"))):
+def admin_undo_monthly(req: UndoMonthly, user=Depends(require_role("admin"))):
     """Undo (delete) generated Unpaid payment records for a given month/year.
     Only removes records with status == 'Unpaid' so paid/pending records are safe."""
 
@@ -936,7 +936,7 @@ async def admin_undo_monthly(req: UndoMonthly, user=Depends(require_role("admin"
 # ══════════════════════════════════════════════
 
 @router.post("/fee-override")
-async def admin_fee_override(req: FeeOverride, user=Depends(require_role("admin"))):
+def admin_fee_override(req: FeeOverride, user=Depends(require_role("admin"))):
     """Override a student's fee in two modes:
     - 'all-time': Update profile custom_fee + sync all Unpaid records.
     - 'specific-month': Update only one targeted payment record.
@@ -1041,7 +1041,7 @@ async def admin_fee_override(req: FeeOverride, user=Depends(require_role("admin"
 # ══════════════════════════════════════════════
 
 @router.get("/payments")
-async def admin_all_payments(
+def admin_all_payments(
     batch_id: Optional[str] = None,
     month: Optional[int] = None,
     year: Optional[int] = None,
@@ -1085,7 +1085,7 @@ async def admin_all_payments(
 # ══════════════════════════════════════════════
 
 @router.get("/distribution")
-async def admin_distribution(
+def admin_distribution(
     month: int,
     year: int,
     batch_id: Optional[str] = None,
@@ -1261,7 +1261,7 @@ async def admin_distribution(
 # ══════════════════════════════════════════════
 
 @router.post("/settle-distribution")
-async def admin_settle_distribution(req: SettleDistribution, user=Depends(require_role("admin"))):
+def admin_settle_distribution(req: SettleDistribution, user=Depends(require_role("admin"))):
     """Freeze a date's distribution as a permanent snapshot.
     Once settled, teacher changes won't affect this date's records."""
 
@@ -1369,7 +1369,7 @@ async def admin_settle_distribution(req: SettleDistribution, user=Depends(requir
 # ══════════════════════════════════════════════
 
 @router.get("/backup")
-async def admin_backup(
+def admin_backup(
     month: Optional[int] = None,
     year: Optional[int] = None,
     user=Depends(require_role("admin")),
@@ -1614,7 +1614,7 @@ async def admin_backup(
 # ══════════════════════════════════════════════
 
 @router.get("/report-export")
-async def admin_report_export(
+def admin_report_export(
     batch_id: str,
     year: int,
     months: str,
@@ -2108,7 +2108,7 @@ async def admin_report_export(
 # ══════════════════════════════════════════════
 
 @router.post("/seed")
-async def seed_default_admin(req: AdminSeed):
+def seed_default_admin(req: AdminSeed):
     """Create an admin account with the given credentials.
     Only works if no admin account exists yet."""
     # Check if an admin already exists

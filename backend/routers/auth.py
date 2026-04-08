@@ -26,7 +26,7 @@ router = APIRouter(prefix="/api/auth", tags=["Auth"])
 # POST /api/auth/register
 # ──────────────────────────────────────────────
 @router.post("/register")
-async def register(req: RegisterRequest, user=Depends(require_role("admin"))):
+def register(req: RegisterRequest, user=Depends(require_role("admin"))):
     """Admin-only: Create a new user in Firebase Auth + Firestore."""
     email = to_firebase_email(req.username)
     try:
@@ -61,12 +61,12 @@ async def register(req: RegisterRequest, user=Depends(require_role("admin"))):
 # POST /api/auth/login
 # ──────────────────────────────────────────────
 @router.post("/login")
-async def login(req: LoginRequest):
+def login(req: LoginRequest):
     """Login via Firebase Auth REST API — returns ID token."""
     email = to_firebase_email(req.username)
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(url, json={
+    with httpx.Client() as client:
+        resp = client.post(url, json={
             "email": email,
             "password": req.password,
             "returnSecureToken": True,
@@ -105,7 +105,7 @@ async def login(req: LoginRequest):
 # GET /api/auth/me
 # ──────────────────────────────────────────────
 @router.get("/me")
-async def get_me(user=Depends(get_current_user)):
+def get_me(user=Depends(get_current_user)):
     """Get current user profile."""
     return {
         "uid": user["uid"],
@@ -123,14 +123,14 @@ async def get_me(user=Depends(get_current_user)):
 # POST /api/auth/profile-pic  (upload own)
 # ──────────────────────────────────────────────
 @router.post("/profile-pic")
-async def upload_profile_pic(file: UploadFile = File(...), user=Depends(get_current_user)):
+def upload_profile_pic(file: UploadFile = File(...), user=Depends(get_current_user)):
     """Upload or replace the current user's profile picture via Cloudinary."""
     uid = user["uid"]
 
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
 
-    contents = await file.read()
+    contents = file.file.read()
     if len(contents) > 2 * 1024 * 1024:  # 2 MB server-side guard
         raise HTTPException(status_code=400, detail="Image too large (max 2MB)")
 
@@ -164,7 +164,7 @@ async def upload_profile_pic(file: UploadFile = File(...), user=Depends(get_curr
 # DELETE /api/auth/profile-pic  (remove own)
 # ──────────────────────────────────────────────
 @router.delete("/profile-pic")
-async def delete_profile_pic(user=Depends(get_current_user)):
+def delete_profile_pic(user=Depends(get_current_user)):
     """Remove the current user's profile picture."""
     uid = user["uid"]
 
@@ -191,7 +191,7 @@ class FCMTokenBody(BaseModel):
     token: str
 
 @router.post("/fcm-token")
-async def register_fcm_token(body: FCMTokenBody, user=Depends(get_current_user)):
+def register_fcm_token(body: FCMTokenBody, user=Depends(get_current_user)):
     """Register or update an FCM device token for push notifications."""
     uid = user["uid"]
     
@@ -219,7 +219,7 @@ async def register_fcm_token(body: FCMTokenBody, user=Depends(get_current_user))
     return {"message": "Token registered"}
 
 @router.delete("/fcm-token")
-async def unregister_fcm_token(body: FCMTokenBody, user=Depends(get_current_user)):
+def unregister_fcm_token(body: FCMTokenBody, user=Depends(get_current_user)):
     """Remove an FCM token (on logout or permission revoke)."""
     uid = user["uid"]
     user_ref = db.collection("users").document(uid)
@@ -237,7 +237,7 @@ async def unregister_fcm_token(body: FCMTokenBody, user=Depends(get_current_user
 # PUT /api/auth/update-credentials
 # ──────────────────────────────────────────────
 @router.put("/update-credentials")
-async def update_own_credentials(req: SelfUpdateCredentials, user=Depends(get_current_user)):
+def update_own_credentials(req: SelfUpdateCredentials, user=Depends(get_current_user)):
     """Allow teachers and students to change their own username/mobile or password.
     Admin users are blocked from using this endpoint."""
     uid = user["uid"]
@@ -288,7 +288,7 @@ async def update_own_credentials(req: SelfUpdateCredentials, user=Depends(get_cu
 # POST /api/auth/session
 # ──────────────────────────────────────────────
 @router.post("/session")
-async def register_active_session(req: SessionRegisterRequest, request: Request, user=Depends(get_current_user)):
+def register_active_session(req: SessionRegisterRequest, request: Request, user=Depends(get_current_user)):
     """Register a new active device session. Cleans up old ghost sessions (>30 days)."""
     uid = user["uid"]
     ip_address = request.client.host if request.client else "Unknown IP"
@@ -302,8 +302,8 @@ async def register_active_session(req: SessionRegisterRequest, request: Request,
     location = "Unknown Location"
     if ip_address and ip_address not in ["127.0.0.1", "localhost", "Unknown IP", "::1"]:
         try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
-                res = await client.get(f"http://ip-api.com/json/{ip_address}")
+            with httpx.Client(timeout=3.0) as client:
+                res = client.get(f"http://ip-api.com/json/{ip_address}")
                 if res.status_code == 200:
                     data = res.json()
                     if data.get("status") == "success":
@@ -354,7 +354,7 @@ async def register_active_session(req: SessionRegisterRequest, request: Request,
 # DELETE /api/auth/session/{session_id}
 # ──────────────────────────────────────────────
 @router.delete("/session/{session_id}")
-async def delete_active_session(session_id: str, user=Depends(get_current_user)):
+def delete_active_session(session_id: str, user=Depends(get_current_user)):
     """Allows a user to explicitly remove their own session (e.g. on logout)."""
     uid = user["uid"]
     target_doc = db.collection("users").document(uid).get()
@@ -376,7 +376,7 @@ async def delete_active_session(session_id: str, user=Depends(get_current_user))
 # PATCH /api/auth/session/{session_id}/heartbeat
 # ──────────────────────────────────────────────
 @router.patch("/session/{session_id}/heartbeat")
-async def session_heartbeat(session_id: str, user=Depends(get_current_user)):
+def session_heartbeat(session_id: str, user=Depends(get_current_user)):
     """Update last_active timestamp for a session. Called when app comes to foreground."""
     uid = user["uid"]
     user_ref = db.collection("users").document(uid)

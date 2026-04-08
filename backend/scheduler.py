@@ -4,7 +4,7 @@ from database import db
 from notifications import notify_user
 from utils import IST
 
-async def send_daily_due_reminders():
+def send_daily_due_reminders():
     """Send a notification to any student who has an 'Unpaid' fee."""
     try:
         # Query all Unpaid payments
@@ -60,6 +60,6 @@ async def run_scheduler():
         wait_seconds = (target - now).total_seconds()
         print(f"⏳ [Scheduler] Next due reminder scheduled in {wait_seconds / 3600:.2f} hours (at {target.strftime('%d-%b-%Y %H:%M %p')} IST).")
         await asyncio.sleep(wait_seconds)
-        await send_daily_due_reminders()
+        await asyncio.to_thread(send_daily_due_reminders)
 
     

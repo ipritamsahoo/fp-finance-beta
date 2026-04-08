@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/teacher", tags=["Teacher"])
 # GET /api/teacher/batches
 # ──────────────────────────────────────────────
 @router.get("/batches")
-async def teacher_get_batches(user=Depends(require_role("teacher"))):
+def teacher_get_batches(user=Depends(require_role("teacher"))):
     """Get batches assigned to this teacher, with student counts."""
     batches = db.collection("batches") \
         .where("teacher_ids", "array_contains", user["uid"]) \
@@ -46,7 +46,7 @@ async def teacher_get_batches(user=Depends(require_role("teacher"))):
 # GET /api/teacher/payments
 # ──────────────────────────────────────────────
 @router.get("/payments")
-async def teacher_get_payments(
+def teacher_get_payments(
     batch_id: str,
     month: Optional[int] = None,
     year: Optional[int] = None,
@@ -96,7 +96,7 @@ async def teacher_get_payments(
 # POST /api/teacher/offline-request
 # ──────────────────────────────────────────────
 @router.post("/offline-request")
-async def teacher_offline_request(
+def teacher_offline_request(
     req: OfflineRequest,
     user=Depends(require_role("teacher")),
 ):
@@ -171,7 +171,7 @@ async def teacher_offline_request(
 # GET /api/teacher/distribution
 # ──────────────────────────────────────────────
 @router.get("/distribution")
-async def teacher_distribution(
+def teacher_distribution(
     month: int,
     year: int,
     batch_id: Optional[str] = None,

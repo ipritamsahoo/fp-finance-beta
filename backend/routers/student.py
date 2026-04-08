@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/student", tags=["Student"])
 # GET /api/student/payments
 # ──────────────────────────────────────────────
 @router.get("/payments")
-async def student_get_payments(user=Depends(require_role("student"))):
+def student_get_payments(user=Depends(require_role("student"))):
     """Get all payments for the logged-in student."""
     try:
         payments = db.collection("payments") \
@@ -56,7 +56,7 @@ async def student_get_payments(user=Depends(require_role("student"))):
 # POST /api/student/payments/{payment_id}/upload
 # ──────────────────────────────────────────────
 @router.post("/payments/{payment_id}/upload")
-async def student_upload_screenshot(
+def student_upload_screenshot(
     payment_id: str,
     file: UploadFile = File(...),
     user=Depends(require_role("student")),
@@ -77,7 +77,7 @@ async def student_upload_screenshot(
         raise HTTPException(status_code=400, detail="Payment already verified")
 
     # Upload to Cloudinary
-    contents = await file.read()
+    contents = file.file.read()
     try:
         upload_result = cloudinary.uploader.upload(
             contents,
@@ -113,7 +113,7 @@ async def student_upload_screenshot(
 # GET /api/student/upi-link
 # ──────────────────────────────────────────────
 @router.get("/upi-link")
-async def student_get_upi_link(
+def student_get_upi_link(
     amount: Optional[float] = None,
     month: Optional[int] = None,
     year: Optional[int] = None,
@@ -132,7 +132,7 @@ async def student_get_upi_link(
 # GET /api/student/leaderboard
 # ──────────────────────────────────────────────
 @router.get("/leaderboard")
-async def student_get_leaderboard(
+def student_get_leaderboard(
     month: Optional[int] = None,
     year: Optional[int] = None,
     user=Depends(require_role("student")),

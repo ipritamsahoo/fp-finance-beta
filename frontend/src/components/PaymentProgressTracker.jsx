@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import gsap from "gsap";
 
 const STAGES = [
@@ -42,16 +42,22 @@ function createConfetti(container) {
 }
 
 // ── Main Component ─────────────────────────────────────────
-export default function PaymentProgressTracker({ status, month, year }) {
+export default function PaymentProgressTracker({ status, mode, month, year }) {
     const trackFillRef = useRef(null);
     const nodesRef = useRef([]);
     const confettiAnchorRef = useRef(null);
     const containerRef = useRef(null);
     const pulseAnimRef = useRef(null);
 
-    // Which step are we at?
+    // Which step are we actually at data-wise?
     const activeStep =
         status === "Paid" ? 2 : status === "Pending_Verification" ? 1 : 0;
+
+    // Visual step determines what classes are applied.
+    // Starts 1 step behind so GSAP can animate the fill first.
+    const [visualStep, setVisualStep] = useState(
+        activeStep > 0 ? activeStep - 1 : 0
+    );
 
     const setNodeRef = useCallback((el, idx) => {
         nodesRef.current[idx] = el;
@@ -65,89 +71,87 @@ export default function PaymentProgressTracker({ status, month, year }) {
         const nodes = nodesRef.current;
         if (!fill) return;
 
-        // Kill any existing pulse animation
-        if (pulseAnimRef.current) {
+        // Current width in DOM to determine whether we need to animate
+        const currentWidthStr = fill.style.width || "0%";
+        const wPct = parseFloat(currentWidthStr);
+
+        if (!fill.style.width) {
+            gsap.set(fill, { width: "0%" });
+        }
+
+        const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+
+        // End pulse if we are moving past verifying
+        if (activeStep >= 2 && pulseAnimRef.current) {
             pulseAnimRef.current.kill();
             pulseAnimRef.current = null;
         }
 
-        // Set initial state
-        gsap.set(fill, { width: "0%" });
+        if (activeStep === 1) {
+            if (wPct < 50) {
+                // Play 0 -> 50%
+                tl.to(fill, { width: "50%", duration: 3.0, ease: "power2.inOut" });
 
-        const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+                if (nodes[0]) {
+                    tl.to(nodes[0], { scale: 1.15, duration: 0.3, ease: "back.out(2)" }, 0.1);
+                    tl.to(nodes[0], { scale: 1, duration: 0.2 }, 0.4);
+                }
 
-        if (activeStep >= 1) {
-            // ── Stage B: Animate to 50% (Verifying) ──
-            tl.to(fill, { width: "50%", duration: 1.2, ease: "power2.out" });
+                if (nodes[1]) {
+                    tl.to(nodes[1], { scale: 1.15, duration: 0.3, ease: "back.out(2)" }, 3.0);
+                    tl.to(nodes[1], { scale: 1, duration: 0.2 }, 3.3);
 
-            // Activate node 0 (Requested) immediately
-            if (nodes[0]) {
-                tl.to(
-                    nodes[0],
-                    { scale: 1.15, duration: 0.3, ease: "back.out(2)" },
-                    0.1
-                );
-                tl.to(nodes[0], { scale: 1, duration: 0.2 }, 0.4);
-            }
-
-            // Activate node 1 (Verifying) at 50%
-            if (nodes[1]) {
-                tl.to(
-                    nodes[1],
-                    { scale: 1.15, duration: 0.3, ease: "back.out(2)" },
-                    0.9
-                );
-                tl.to(nodes[1], { scale: 1, duration: 0.2 }, 1.2);
-
-                // Start pulsing glow on Verifying node
-                if (activeStep === 1) {
                     tl.call(() => {
+                        setVisualStep(1);
                         pulseAnimRef.current = gsap.to(nodes[1], {
-                            boxShadow:
-                                "0 0 18px 6px rgba(74,248,227,0.45), 0 0 40px 12px rgba(74,248,227,0.15)",
+                            boxShadow: "0 0 18px 6px rgba(16,185,129,0.45), 0 0 40px 12px rgba(16,185,129,0.15)",
                             duration: 1.2,
                             yoyo: true,
                             repeat: -1,
                             ease: "sine.inOut",
                         });
-                    }, null, 1.4);
+                    }, null, 3.0);
+                }
+            } else {
+                // Already at 50%
+                setVisualStep(1);
+                if (!pulseAnimRef.current && nodes[1]) {
+                    pulseAnimRef.current = gsap.to(nodes[1], {
+                        boxShadow: "0 0 18px 6px rgba(16,185,129,0.45), 0 0 40px 12px rgba(16,185,129,0.15)",
+                        duration: 1.2,
+                        yoyo: true,
+                        repeat: -1,
+                        ease: "sine.inOut",
+                    });
                 }
             }
-        }
+        } 
+        else if (activeStep >= 2) {
+            // Instantly ensure node 1 is green if we skipped stage 1
+            if (visualStep < 1) setVisualStep(1);
 
-        if (activeStep >= 2) {
-            // ── Stage C: Continue from 50% to 100% (Approved) ──
-            tl.to(fill, {
-                width: "100%",
-                duration: 1.0,
-                ease: "power2.out",
-            });
+            if (wPct < 100) {
+                // Play towards 100%
+                tl.to(fill, { width: "100%", duration: 1.5, ease: "power2.out" });
 
-            // Pop the Approved node
-            if (nodes[2]) {
-                tl.to(
-                    nodes[2],
-                    { scale: 1.3, duration: 0.35, ease: "back.out(3)" },
-                    "-=0.3"
-                );
-                tl.to(nodes[2], { scale: 1, duration: 0.25 });
+                if (nodes[2]) {
+                    tl.to(nodes[2], { scale: 1.3, duration: 0.35, ease: "back.out(3)" }, "-=0.3");
+                    tl.to(nodes[2], { scale: 1, duration: 0.25 });
+                }
+
+                tl.call(() => {
+                    setVisualStep(2);
+                    createConfetti(confettiAnchorRef.current);
+                }, null, "-=0.2");
+            } else {
+                setVisualStep(2);
             }
-
-            // Confetti
-            tl.call(() => {
-                createConfetti(confettiAnchorRef.current);
-            }, null, "-=0.2");
         }
 
         return () => {
             tl.kill();
-            if (pulseAnimRef.current) {
-                pulseAnimRef.current.kill();
-            }
-            // Ensure fill stays at target on cleanup (prevents React flash)
-            if (fill) gsap.set(fill, { width: targetFill });
         };
-    }, [activeStep, targetFill]);
+    }, [activeStep]);
 
     // Don't render tracker for Unpaid
     if (status === "Unpaid") return null;
@@ -172,9 +176,9 @@ export default function PaymentProgressTracker({ status, month, year }) {
 
                     {/* ── Nodes ── */}
                     {STAGES.map((stage, idx) => {
-                        const isActive = idx <= activeStep;
-                        const isCurrent = idx === activeStep;
-                        const isApprovedDone = idx === 2 && activeStep >= 2;
+                        const isActive = idx <= visualStep;
+                        const isCurrent = idx === visualStep && activeStep === visualStep;
+                        const isApprovedDone = idx === 2 && visualStep >= 2;
 
                         return (
                             <div
@@ -188,17 +192,18 @@ export default function PaymentProgressTracker({ status, month, year }) {
                                     className={`
                                         w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center
                                         border-2 transition-colors duration-500 relative
-                                        ${isActive
+                                        ${isActive && idx < 1
                                             ? "bg-gradient-to-br from-[#4af8e3] to-[#20B2AA] border-[#4af8e3]/50 shadow-[0_0_12px_3px_rgba(74,248,227,0.3)]"
-                                            : "bg-[#1a1d2e] border-[#2a2d3a]"
+                                            : isActive && idx === 1
+                                                ? "bg-gradient-to-br from-[#10b981] to-[#059669] border-[#10b981]/80"
+                                                : "bg-[#1a1d2e] border-[#2a2d3a]"
                                         }
-                                        ${isCurrent && idx === 1 ? "tracker-node-pulse" : ""}
                                         ${isApprovedDone ? "!bg-gradient-to-br !from-[#20B2AA] !to-[#008B8B] !border-[#4af8e3]" : ""}
                                     `}
                                 >
                                     {isActive ? (
                                         <span className="material-symbols-outlined text-white text-base sm:text-lg material-symbols-filled drop-shadow-md">
-                                            {idx === 1 && activeStep === 1 ? "hourglass_top" : "check"}
+                                            {idx === 1 && visualStep === 1 ? "hourglass_top" : "check"}
                                         </span>
                                     ) : (
                                         <span className="material-symbols-outlined text-[#464752] text-base sm:text-lg">
@@ -228,7 +233,9 @@ export default function PaymentProgressTracker({ status, month, year }) {
                                         ${isActive ? "text-[#4af8e3]/60" : "text-[#363848]"}
                                     `}
                                 >
-                                    {stage.sub}
+                                    {idx === 0
+                                        ? (mode === "offline" ? "Offline Mode" : "Screenshot Uploaded")
+                                        : stage.sub}
                                 </span>
                             </div>
                         );

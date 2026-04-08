@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import StudentLayout from "@/components/StudentLayout";
@@ -231,6 +231,10 @@ function StudentDashboardContent() {
     const [success, setSuccess] = useState("");
     const [previewImg, setPreviewImg] = useState(null);
 
+    // Track recently approved payments to show the animation before they disappear
+    const [recentlyApprovedIds, setRecentlyApprovedIds] = useState(new Set());
+    const prevPaymentsRef = useRef([]);
+
     // Pay Now modal state
     const [payModalPayment, setPayModalPayment] = useState(null);
     const [payModalUpi, setPayModalUpi] = useState(null);
@@ -268,6 +272,39 @@ function StudentDashboardContent() {
         return () => unsubscribe();
     }, [user?.uid, fetchPayments]);
 
+    // Detect state changes for Payment Progress Tracker animation
+    useEffect(() => {
+        const prev = prevPaymentsRef.current;
+        const newlyApproved = [];
+
+        payments.forEach(p => {
+            const oldP = prev.find(old => old.id === p.id);
+            // If it transitioned from pending to paid
+            if (oldP && oldP.status === "Pending_Verification" && p.status === "Paid") {
+                newlyApproved.push(p.id);
+            }
+        });
+
+        if (newlyApproved.length > 0) {
+            setRecentlyApprovedIds(prevSet => {
+                const newSet = new Set(prevSet);
+                newlyApproved.forEach(id => newSet.add(id));
+                return newSet;
+            });
+
+            // Give the GSAP animation 4 seconds to complete before removing the card
+            setTimeout(() => {
+                setRecentlyApprovedIds(prevSet => {
+                    const newSet = new Set(prevSet);
+                    newlyApproved.forEach(id => newSet.delete(id));
+                    return newSet;
+                });
+            }, 4000);
+        }
+
+        prevPaymentsRef.current = payments;
+    }, [payments]);
+
     // Open Pay Now modal → fetch UPI link
     const openPayModal = async (payment) => {
         setPayModalPayment(payment);
@@ -303,7 +340,11 @@ function StudentDashboardContent() {
 
     const totalDue = payments.filter((p) => p.status === "Unpaid").reduce((s, p) => s + (p.amount || 0), 0);
     const totalPaid = payments.filter((p) => p.status === "Paid").reduce((s, p) => s + (p.amount || 0), 0);
-    const actionPayments = payments.filter((p) => p.status === "Unpaid" || p.status === "Pending_Verification");
+    const actionPayments = payments.filter((p) => 
+        p.status === "Unpaid" || 
+        p.status === "Pending_Verification" ||
+        recentlyApprovedIds.has(p.id)
+    );
     const paidProgress = totalPaid > 0 && (totalPaid + totalDue) > 0 ? (totalPaid / (totalPaid + totalDue)) * 100 : (totalDue === 0 && totalPaid > 0 ? 100 : 0);
 
     if (loading) {
@@ -446,6 +487,7 @@ function StudentDashboardContent() {
                                         </div>
                                         <PaymentProgressTracker
                                             status={p.status}
+                                            mode={p.mode}
                                             month={MONTHS[p.month - 1]}
                                             year={p.year}
                                         />

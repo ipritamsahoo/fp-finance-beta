@@ -1,0 +1,79 @@
+commit 16bb557c5850c1635098ff1ca85fbe886959af8d
+Author: Suman Maji <suman2004maji@gmail.com>
+Date:   Wed Apr 8 21:01:56 2026 +0530
+
+    offline payment request issue solved
+
+diff --git a/frontend/src/pages/teacher/TeacherDashboard.jsx b/frontend/src/pages/teacher/TeacherDashboard.jsx
+index a8f17b1..4e52b24 100644
+--- a/frontend/src/pages/teacher/TeacherDashboard.jsx
++++ b/frontend/src/pages/teacher/TeacherDashboard.jsx
+@@ -90,6 +90,7 @@ function TeacherDashboardContent() {
+     const [selectedBatch, setSelectedBatch] = useState("");
+     const [payments, setPayments] = useState([]);
+     const [loading, setLoading] = useState(true);
++    const [error, setError] = useState("");
+     const [success, setSuccess] = useState("");
+     const [offlineLoading, setOfflineLoading] = useState(null);
+     const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
+@@ -280,6 +281,14 @@ function TeacherDashboardContent() {
+             </section>
+ 
+             {/* ── Alerts ── */}
++            {error && (
++                <div className="p-4 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff6e84] text-sm flex items-center justify-between animate-fade-in-scale">
++                    <span>{error}</span>
++                    <button onClick={() => setError("")} className="ml-2 text-[#ff6e84] hover:text-white cursor-pointer">
++                        <span className="material-symbols-outlined text-lg">close</span>
++                    </button>
++                </div>
++            )}
+             {success && (
+                 <div className="p-4 rounded-2xl bg-[#4af8e3]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-sm flex items-center justify-between animate-fade-in-scale">
+                     <span>{success}</span>
+
+commit cada32c8874cacb788ca2f3dfa231474840c9513
+Author: Pritam Sahoo <pritamsahoo449@gmail.com>
+Date:   Wed Apr 8 18:13:31 2026 +0530
+
+    Health check error fixed
+
+diff --git a/backend/main.py b/backend/main.py
+index 22944d5..4fcbf8e 100644
+--- a/backend/main.py
++++ b/backend/main.py
+@@ -54,6 +54,10 @@ app.include_router(admin.router)
+ # ──────────────────────────────────────────────
+ # HEALTH / PING
+ # ──────────────────────────────────────────────
++@app.get("/")
++async def root_health_check():
++    return {"status": "ok", "message": "FP Finance Backend API is running."}
++
+ @app.get("/health")
+ async def health_check(x_cron_secret: str = Header(None, alias="X-Cron-Secret")):
+     if x_cron_secret != CRON_SECRET:
+
+commit 344c1a50fdde8fe7e2e29e13d7a3883d459ce42d
+Author: Pritam Sahoo <pritamsahoo449@gmail.com>
+Date:   Wed Apr 8 17:53:35 2026 +0530
+
+    Dockerfile updated
+
+diff --git a/backend/Dockerfile b/backend/Dockerfile
+index 8754ace..9d09002 100644
+--- a/backend/Dockerfile
++++ b/backend/Dockerfile
+@@ -19,8 +19,8 @@ COPY . .
+ # Create uploads directory
+ RUN mkdir -p uploads
+ 
+-# Expose port (Cloud Run uses PORT env variable)
+-EXPOSE 8080
++# Expose port — Render injects PORT env variable (default 10000)
++EXPOSE ${PORT:-10000}
+ 
+-# Run with uvicorn — Cloud Run injects PORT env var
+-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
++# Run with uvicorn — use Render's PORT env var
++CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000}"]

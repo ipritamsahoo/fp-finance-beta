@@ -14,7 +14,7 @@ from database import db
 security = HTTPBearer()
 
 
-async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(security)):
+def get_current_user(creds: HTTPAuthorizationCredentials = Depends(security)):
     """Verify Firebase ID token and return user data from Firestore."""
     token = creds.credentials
     try:
@@ -35,7 +35,7 @@ async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(securit
 
 def require_role(*roles):
     """Dependency factory: ensures the current user has one of the specified roles."""
-    async def role_checker(user=Depends(get_current_user)):
+    def role_checker(user=Depends(get_current_user)):
         if user.get("role") not in roles:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         return user
