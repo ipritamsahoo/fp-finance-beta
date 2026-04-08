@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { getYearOptions } from "@/lib/yearOptions";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
+import ModernSelect from "@/components/ModernSelect";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTH_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -80,24 +81,7 @@ function GlassCard({ children, className = "", style = {} }) {
     );
 }
 
-// ── Filter Pill Select ──
-function PillSelect({ icon, value, onChange, children }) {
-    return (
-        <label className="relative inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#f0f0fd] cursor-pointer hover:bg-white/10 transition-all">
-            <span className="material-symbols-outlined text-[#aaaab7] text-base">{icon}</span>
-            <select
-                value={value}
-                onChange={onChange}
-                className="bg-transparent border-none text-sm font-semibold text-[#f0f0fd] appearance-none cursor-pointer focus:outline-none pr-4"
-            >
-                {children}
-            </select>
-            <span className="material-symbols-outlined text-[#aaaab7] text-sm absolute -right-0.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                expand_more
-            </span>
-        </label>
-    );
-}
+
 
 // ── Main Content ──
 function TeacherDashboardContent() {
@@ -272,37 +256,26 @@ function TeacherDashboardContent() {
             <section className="animate-fade-in-scale" style={{ animationDelay: "120ms" }}>
                 <div className="flex flex-wrap gap-2">
                     {/* Batch Pill */}
-                    <PillSelect
+                    <ModernSelect
                         icon="school"
                         value={selectedBatch}
+                        options={batches}
                         onChange={(e) => setSelectedBatch(e.target.value)}
-                    >
-                        {batches.map((b) => (
-                            <option key={b.id} value={b.id}>{b.batch_name}</option>
-                        ))}
-                    </PillSelect>
+                    />
 
-                    {/* Month Pill */}
-                    <PillSelect
+                    <ModernSelect
                         icon="calendar_month"
                         value={filterMonth}
+                        options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
                         onChange={(e) => setFilterMonth(e.target.value)}
-                    >
-                        {MONTHS.map((m, i) => (
-                            <option key={i} value={i + 1}>{m}</option>
-                        ))}
-                    </PillSelect>
+                    />
 
-                    {/* Year Pill */}
-                    <PillSelect
+                    <ModernSelect
                         icon="event"
                         value={filterYear}
+                        options={getYearOptions()}
                         onChange={(e) => setFilterYear(parseInt(e.target.value))}
-                    >
-                        {getYearOptions().map((y) => (
-                            <option key={y} value={y}>{y}</option>
-                        ))}
-                    </PillSelect>
+                    />
                 </div>
             </section>
 

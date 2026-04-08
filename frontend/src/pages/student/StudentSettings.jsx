@@ -88,9 +88,7 @@ function StudentSettingsContent() {
                     </h2>
                     <p className="text-[#aaaab7] tracking-wider mt-1 text-sm">{displayUsername}</p>
                     <div className="mt-6 flex gap-2 flex-wrap justify-center">
-                        <span className="px-3 py-1 bg-[#006a60]/40 text-[#4af8e3] text-[10px] font-bold uppercase tracking-widest rounded-full ring-1 ring-[#4af8e3]/20">
-                            Active Student
-                        </span>
+
                         {user?.currentBadge === "prime" && (
                             <span className="px-3 py-1 bg-[#a855f7]/20 text-[#c084fc] text-[10px] font-bold uppercase tracking-widest rounded-full ring-1 ring-[#a855f7]/30 flex items-center gap-1">
                                 <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>

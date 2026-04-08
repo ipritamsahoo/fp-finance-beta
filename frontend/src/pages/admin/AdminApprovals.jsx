@@ -4,6 +4,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
+import ModernSelect from "@/components/ModernSelect";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -94,19 +95,15 @@ function ApprovalContent() {
                         {filtered.length} of {pending.length} payment(s) awaiting verification
                     </p>
                 </div>
-                <div className="relative w-full sm:w-auto">
-                    <select
-                        value={filterBatch}
-                        onChange={(e) => setFilterBatch(e.target.value)}
-                        className="w-full sm:w-auto bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3.5 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer min-w-[200px]"
-                    >
-                        <option value="">All Batches</option>
-                        {batches.map((b) => (
-                            <option key={b.id} value={b.id}>{b.batch_name}</option>
-                        ))}
-                    </select>
-                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
-                </div>
+                    <div className="relative z-10 w-full sm:w-auto min-w-[200px]">
+                        <ModernSelect
+                            value={filterBatch}
+                            onChange={(e) => setFilterBatch(e.target.value)}
+                            options={[{ id: "", batch_name: "All Batches" }, ...batches]}
+                            placeholder="All Batches"
+                            className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm"
+                        />
+                    </div>
             </div>
 
             {error && (

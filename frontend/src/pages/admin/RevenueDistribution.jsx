@@ -3,6 +3,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
+import ModernSelect from "@/components/ModernSelect";
 
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -106,34 +107,31 @@ function DistributionContent() {
                 </div>
                 <div className="flex flex-col xl:flex-row xl:items-end gap-3 w-full">
                     <div className="flex gap-3 w-full xl:w-auto">
-                        <div className="relative flex-1 xl:flex-none">
-                            <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
-                                className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer xl:min-w-[140px]">
-                                {MONTHS.map((m, i) => (
-                                    <option key={i + 1} value={i + 1}>{m}</option>
-                                ))}
-                            </select>
-                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                        <div className="relative flex-1 xl:flex-none z-30">
+                            <ModernSelect
+                                value={month}
+                                onChange={(e) => setMonth(Number(e.target.value))}
+                                options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
+                                className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm xl:min-w-[140px]"
+                            />
                         </div>
-                        <div className="relative flex-1 xl:flex-none">
-                            <select value={year} onChange={(e) => setYear(Number(e.target.value))}
-                                className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer xl:min-w-[120px]">
-                                {yearOptions.map((y) => (
-                                    <option key={y} value={y}>{y}</option>
-                                ))}
-                            </select>
-                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                        <div className="relative flex-1 xl:flex-none z-20">
+                            <ModernSelect
+                                value={year}
+                                onChange={(e) => setYear(Number(e.target.value))}
+                                options={yearOptions}
+                                className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm xl:min-w-[120px]"
+                            />
                         </div>
                     </div>
                     {batches.length > 0 ? (
-                        <div className="relative w-full xl:w-auto">
-                            <select value={batchFilter} onChange={(e) => setBatchFilter(e.target.value)}
-                                className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm cursor-pointer xl:min-w-[180px]">
-                                {batches.map((b) => (
-                                    <option key={b.id} value={b.id}>{b.batch_name}</option>
-                                ))}
-                            </select>
-                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                        <div className="relative w-full xl:w-auto z-10">
+                            <ModernSelect
+                                value={batchFilter}
+                                onChange={(e) => setBatchFilter(e.target.value)}
+                                options={batches}
+                                className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm xl:min-w-[180px]"
+                            />
                         </div>
                     ) : (
                         <div className="bg-[#222532]/50 border border-[#464752]/50 rounded-2xl w-full xl:w-[180px] h-[46px] animate-pulse" />

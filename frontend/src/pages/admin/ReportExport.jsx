@@ -4,6 +4,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { api, apiFetch } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import { auth } from "@/lib/firebase";
+import ModernSelect from "@/components/ModernSelect";
 
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -157,18 +158,14 @@ function ReportExportContent() {
                     <h3 className="text-[#f0f0fd] font-bold mb-4 flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
                         Select Batch
                     </h3>
-                    <div className="relative">
-                        <select
+                    <div className="relative z-20">
+                        <ModernSelect
                             value={batchId}
                             onChange={(e) => setBatchId(e.target.value)}
-                            className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#4af8e3]/50 transition-colors appearance-none cursor-pointer"
-                        >
-                            <option value="">Select Batch</option>
-                            {batches.map((b) => (
-                                <option key={b.id} value={b.id}>{b.batch_name}</option>
-                            ))}
-                        </select>
-                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                            options={[{ id: "", batch_name: "Select Batch" }, ...batches]}
+                            placeholder="Select Batch"
+                            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#4af8e3]/50 transition-colors"
+                        />
                     </div>
                 </div>
 
@@ -177,17 +174,13 @@ function ReportExportContent() {
                     <h3 className="text-[#f0f0fd] font-bold mb-4 flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
                         Select Year
                     </h3>
-                    <div className="relative">
-                        <select
+                    <div className="relative z-10">
+                        <ModernSelect
                             value={year}
                             onChange={(e) => setYear(Number(e.target.value))}
-                            className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#4af8e3]/50 transition-colors appearance-none cursor-pointer"
-                        >
-                            {yearOptions.map((y) => (
-                                <option key={y} value={y}>{y}</option>
-                            ))}
-                        </select>
-                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                            options={yearOptions}
+                            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#4af8e3]/50 transition-colors"
+                        />
                     </div>
                 </div>
             </div>

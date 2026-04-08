@@ -88,12 +88,6 @@ function TeacherSettingsContent() {
                     </h2>
                     <p className="text-[#aaaab7] tracking-wider mt-1 text-sm">{displayUsername}</p>
                     <div className="mt-6 flex gap-2 flex-wrap justify-center">
-                        <span className="px-3 py-1 bg-[#006a60]/40 text-[#4af8e3] text-[10px] font-bold uppercase tracking-widest rounded-full ring-1 ring-[#4af8e3]/20">
-                            Active Teacher
-                        </span>
-                        <span className="px-3 py-1 bg-[#3b82f6]/20 text-[#3b82f6] text-[10px] font-bold uppercase tracking-widest rounded-full ring-1 ring-[#3b82f6]/20">
-                            Verified
-                        </span>
                     </div>
                 </div>
             </section>
@@ -117,7 +111,7 @@ function TeacherSettingsContent() {
                 {/* Change Username or Mobile */}
                 <button
                     onClick={() => setUsernameModalOpen(true)}
-                    className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl hover:bg-[#1c1f2b] transition-all group cursor-pointer"
+                    className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
                 >
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl group-hover:bg-[#3b82f6]/20 transition-colors">
@@ -131,7 +125,7 @@ function TeacherSettingsContent() {
                 {/* Change Password */}
                 <button
                     onClick={() => setPasswordModalOpen(true)}
-                    className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl hover:bg-[#1c1f2b] transition-all group cursor-pointer"
+                    className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
                 >
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl group-hover:bg-[#3b82f6]/20 transition-colors">
@@ -145,7 +139,7 @@ function TeacherSettingsContent() {
                 {/* Devices */}
                 <button
                     onClick={() => setDevicesModalOpen(true)}
-                    className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl hover:bg-[#1c1f2b] transition-all group cursor-pointer"
+                    className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
                 >
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl group-hover:bg-[#3b82f6]/20 transition-colors">
@@ -190,7 +184,7 @@ function TeacherSettingsContent() {
                     href="https://wa.me/917001637243"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center justify-between p-4 bg-[#11131d]/60 backdrop-blur-md rounded-2xl hover:bg-[#1c1f2b] transition-all group cursor-pointer"
+                    className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
                 >
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl group-hover:bg-[#3b82f6]/20 transition-colors">

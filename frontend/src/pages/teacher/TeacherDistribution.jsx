@@ -4,6 +4,7 @@ import TeacherLayout from "@/components/TeacherLayout";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { getYearOptions } from "@/lib/yearOptions";
+import ModernSelect from "@/components/ModernSelect";
 
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -28,24 +29,7 @@ function GlassCard({ children, className = "", style = {} }) {
     );
 }
 
-// ── Pill Select ──
-function PillSelect({ icon, value, onChange, children }) {
-    return (
-        <label className="relative inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#f0f0fd] cursor-pointer hover:bg-white/10 transition-all">
-            <span className="material-symbols-outlined text-[#aaaab7] text-base">{icon}</span>
-            <select
-                value={value}
-                onChange={onChange}
-                className="bg-transparent border-none text-sm font-semibold text-[#f0f0fd] appearance-none cursor-pointer focus:outline-none pr-4"
-            >
-                {children}
-            </select>
-            <span className="material-symbols-outlined text-[#aaaab7] text-sm absolute -right-0.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                expand_more
-            </span>
-        </label>
-    );
-}
+
 
 // ── Student Initial Avatar ──
 function InitialAvatar({ name, size = 36, className = "" }) {
@@ -145,22 +129,25 @@ function TeacherDistributionContent() {
 
             {/* ── Filters ── */}
             <div className="flex flex-wrap gap-2 animate-fade-in-scale" style={{ animationDelay: "60ms" }}>
-                <PillSelect icon="calendar_month" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-                    {MONTHS.map((m, i) => (
-                        <option key={i + 1} value={i + 1}>{MONTHS_SHORT[i]}</option>
-                    ))}
-                </PillSelect>
-                <PillSelect icon="event" value={year} onChange={(e) => setYear(Number(e.target.value))}>
-                    {yearOptions.map((y) => (
-                        <option key={y} value={y}>{y}</option>
-                    ))}
-                </PillSelect>
+                <ModernSelect
+                    icon="calendar_month"
+                    value={month}
+                    options={MONTHS.map((m, i) => ({ value: i + 1, label: MONTHS_SHORT[i] }))}
+                    onChange={(e) => setMonth(Number(e.target.value))}
+                />
+                <ModernSelect
+                    icon="event"
+                    value={year}
+                    options={yearOptions}
+                    onChange={(e) => setYear(Number(e.target.value))}
+                />
                 {data && data.batches && data.batches.length > 0 && (
-                    <PillSelect icon="school" value={batchFilter} onChange={(e) => setBatchFilter(e.target.value)}>
-                        {data.batches.map((b) => (
-                            <option key={b.id} value={b.id}>{b.batch_name}</option>
-                        ))}
-                    </PillSelect>
+                    <ModernSelect
+                        icon="school"
+                        value={batchFilter}
+                        options={data.batches}
+                        onChange={(e) => setBatchFilter(e.target.value)}
+                    />
                 )}
             </div>
 

@@ -3,6 +3,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
+import ModernSelect from "@/components/ModernSelect";
 
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -140,25 +141,23 @@ function FeeOverrideContent() {
                         Select Student
                     </h3>
                     <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4 relative">
-                        <div className="relative">
-                            <select value={filterBatch} onChange={(e) => { setFilterBatch(e.target.value); setStudentId(""); setLoading(true); }}
-                                className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors cursor-pointer">
-                                <option value="">All Batches</option>
-                                {batches.map((b) => (<option key={b.id} value={b.id}>{b.batch_name}</option>))}
-                            </select>
-                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                        <div className="relative z-20">
+                            <ModernSelect
+                                value={filterBatch}
+                                onChange={(e) => { setFilterBatch(e.target.value); setStudentId(""); setLoading(true); }}
+                                options={[{ id: "", batch_name: "All Batches" }, ...batches]}
+                                placeholder="All Batches"
+                                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
+                            />
                         </div>
-                        <div className="relative">
-                            <select value={studentId} onChange={(e) => setStudentId(e.target.value)} required
-                                className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors cursor-pointer">
-                                <option value="">Select Student</option>
-                                {students.map((s) => (
-                                <option key={s.uid || s.id} value={s.uid || s.id}>
-                                    {s.name} {s.custom_fee != null ? `(Custom: ₹${s.custom_fee})` : ""}
-                                </option>
-                            ))}
-                            </select>
-                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                        <div className="relative z-10">
+                            <ModernSelect
+                                value={studentId}
+                                onChange={(e) => setStudentId(e.target.value)}
+                                options={students.map(s => ({ value: s.uid || s.id, label: `${s.name} ${s.custom_fee != null ? `(Custom: ₹${s.custom_fee})` : ""}` }))}
+                                placeholder="Select Student"
+                                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
+                            />
                         </div>
                     </div>
 
@@ -241,19 +240,21 @@ function FeeOverrideContent() {
                     <div className={`space-y-4 sm:space-y-0 sm:grid sm:gap-4 ${mode === "specific-month" ? "sm:grid-cols-3" : "sm:grid-cols-1 sm:max-w-sm"}`}>
                         {mode === "specific-month" && (
                             <>
-                                <div className="relative">
-                                    <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
-                                        className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#4af8e3]/50 transition-colors cursor-pointer">
-                                        {MONTHS.map((m, i) => (<option key={i} value={i + 1}>{m}</option>))}
-                                    </select>
-                                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                                <div className="relative z-20">
+                                    <ModernSelect
+                                        value={month}
+                                        onChange={(e) => setMonth(Number(e.target.value))}
+                                        options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
+                                        className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm focus:outline-none focus:ring-2 focus:ring-[#4af8e3]/50 transition-colors"
+                                    />
                                 </div>
-                                <div className="relative">
-                                    <select value={year} onChange={(e) => setYear(Number(e.target.value))}
-                                        className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#4af8e3]/50 transition-colors cursor-pointer">
-                                        {yearOptions.map((y) => (<option key={y} value={y}>{y}</option>))}
-                                    </select>
-                                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                                <div className="relative z-20">
+                                    <ModernSelect
+                                        value={year}
+                                        onChange={(e) => setYear(Number(e.target.value))}
+                                        options={yearOptions}
+                                        className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm focus:outline-none focus:ring-2 focus:ring-[#4af8e3]/50 transition-colors"
+                                    />
                                 </div>
                             </>
                         )}

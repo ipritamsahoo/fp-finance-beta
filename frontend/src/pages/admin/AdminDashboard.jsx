@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { getYearOptions } from "@/lib/yearOptions";
 import { collection, onSnapshot } from "firebase/firestore";
+import ModernSelect from "@/components/ModernSelect";
 
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -200,51 +201,39 @@ function AdminDashboardContent() {
                 <div className="space-y-5 relative z-10">
                     <div className="space-y-1.5">
                         <label className="text-xs font-medium text-[#aaaab7] ml-1">Batch</label>
-                        <div className="relative">
-                            <select
+                        <div className="relative z-30">
+                            <ModernSelect
                                 value={genBatch}
                                 onChange={(e) => setGenBatch(e.target.value)}
-                                className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3.5 appearance-none focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm cursor-pointer"
-                            >
-                                <option value="">All Batches</option>
-                                {batches.map((b) => (
-                                    <option key={b.id} value={b.id}>{b.batch_name}</option>
-                                ))}
-                            </select>
-                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                                options={[{ id: "", batch_name: "All Batches" }, ...batches]}
+                                placeholder="All Batches"
+                                className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm"
+                            />
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-xs font-medium text-[#aaaab7] ml-1">Month</label>
-                            <div className="relative">
-                                <select
+                            <div className="relative z-20">
+                                <ModernSelect
                                     value={genMonth}
                                     onChange={(e) => setGenMonth(parseInt(e.target.value))}
-                                    className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3.5 appearance-none focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm cursor-pointer"
-                                >
-                                    {MONTHS.map((m, i) => (
-                                        <option key={i} value={i + 1}>{m}</option>
-                                    ))}
-                                </select>
-                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                                    options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
+                                    className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm"
+                                />
                             </div>
                         </div>
 
                         <div className="space-y-1.5">
                             <label className="text-xs font-medium text-[#aaaab7] ml-1">Year</label>
-                            <div className="relative">
-                                <select
+                            <div className="relative z-10">
+                                <ModernSelect
                                     value={genYear}
                                     onChange={(e) => setGenYear(parseInt(e.target.value))}
-                                    className="w-full bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3.5 appearance-none focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm cursor-pointer"
-                                >
-                                    {getYearOptions().map((y) => (
-                                        <option key={y} value={y}>{y}</option>
-                                    ))}
-                                </select>
-                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                                    options={getYearOptions()}
+                                    className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm"
+                                />
                             </div>
                         </div>
 

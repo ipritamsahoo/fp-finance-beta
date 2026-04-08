@@ -4,6 +4,7 @@ import AdminLayout from "@/components/AdminLayout";
 import UserDevicesModal from "@/components/UserDevicesModal";
 import { api } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
+import ModernSelect from "@/components/ModernSelect";
 
 
 const MONTHS = [
@@ -205,11 +206,13 @@ function StudentsContent() {
                         </p>
                     </div>
                     <div className="flex gap-3">
-                        <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)}
-                            className="px-4 py-3 rounded-xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors">
-                            <option value="">All Batches</option>
-                            {batches.map((b) => <option key={b.id} value={b.id}>{b.batch_name}</option>)}
-                        </select>
+                        <ModernSelect
+                            value={filterBatch}
+                            onChange={(e) => setFilterBatch(e.target.value)}
+                            options={[{ id: "", batch_name: "All Batches" }, ...batches]}
+                            placeholder="All Batches"
+                            className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors w-full sm:w-48"
+                        />
                         <button
                             onClick={() => { setShowForm(!showForm); cancelEdit(); cancelOverride(); }}
                             className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
@@ -254,11 +257,13 @@ function StudentsContent() {
                                 className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors placeholder:text-[#aaaab7]/70" />
                             <input placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6}
                                 className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors placeholder:text-[#aaaab7]/70" />
-                            <select value={form.batch_id} onChange={(e) => setForm({ ...form, batch_id: e.target.value })} required
-                                className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors appearance-none cursor-pointer">
-                                <option value="">Select Batch</option>
-                                {batches.map((b) => <option key={b.id} value={b.id}>{b.batch_name}</option>)}
-                            </select>
+                            <ModernSelect
+                                value={form.batch_id}
+                                onChange={(e) => setForm({ ...form, batch_id: e.target.value })}
+                                options={batches}
+                                placeholder="Select Batch"
+                                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
+                            />
                         </div>
                         <button type="submit" disabled={formLoading}
                             className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
@@ -304,11 +309,13 @@ function StudentsContent() {
                                 </div>
                                 <div>
                                     <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Batch</label>
-                                    <select value={editForm.batch_id} onChange={(e) => setEditForm({ ...editForm, batch_id: e.target.value })}
-                                        className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors appearance-none cursor-pointer">
-                                        <option value="">Select Batch</option>
-                                        {batches.map((b) => <option key={b.id} value={b.id}>{b.batch_name}</option>)}
-                                    </select>
+                                    <ModernSelect
+                                        value={editForm.batch_id}
+                                        onChange={(e) => setEditForm({ ...editForm, batch_id: e.target.value })}
+                                        options={batches}
+                                        placeholder="Select Batch"
+                                        className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
+                                    />
                                 </div>
                             </div>
                             <div className="flex justify-end gap-4 pt-6 border-t border-[#464752]/30">
@@ -366,21 +373,23 @@ function StudentsContent() {
                                         <div>
                                             <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Month</label>
                                             <div className="relative">
-                                                <select value={overrideMonth} onChange={(e) => setOverrideMonth(Number(e.target.value))}
-                                                    className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50 transition-colors appearance-none cursor-pointer">
-                                                    {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-                                                </select>
-                                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                                                <ModernSelect
+                                                    value={overrideMonth}
+                                                    onChange={(e) => setOverrideMonth(Number(e.target.value))}
+                                                    options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
+                                                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50 transition-colors"
+                                                />
                                             </div>
                                         </div>
                                         <div>
                                             <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Year</label>
                                             <div className="relative">
-                                                <select value={overrideYear} onChange={(e) => setOverrideYear(Number(e.target.value))}
-                                                    className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50 transition-colors appearance-none cursor-pointer">
-                                                    {getYearOptions().map((y) => <option key={y} value={y}>{y}</option>)}
-                                                </select>
-                                                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
+                                                <ModernSelect
+                                                    value={overrideYear}
+                                                    onChange={(e) => setOverrideYear(Number(e.target.value))}
+                                                    options={getYearOptions()}
+                                                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50 transition-colors"
+                                                />
                                             </div>
                                         </div>
                                     </div>

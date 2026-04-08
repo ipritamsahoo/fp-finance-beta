@@ -5,6 +5,7 @@ import ProfilePicture from "@/components/ProfilePicture";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { getYearOptions } from "@/lib/yearOptions";
+import ModernSelect from "@/components/ModernSelect";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTH_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -70,24 +71,6 @@ function PodiumAvatar({ entry, rank, size = "lg" }) {
     );
 }
 
-// ── Pill Select ──
-function PillSelect({ icon, value, onChange, children }) {
-    return (
-        <label className="relative inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#f0f0fd] cursor-pointer hover:bg-white/10 transition-all">
-            <span className="material-symbols-outlined text-[#aaaab7] text-base">{icon}</span>
-            <select
-                value={value}
-                onChange={onChange}
-                className="bg-transparent border-none text-sm font-semibold text-[#f0f0fd] appearance-none cursor-pointer focus:outline-none pr-4"
-            >
-                {children}
-            </select>
-            <span className="material-symbols-outlined text-[#aaaab7] text-sm absolute -right-0.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                expand_more
-            </span>
-        </label>
-    );
-}
 
 // ── Main Content ──
 function StudentLeaderboardContent() {
@@ -164,17 +147,21 @@ function StudentLeaderboardContent() {
     return (
         <div className="space-y-8 pt-2 md:pt-0">
             {/* Date Filters */}
-            <div className="flex flex-wrap justify-center gap-2 animate-fade-in-scale">
-                <PillSelect icon="calendar_month" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-                    {MONTH_FULL.map((m, i) => (
-                        <option key={i + 1} value={i + 1}>{MONTH_NAMES[i]}</option>
-                    ))}
-                </PillSelect>
-                <PillSelect icon="event" value={year} onChange={(e) => setYear(Number(e.target.value))}>
-                    {yearOptions.map((y) => (
-                        <option key={y} value={y}>{y}</option>
-                    ))}
-                </PillSelect>
+            <div className="flex flex-wrap justify-center gap-2 animate-fade-in-scale relative z-20">
+                <ModernSelect
+                    icon="calendar_month"
+                    value={month}
+                    onChange={(e) => setMonth(Number(e.target.value))}
+                    options={MONTH_FULL.map((m, i) => ({ value: i + 1, label: MONTH_NAMES[i] }))}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#f0f0fd] cursor-pointer hover:bg-white/10 transition-all min-w-[120px]"
+                />
+                <ModernSelect
+                    icon="event"
+                    value={year}
+                    onChange={(e) => setYear(Number(e.target.value))}
+                    options={yearOptions}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#f0f0fd] cursor-pointer hover:bg-white/10 transition-all min-w-[100px]"
+                />
             </div>
 
             {/* Hero Section */}

@@ -139,7 +139,8 @@ async def student_get_leaderboard(
 ):
     """Get fastest-payer leaderboard for a billing cycle.
 
-    Ranks students by `updated_at` (admin approval timestamp) ascending.
+    Ranks students by `requested_at` (payment request timestamp) ascending.
+    Only students with status=Paid appear. Admin approval order is irrelevant.
     Returns top 5 fastest payers, current student's position, and stats.
     If month/year not provided, defaults to current month.
     """
@@ -188,8 +189,8 @@ async def student_get_leaderboard(
         
         total_paid = len(paid_payments)
 
-        # ── Sort paid payments by updated_at ascending (fastest first) ──
-        paid_payments.sort(key=lambda x: x.get("updated_at", "") or "9999")
+        # ── Sort paid payments by requested_at ascending (fastest requester first) ──
+        paid_payments.sort(key=lambda x: x.get("requested_at", "") or "9999")
 
         # ── Build top 5 with student profile info ──
         top5 = []

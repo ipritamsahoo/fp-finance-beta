@@ -3,6 +3,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import TeacherLayout from "@/components/TeacherLayout";
 import { api } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
+import ModernSelect from "@/components/ModernSelect";
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -105,21 +106,19 @@ function PaymentsContent() {
             {/* Filters */}
             <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 animate-fade-in-up transition-colors">
                 <div className="flex flex-wrap gap-4">
-                    <div className="relative">
-                        <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)}
-                            className="w-full sm:w-auto bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm cursor-pointer min-w-[180px]">
-                            <option value="">Select Batch</option>
-                            {batches.map((b) => <option key={b.id} value={b.id}>{b.batch_name}</option>)}
-                        </select>
-                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
-                    </div>
-                    <div className="relative">
-                        <select value={filterYear} onChange={(e) => setFilterYear(Number(e.target.value))}
-                            className="w-full sm:w-auto bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm cursor-pointer min-w-[140px]">
-                            {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
-                        </select>
-                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#aaaab7]">expand_more</span>
-                    </div>
+                    <ModernSelect
+                        icon="school"
+                        value={filterBatch}
+                        options={batches}
+                        onChange={(e) => setFilterBatch(e.target.value)}
+                        placeholder="Select Batch"
+                    />
+                    <ModernSelect
+                        icon="event"
+                        value={filterYear}
+                        options={yearOptions}
+                        onChange={(e) => setFilterYear(Number(e.target.value))}
+                    />
                 </div>
             </div>
 
