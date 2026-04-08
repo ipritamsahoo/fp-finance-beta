@@ -3,6 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import StudentLayout from "@/components/StudentLayout";
 import AnimatedGreeting from "@/components/AnimatedGreeting";
+import PaymentProgressTracker from "@/components/PaymentProgressTracker";
 import { api, apiFetch } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
@@ -402,51 +403,52 @@ function StudentDashboardContent() {
 
                     <div className="space-y-4">
                         {actionPayments.map((p, idx) => (
-                            <div key={p.id} className="glass-card-student rounded-[32px] p-5 flex items-center justify-between animate-fade-in-scale"
-                                style={{ animationDelay: `${400 + idx * 100}ms` }}>
-                                <div className="flex items-center gap-4">
-                                    {/* Icon box */}
-                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border
-                                        ${p.status === "Unpaid"
-                                            ? "bg-[#ff6e84]/10 border-[#ff6e84]/20"
-                                            : "bg-[#4af8e3]/10 border-[#4af8e3]/20"
-                                        }`}>
-                                        <span className={`material-symbols-outlined
-                                            ${p.status === "Unpaid" ? "text-[#ff6e84]" : "text-[#4af8e3]"}`}>
-                                            {p.status === "Unpaid" ? "calendar_today" : "history"}
-                                        </span>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <h3 className="text-xl font-bold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                                            {MONTHS[p.month - 1]} {p.year}
-                                        </h3>
-                                        {p.status === "Unpaid" ? (
-                                            <span className="inline-block px-2 py-0.5 bg-[#ff6e84]/10 text-[#ff6e84] text-[10px] font-bold uppercase rounded">
-                                                UNPAID
-                                            </span>
-                                        ) : (
-                                            <div className="flex flex-wrap gap-1">
-                                                <span className="px-2 py-0.5 bg-[#4af8e3]/10 text-[#4af8e3] text-[10px] font-bold uppercase rounded">PENDING</span>
-                                                <span className="px-2 py-0.5 bg-[#4af8e3]/10 text-[#4af8e3] text-[10px] font-bold uppercase rounded">VERIFICATION</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Right side: Pay Now or Receipt Uploaded */}
+                            <div key={p.id}
+                                className="glass-card-student rounded-[32px] animate-fade-in-scale"
+                                style={{ animationDelay: `${400 + idx * 100}ms` }}
+                            >
                                 {p.status === "Unpaid" ? (
-                                    <button
-                                        onClick={() => openPayModal(p)}
-                                        className="px-6 py-2.5 bg-[#3b82f6] text-white rounded-full font-bold text-sm shadow-[0_4px_20px_rgba(59,130,246,0.4)] active:scale-95 transition-transform cursor-pointer whitespace-nowrap"
-                                    >
-                                        Pay Now
-                                    </button>
+                                    /* ── Unpaid: Original horizontal layout with Pay Now ── */
+                                    <div className="p-5 flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center border bg-[#ff6e84]/10 border-[#ff6e84]/20">
+                                                <span className="material-symbols-outlined text-[#ff6e84]">calendar_today</span>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <h3 className="text-xl font-bold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                                    {MONTHS[p.month - 1]} {p.year}
+                                                </h3>
+                                                <span className="inline-block px-2 py-0.5 bg-[#ff6e84]/10 text-[#ff6e84] text-[10px] font-bold uppercase rounded">
+                                                    UNPAID
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => openPayModal(p)}
+                                            className="px-6 py-2.5 bg-[#3b82f6] text-white rounded-full font-bold text-sm shadow-[0_4px_20px_rgba(59,130,246,0.4)] active:scale-95 transition-transform cursor-pointer whitespace-nowrap"
+                                        >
+                                            Pay Now
+                                        </button>
+                                    </div>
                                 ) : (
-                                    <div className="flex items-center gap-3 text-right">
-                                        <span className="text-[11px] font-medium text-[#aaaab7] italic leading-tight">
-                                            Receipt<br />Uploaded
-                                        </span>
-                                        <span className="material-symbols-outlined text-[#4af8e3] material-symbols-filled">check_circle</span>
+                                    /* ── Pending Verification: Vertical layout with Progress Tracker ── */
+                                    <div className="p-5 space-y-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center border bg-[#4af8e3]/10 border-[#4af8e3]/20">
+                                                <span className="material-symbols-outlined text-[#4af8e3] text-lg">history</span>
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                                    {MONTHS[p.month - 1]} {p.year}
+                                                </h3>
+                                                <span className="text-[10px] font-semibold text-[#4af8e3]/70 uppercase tracking-wider">₹{p.amount?.toLocaleString("en-IN")} • In Progress</span>
+                                            </div>
+                                        </div>
+                                        <PaymentProgressTracker
+                                            status={p.status}
+                                            month={MONTHS[p.month - 1]}
+                                            year={p.year}
+                                        />
                                     </div>
                                 )}
                             </div>
