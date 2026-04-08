@@ -90,6 +90,7 @@ function TeacherDashboardContent() {
     const [selectedBatch, setSelectedBatch] = useState("");
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [offlineLoading, setOfflineLoading] = useState(null);
     const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
@@ -280,6 +281,14 @@ function TeacherDashboardContent() {
             </section>
 
             {/* ── Alerts ── */}
+            {error && (
+                <div className="p-4 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff6e84] text-sm flex items-center justify-between animate-fade-in-scale">
+                    <span>{error}</span>
+                    <button onClick={() => setError("")} className="ml-2 text-[#ff6e84] hover:text-white cursor-pointer">
+                        <span className="material-symbols-outlined text-lg">close</span>
+                    </button>
+                </div>
+            )}
             {success && (
                 <div className="p-4 rounded-2xl bg-[#4af8e3]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-sm flex items-center justify-between animate-fade-in-scale">
                     <span>{success}</span>
