@@ -76,12 +76,9 @@ function StudentSettingsContent() {
             {/* ── Profile Header Card ── */}
             <section className="relative animate-fade-in-scale">
                 <div className="bg-[#3b82f6]/10 backdrop-blur-2xl p-8 rounded-[32px] ring-1 ring-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex flex-col items-center text-center">
-                    {/* Profile Picture with gradient glow */}
-                    <div className="relative mb-4">
-                        <div className="absolute -inset-1 bg-gradient-to-tr from-[#3b82f6] to-[#4af8e3] rounded-full blur-sm opacity-50" />
-                        <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-white/20">
-                            <ProfilePicture size={96} />
-                        </div>
+                    {/* Profile Picture */}
+                    <div className="mb-4 flex items-center justify-center">
+                        <ProfilePicture size={96} className="border-2 border-white/20" />
                     </div>
                     <h2 className="text-2xl font-extrabold tracking-tight text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                         {user?.name || "User"}

@@ -231,7 +231,9 @@ function StudentDashboardContent() {
     const [loading, setLoading] = useState(true);
     const [success, setSuccess] = useState("");
     const [previewImg, setPreviewImg] = useState(null);
-    const [showBadgeCelebration, setShowBadgeCelebration] = useState(false);
+    const [showBadgeCelebration, setShowBadgeCelebration] = useState(() => 
+        !!(user?.badgeAnimationPending && user?.currentBadge)
+    );
 
     // Persist seen approvals across sessions to guarantee the student sees the animation
     const [seenApprovals, setSeenApprovals] = useState(() => {
@@ -303,28 +305,16 @@ function StudentDashboardContent() {
         return () => unsubscribe();
     }, [user?.uid, fetchPayments]);
 
-    // Detect unseen "Paid" payments and give the user 4 seconds to watch them
-    useEffect(() => {
-        if (!isVisible || !user?.uid) return;
-
-        const unseenPaid = payments.filter(p => p.status === "Paid" && !seenApprovals.has(p.id));
-        if (unseenPaid.length === 0) return;
-
-        // Since the user might be logged in, let's also sync the local storage key on first run just in case
-        const userKey = `fp_seen_approvals_${user.uid}`;
-        
-        // Start a 4-second timer to mark them as seen
-        const timer = setTimeout(() => {
-            setSeenApprovals(prev => {
-                const newSet = new Set(prev);
-                unseenPaid.forEach(p => newSet.add(p.id));
-                localStorage.setItem(userKey, JSON.stringify([...newSet]));
-                return newSet;
-            });
-        }, 4000);
-
-        return () => clearTimeout(timer);
-    }, [payments, seenApprovals, isVisible, user?.uid]);
+    // Handle manual dismissal of "Paid" payments
+    const handleDismissPaid = useCallback((paymentId) => {
+        if (!user?.uid) return;
+        setSeenApprovals(prev => {
+            const newSet = new Set(prev);
+            newSet.add(paymentId);
+            localStorage.setItem(`fp_seen_approvals_${user.uid}`, JSON.stringify([...newSet]));
+            return newSet;
+        });
+    }, [user?.uid]);
 
     // Open Pay Now modal → fetch UPI link
     const openPayModal = async (payment) => {
@@ -474,13 +464,10 @@ function StudentDashboardContent() {
             {/* ── Action Required Section ── */}
             {actionPayments.length > 0 && (
                 <section className="space-y-4 animate-fade-in-scale" style={{ animationDelay: "300ms" }}>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center">
                         <h2 className="text-2xl font-extrabold tracking-tight text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                             Action Required
                         </h2>
-                        <span className="px-3 py-1 bg-[#3b82f6]/15 text-[#3b82f6] text-[10px] font-bold uppercase tracking-widest rounded-full border border-[#3b82f6]/25">
-                            {actionPayments.length} {actionPayments.length === 1 ? "TASK" : "TASKS"}
-                        </span>
                     </div>
 
                     <div className="space-y-4">
@@ -513,9 +500,18 @@ function StudentDashboardContent() {
                                         </button>
                                     </div>
                                 ) : (
-                                    /* ── Pending Verification: Vertical layout with Progress Tracker ── */
-                                    <div className="p-5 space-y-3">
-                                        <div className="flex items-center gap-3">
+                                    /* ── Pending Verification / Paid: Vertical layout with Progress Tracker ── */
+                                    <div className="p-5 space-y-3 relative">
+                                        {p.status === "Paid" && (
+                                            <button
+                                                onClick={() => handleDismissPaid(p.id)}
+                                                className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-[#ff6e84]/20 hover:border-[#ff6e84]/40 hover:text-[#ff6e84] text-[#aaaab7] transition-colors cursor-pointer z-10"
+                                                title="Dismiss"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">close</span>
+                                            </button>
+                                        )}
+                                        <div className="flex items-center gap-3 pr-8">
                                             <div className="w-10 h-10 rounded-xl flex items-center justify-center border bg-[#4af8e3]/10 border-[#4af8e3]/20">
                                                 <span className="material-symbols-outlined text-[#4af8e3] text-lg">history</span>
                                             </div>
@@ -523,7 +519,9 @@ function StudentDashboardContent() {
                                                 <h3 className="text-lg font-bold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                                     {MONTHS[p.month - 1]} {p.year}
                                                 </h3>
-                                                <span className="text-[10px] font-semibold text-[#4af8e3]/70 uppercase tracking-wider">₹{p.amount?.toLocaleString("en-IN")} • In Progress</span>
+                                                <span className="text-[10px] font-semibold text-[#4af8e3]/70 uppercase tracking-wider">
+                                                    ₹{p.amount?.toLocaleString("en-IN")} • {p.status === "Paid" ? "Approved" : "In Progress"}
+                                                </span>
                                             </div>
                                         </div>
                                         <PaymentProgressTracker
@@ -531,6 +529,7 @@ function StudentDashboardContent() {
                                             mode={p.mode}
                                             month={MONTHS[p.month - 1]}
                                             year={p.year}
+                                            paused={showBadgeCelebration}
                                         />
                                     </div>
                                 )}

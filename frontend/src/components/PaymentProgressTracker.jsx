@@ -42,7 +42,7 @@ function createConfetti(container) {
 }
 
 // ── Main Component ─────────────────────────────────────────
-export default function PaymentProgressTracker({ status, mode, month, year }) {
+export default function PaymentProgressTracker({ status, mode, month, year, paused }) {
     const trackFillRef = useRef(null);
     const nodesRef = useRef([]);
     const confettiAnchorRef = useRef(null);
@@ -67,6 +67,8 @@ export default function PaymentProgressTracker({ status, mode, month, year }) {
     const targetFill = activeStep >= 2 ? "100%" : activeStep >= 1 ? "50%" : "0%";
 
     useEffect(() => {
+        if (paused) return;
+
         const fill = trackFillRef.current;
         const nodes = nodesRef.current;
         if (!fill) return;
@@ -151,7 +153,7 @@ export default function PaymentProgressTracker({ status, mode, month, year }) {
         return () => {
             tl.kill();
         };
-    }, [activeStep]);
+    }, [activeStep, paused]);
 
     // Don't render tracker for Unpaid
     if (status === "Unpaid") return null;

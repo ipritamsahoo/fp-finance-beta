@@ -32,11 +32,24 @@ export default function ModernSelect({ icon, value, onChange, options, placehold
             const spaceAbove = rect.top;
             const openUpwards = spaceBelow < 300 && spaceAbove > spaceBelow;
 
+            const margin = 16;
+            const screenWidth = window.innerWidth;
+            const dropdownWidth = Math.max(rect.width, 200);
+            const finalWidth = Math.min(dropdownWidth, screenWidth - margin * 2);
+
+            let left = rect.left;
+            if (left + finalWidth > screenWidth - margin) {
+                left = screenWidth - finalWidth - margin;
+            }
+            if (left < margin) {
+                left = margin;
+            }
+
             setDropdownPos({
                 top: openUpwards ? "auto" : rect.bottom + 8,
                 bottom: openUpwards ? window.innerHeight - rect.top + 8 : "auto",
-                left: rect.left,
-                width: Math.max(rect.width, 200),
+                left,
+                width: finalWidth,
             });
         }
     }, []);

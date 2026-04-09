@@ -6,21 +6,21 @@ import { useAuth } from "@/context/AuthContext";
 const BADGE_CONFIG = {
     prime: {
         gradient: "from-[#a855f7] via-[#4af8e3] to-[#a855f7]",
-        shadow: "shadow-[0_0_12px_rgba(168,85,247,0.5)]",
+        shadow: "shadow-[0_0_25px_rgba(168,85,247,0.8),inset_0_0_10px_rgba(168,85,247,0.5)]",
         icon: "bolt",
         iconColor: "text-[#a855f7]",
         iconBg: "bg-[#a855f7]/90",
     },
     golden: {
         gradient: "from-[#f59e0b] via-[#fbbf24] to-[#f59e0b]",
-        shadow: "shadow-[0_0_10px_rgba(245,158,11,0.4)]",
+        shadow: "shadow-[0_0_20px_rgba(245,158,11,0.7),inset_0_0_8px_rgba(245,158,11,0.4)]",
         icon: "star",
         iconColor: "text-[#f59e0b]",
         iconBg: "bg-[#f59e0b]/90",
     },
     silver: {
         gradient: "from-[#94a3b8] via-[#cbd5e1] to-[#94a3b8]",
-        shadow: "shadow-[0_0_8px_rgba(148,163,184,0.3)]",
+        shadow: "shadow-[0_0_15px_rgba(148,163,184,0.6),inset_0_0_5px_rgba(148,163,184,0.3)]",
         icon: "workspace_premium",
         iconColor: "text-[#94a3b8]",
         iconBg: "bg-[#94a3b8]/90",

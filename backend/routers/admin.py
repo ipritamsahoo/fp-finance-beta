@@ -167,7 +167,6 @@ def admin_approve(payment_id: str, user=Depends(require_role("admin"))):
     payment_ref.update({
         "status": "Paid",
         "approved_by": user["uid"],
-        "badge_tier": badge_tier,
         "screenshot_url": None,
         "screenshot_public_id": None,
         "updated_at": ts_now(),
@@ -220,7 +219,6 @@ def admin_reject(payment_id: str, user=Depends(require_role("admin"))):
         "screenshot_url": None,
         "screenshot_public_id": None,
         "requested_at": None,
-        "badge_tier": None,
         "updated_at": ts_now(),
     })
 

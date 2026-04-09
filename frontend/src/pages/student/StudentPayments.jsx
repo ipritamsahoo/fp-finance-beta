@@ -291,10 +291,9 @@ function StudentPaymentsContent() {
         <div className="space-y-6">
             {/* Header */}
             <div className="mb-8 animate-fade-in-scale">
-                <h1 className="text-3xl font-extrabold tracking-tight mb-2 text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                <h1 className="text-3xl font-extrabold tracking-tight text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                     History
                 </h1>
-                <p className="text-[#aaaab7] text-sm tracking-wide">Track your digital liquidity flow</p>
             </div>
 
             {/* Alerts */}

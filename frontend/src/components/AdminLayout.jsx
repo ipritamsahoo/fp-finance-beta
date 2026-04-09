@@ -4,6 +4,7 @@ import { useNotifications } from "@/context/NotificationContext";
 import { useAuth } from "@/context/AuthContext";
 import ProfilePicture from "./ProfilePicture";
 import NotificationPanel from "./NotificationPanel";
+import ProfilePicUpload from "./ProfilePicUpload";
 
 // ── Heavy inertia cubic-bezier(0.85, 0, 0.15, 1) solver ──
 const heavyInertia = (progress) => {
@@ -47,6 +48,7 @@ export default function AdminLayout({ children }) {
     const [fabOpen, setFabOpen] = useState(false);
     const [notifOpen, setNotifOpen] = useState(false);
     const [desktopProfileOpen, setDesktopProfileOpen] = useState(false);
+    const [picUploadOpen, setPicUploadOpen] = useState(false);
     const profileDropdownRef = useRef(null);
 
     // Close profile dropdown when clicking outside
@@ -239,7 +241,7 @@ export default function AdminLayout({ children }) {
                             {/* Settings List */}
                             <div className="space-y-2">
                                 <button 
-                                    onClick={() => { setDesktopProfileOpen(false); navigate("/admin/profile"); }}
+                                    onClick={() => { setDesktopProfileOpen(false); setPicUploadOpen(true); }}
                                     className="w-full flex items-center justify-between p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-all group cursor-pointer border border-transparent hover:border-[#3b82f6]/30"
                                 >
                                     <div className="flex items-center gap-3">
@@ -398,6 +400,7 @@ export default function AdminLayout({ children }) {
                     </nav>
                 </div>
             )}
+            <ProfilePicUpload isOpen={picUploadOpen} onClose={() => setPicUploadOpen(false)} />
 
             <style dangerouslySetInnerHTML={{__html: `
                 .custom-scrollbar::-webkit-scrollbar {

@@ -8,7 +8,8 @@
  * Sequence: Confetti → Profile pop → Badge orbit → Text reveal → Graceful exit
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import gsap from "gsap";
 import confetti from "canvas-confetti";
 import ProfilePicture from "@/components/ProfilePicture";
@@ -18,7 +19,7 @@ import { api } from "@/lib/api";
 const BADGE_CONFIG = {
     prime: {
         label: "Prime",
-        icon: "⚡",
+        icon: <span className="material-symbols-outlined" style={{ fontSize: "inherit", fontVariationSettings: "'FILL' 1" }}>bolt</span>,
         gradient: "linear-gradient(135deg, #00e5ff 0%, #651fff 50%, #00e5ff 100%)",
         glowColor: "rgba(0, 229, 255, 0.5)",
         glowColorAlt: "rgba(101, 31, 255, 0.35)",
@@ -28,7 +29,7 @@ const BADGE_CONFIG = {
     },
     golden: {
         label: "Golden",
-        icon: "👑",
+        icon: <span className="material-symbols-outlined" style={{ fontSize: "inherit", fontVariationSettings: "'FILL' 1" }}>star</span>,
         gradient: "linear-gradient(135deg, #ffd700 0%, #ff8c00 50%, #ffd700 100%)",
         glowColor: "rgba(255, 215, 0, 0.5)",
         glowColorAlt: "rgba(255, 140, 0, 0.35)",
@@ -38,7 +39,7 @@ const BADGE_CONFIG = {
     },
     silver: {
         label: "Silver",
-        icon: "🥈",
+        icon: <span className="material-symbols-outlined" style={{ fontSize: "inherit", fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>,
         gradient: "linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 50%, #a0a0a0 100%)",
         glowColor: "rgba(192, 192, 192, 0.45)",
         glowColorAlt: "rgba(160, 160, 160, 0.3)",
@@ -50,7 +51,7 @@ const BADGE_CONFIG = {
 
 // ── Confetti launcher ──
 function launchCelebration(colors) {
-    const duration = 4000;
+    const duration = 3000;
     const end = Date.now() + duration;
 
     // Initial big burst
@@ -64,12 +65,13 @@ function launchCelebration(colors) {
         ticks: 300,
         shapes: ["circle", "square"],
         scalar: 1.2,
+        zIndex: 100000,
     });
 
     // Side cannons
     setTimeout(() => {
-        confetti({ particleCount: 60, angle: 60, spread: 70, origin: { x: 0, y: 0.5 }, colors, startVelocity: 50, ticks: 250 });
-        confetti({ particleCount: 60, angle: 120, spread: 70, origin: { x: 1, y: 0.5 }, colors, startVelocity: 50, ticks: 250 });
+        confetti({ particleCount: 60, angle: 60, spread: 70, origin: { x: 0, y: 0.5 }, colors, startVelocity: 50, ticks: 250, zIndex: 100000 });
+        confetti({ particleCount: 60, angle: 120, spread: 70, origin: { x: 1, y: 0.5 }, colors, startVelocity: 50, ticks: 250, zIndex: 100000 });
     }, 300);
 
     // Continuous sparkle loop
@@ -84,6 +86,7 @@ function launchCelebration(colors) {
             gravity: 0.6,
             ticks: 200,
             scalar: 0.8,
+            zIndex: 100000,
         });
     }, 200);
 
@@ -102,8 +105,16 @@ export default function BadgeCelebrationOverlay({ badgeTier, user, onComplete })
     const subtitleRef = useRef(null);
     const sparkleIntervalRef = useRef(null);
     const [dismissed, setDismissed] = useState(false);
+    const hasStartedRef = useRef(false);
 
-    const config = BADGE_CONFIG[badgeTier] || BADGE_CONFIG.silver;
+    const config = useMemo(
+        () => BADGE_CONFIG[badgeTier] || BADGE_CONFIG.silver,
+        [badgeTier]
+    );
+
+    // Keep latest callbacks in a ref so they don't re-trigger the effect
+    const onCompleteRef = useRef(onComplete);
+    useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
     const clearBadgeFlag = useCallback(async () => {
         try {
@@ -127,121 +138,81 @@ export default function BadgeCelebrationOverlay({ badgeTier, user, onComplete })
 
         if (!overlay || !profile || !badgeIcon || !glow) return;
 
+        // ── Kill any in-flight tweens on these elements ──
+        gsap.killTweensOf([overlay, centerGroup, profile, orbitContainer, badgeIcon, glow, title, subtitle]);
+
         // ── Set initial states ──
         gsap.set(overlay, { opacity: 0 });
         gsap.set(centerGroup, { scale: 0.8, opacity: 0 });
         gsap.set(profile, { scale: 0, opacity: 0 });
         gsap.set(glow, { scale: 0.3, opacity: 0 });
-        gsap.set(orbitContainer, { opacity: 0, scale: 0.5 });
-        gsap.set(badgeIcon, { scale: 0, opacity: 0 });
+        gsap.set(orbitContainer, { opacity: 0, scale: 0.5, rotation: 0 });
+        gsap.set(badgeIcon, { scale: 0, opacity: 0, rotation: 0 });
         gsap.set(title, { opacity: 0, y: 40 });
         gsap.set(subtitle, { opacity: 0, y: 25 });
 
-        const tl = gsap.timeline({
-            onComplete: () => {
-                gsap.to(overlay, {
-                    opacity: 0,
-                    duration: 1.0,
-                    ease: "power2.in",
-                    onComplete: () => {
-                        clearBadgeFlag();
-                        if (onComplete) onComplete();
-                    },
-                });
-            },
-        });
+        const tl = gsap.timeline();
 
-        // ─── Phase 1: Fade in backdrop + CONFETTI BURST (0s) ───
-        tl.to(overlay, { opacity: 1, duration: 0.4, ease: "power2.out" });
+        // ─── Phase 1: Fade in backdrop (0s) ───
+        tl.to(overlay, { opacity: 1, duration: 0.5, ease: "power2.out" });
+
+        // ─── Confetti burst after overlay is visible ───
         tl.call(() => {
             sparkleIntervalRef.current = launchCelebration(config.particleColors);
-        }, null, 0.1);
+        }, null, 0.15);
 
-        // ─── Phase 2: Glow bloom (0.3s) ───
-        tl.to(glow, {
-            scale: 1,
-            opacity: 0.7,
-            duration: 1.0,
-            ease: "back.out(1.2)",
-        }, 0.3);
+        // ─── Phase 2: Glow bloom ───
+        tl.to(glow, { scale: 1, opacity: 0.7, duration: 1.0, ease: "back.out(1.2)" }, 0.3);
 
-        // ─── Phase 3: Profile picture pops into center (0.6s) ───
-        tl.to(centerGroup, {
-            scale: 1,
-            opacity: 1,
-            duration: 0.5,
-            ease: "power2.out",
-        }, 0.5);
-        tl.to(profile, {
-            scale: 1,
-            opacity: 1,
-            duration: 0.8,
-            ease: "back.out(2.5)",
-        }, 0.6);
+        // ─── Phase 3: Profile picture pops into center ───
+        tl.to(centerGroup, { scale: 1, opacity: 1, duration: 0.5, ease: "power2.out" }, 0.5);
+        tl.to(profile, { scale: 1, opacity: 1, duration: 0.8, ease: "back.out(2.5)" }, 0.6);
 
-        // ─── Phase 4: Orbit ring appears + badge enters (1.4s) ───
-        tl.to(orbitContainer, {
-            opacity: 1,
-            scale: 1,
-            duration: 0.6,
-            ease: "back.out(1.5)",
-        }, 1.4);
+        // ─── Phase 4: Orbit ring + badge enters ───
+        tl.to(orbitContainer, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.5)" }, 1.4);
+        tl.to(badgeIcon, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(3)" }, 1.6);
 
-        // Badge icon scales in on the orbit path
-        tl.to(badgeIcon, {
-            scale: 1,
-            opacity: 1,
-            duration: 0.5,
-            ease: "back.out(3)",
-        }, 1.6);
-
-        // Playful badge bounce
+        // Bounce
         tl.to(badgeIcon, { scale: 1.3, duration: 0.12, ease: "power2.out" }, 2.1);
         tl.to(badgeIcon, { scale: 1.0, duration: 0.25, ease: "elastic.out(1, 0.4)" }, 2.22);
 
-        // ─── Phase 5: Text reveals (2.0s) ───
+        // ─── Phase 5: Text reveals ───
         tl.to(title, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 2.0);
         tl.to(subtitle, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 2.3);
 
-        // ─── Continuous animations ───
-        // Orbit rotation (the whole orbit container spins)
-        gsap.to(orbitContainer, {
-            rotation: 360,
-            duration: 6,
-            repeat: -1,
-            ease: "none",
-        });
+        // ─── Start infinite loops only AFTER elements are fully visible ───
+        tl.call(() => {
+            gsap.to(orbitContainer, {
+                rotation: 360,
+                duration: 6,
+                repeat: -1,
+                ease: "none",
+            });
+            gsap.to(badgeIcon, {
+                rotation: -360,
+                duration: 6,
+                repeat: -1,
+                ease: "none",
+            });
+            gsap.to(glow, {
+                scale: 1.12,
+                opacity: 0.5,
+                duration: 2.5,
+                yoyo: true,
+                repeat: -1,
+                ease: "sine.inOut",
+            });
+        }, null, 2.5);
 
-        // Counter-rotate the badge icon so it stays upright
-        gsap.to(badgeIcon, {
-            rotation: -360,
-            duration: 6,
-            repeat: -1,
-            ease: "none",
-        });
-
-        // Glow pulse
-        gsap.to(glow, {
-            scale: 1.12,
-            opacity: 0.5,
-            duration: 2.5,
-            yoyo: true,
-            repeat: -1,
-            ease: "sine.inOut",
-            delay: 1.5,
-        });
-
-        // Hold for viewing then auto-exit
-        tl.to({}, { duration: 3.5 });
+        // Stay alive — user must tap to dismiss (no auto-exit)
 
         return () => {
             tl.kill();
-            gsap.killTweensOf(orbitContainer);
-            gsap.killTweensOf(badgeIcon);
-            gsap.killTweensOf(glow);
+            gsap.killTweensOf([orbitContainer, badgeIcon, glow]);
             if (sparkleIntervalRef.current) clearInterval(sparkleIntervalRef.current);
         };
-    }, [dismissed, config, clearBadgeFlag, onComplete]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dismissed]);
 
     if (dismissed) return null;
 
@@ -250,13 +221,21 @@ export default function BadgeCelebrationOverlay({ badgeTier, user, onComplete })
     const orbitRadius = 105; // orbit circle radius (distance from center to badge)
     const ringDiameter = orbitRadius * 2 + 10; // visible ring diameter
 
-    return (
+    return createPortal(
         <div
             ref={overlayRef}
             onClick={() => {
-                setDismissed(true);
-                clearBadgeFlag();
-                if (onComplete) onComplete();
+                if (sparkleIntervalRef.current) clearInterval(sparkleIntervalRef.current);
+                gsap.to(overlayRef.current, {
+                    opacity: 0,
+                    duration: 0.5,
+                    ease: "power2.in",
+                    onComplete: () => {
+                        setDismissed(true);
+                        clearBadgeFlag();
+                        if (onCompleteRef.current) onCompleteRef.current();
+                    },
+                });
             }}
             style={{
                 position: "fixed",
@@ -412,6 +391,7 @@ export default function BadgeCelebrationOverlay({ badgeTier, user, onComplete })
             >
                 Tap anywhere to continue
             </p>
-        </div>
+        </div>,
+        document.body
     );
 }
