@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import StudentLayout from "@/components/StudentLayout";
@@ -60,12 +61,15 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
 
     if (!payment) return null;
 
-    return (
+    return createPortal(
         <div
+            data-theme={theme}
             className="fixed inset-0 z-[100] flex flex-col sm:items-center sm:justify-center"
             onClick={onClose}
             style={{
-                backgroundColor: isLight ? '#eef2ff' : '#0c0e17',
+                backgroundColor: isLight ? 'rgba(238,242,255,0.85)' : 'rgba(12,14,23,0.85)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
                 transform: "translateZ(0)", isolation: "isolate"
             }}
         >
@@ -139,11 +143,11 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                                         border: `1px solid ${isLight ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.1)'}`
                                     }}
                                 >
-                                    <div className="bg-white p-2 rounded-xl text-black">
+                                    <div className="flex items-center justify-center bg-white p-2.5 rounded-xl border border-gray-200">
                                         <QRCodeSVG value={upiData.upi_link} size={150} level="H" includeMargin={false} />
                                     </div>
-                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100/20 w-full justify-center">
-                                        <span className="text-[11px] font-extrabold text-gray-400 tracking-wider">BHIM UPI</span>
+                                    <div className="flex items-center gap-2 mt-3 pt-3 w-full justify-center" style={{ borderTop: `1px solid var(--st-divider)` }}>
+                                        <span className="text-[11px] font-extrabold tracking-wider" style={{ color: 'var(--st-text-muted)' }}>BHIM UPI</span>
                                     </div>
                                 </div>
                             </div>
@@ -168,10 +172,17 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                     )}
 
                     {upiNotice && (
-                        <div className="mb-4 p-3 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff9dac] text-xs leading-relaxed">
-                            <span className="font-semibold">⚠️ This service is currently unavailable!</span><br />
-                            Pay either via QR code or pay <span className="font-semibold text-[#ff6e84]">Mr. Soumya Sengupta</span> directly through your UPI app, then upload a screenshot here for verification.
-                            <button onClick={() => setUpiNotice(false)} className="ml-2 text-[#ff6e84] hover:text-[#ff9dac] cursor-pointer">✕</button>
+                        <div
+                            className="mb-4 p-3 rounded-2xl text-xs leading-relaxed"
+                            style={{
+                                backgroundColor: isLight ? 'rgba(239,68,68,0.08)' : 'rgba(255,110,132,0.1)',
+                                border: `1px solid ${isLight ? 'rgba(239,68,68,0.2)' : 'rgba(255,110,132,0.2)'}`,
+                                color: isLight ? '#b91c1c' : '#ff9dac'
+                            }}
+                        >
+                            <span className="font-semibold" style={{ color: isLight ? '#ef4444' : '#ff6e84' }}>⚠️ This service is currently unavailable!</span><br />
+                            Pay either via QR code or pay <span className="font-semibold" style={{ color: isLight ? '#ef4444' : '#ff6e84' }}>Mr. Soumya Sengupta</span> directly through your UPI app, then upload a screenshot here for verification.
+                            <button onClick={() => setUpiNotice(false)} className="ml-2 cursor-pointer font-bold" style={{ color: isLight ? '#ef4444' : '#ff6e84' }}>✕</button>
                         </div>
                     )}
 
@@ -274,7 +285,14 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                 {showPreviewModal && preview && (
                     <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex flex-col animate-fade-in" onClick={() => setShowPreviewModal(false)} style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                         <div className="flex justify-end p-5">
-                            <button className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white cursor-pointer hover:bg-white/20 active:scale-90 transition-all">
+                            <button
+                                className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 transition-all font-bold"
+                                style={{
+                                    backgroundColor: 'var(--st-icon-bg)',
+                                    color: 'var(--st-text-secondary)',
+                                    border: `1px solid var(--st-input-border)`
+                                }}
+                            >
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
@@ -284,9 +302,11 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
+
 
 // ── Main Dashboard Content ──
 function StudentDashboardContent() {

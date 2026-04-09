@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useStudentTheme } from "@/context/StudentThemeContext";
 import { api } from "@/lib/api";
 import { compressImage } from "@/lib/imageCompress";
 import ProfilePicture from "./ProfilePicture";
@@ -8,13 +9,11 @@ import ProfilePicture from "./ProfilePicture";
 /**
  * Profile picture upload modal with 1:1 circular crop & preview.
  * Steps: "select" → "crop" → "preview"
- *
- * Props:
- *  - isOpen: boolean
- *  - onClose: function
  */
 export default function ProfilePicUpload({ isOpen, onClose }) {
     const { user, updateProfilePic } = useAuth();
+    const { theme } = useStudentTheme();
+    const isLight = theme === "light";
 
     // ── Step state ──
     const [step, setStep] = useState("select"); // "select" | "crop" | "preview"
@@ -53,7 +52,6 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
 
     if (!isOpen) return null;
 
-    // ── Step 1: File Select ──
     const handleFileSelect = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -70,11 +68,9 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
             setStep("crop");
         };
         reader.readAsDataURL(file);
-        // Reset file input so same file can be re-selected
         e.target.value = "";
     };
 
-    // ── Step 2: Crop Canvas ──
     const drawCropCanvas = () => {
         const canvas = canvasRef.current;
         const img = imgRef.current;
@@ -82,11 +78,10 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
 
         const ctx = canvas.getContext("2d");
         const size = canvas.width;
-        const circleR = size / 2 - 16; // circle radius with padding
+        const circleR = size / 2 - 16;
 
         ctx.clearRect(0, 0, size, size);
 
-        // Draw image centered + offset + zoom
         const imgAspect = img.naturalWidth / img.naturalHeight;
         let drawW, drawH;
         if (imgAspect > 1) {
@@ -102,7 +97,6 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
 
         ctx.drawImage(img, dx, dy, drawW, drawH);
 
-        // Dark overlay outside circle
         ctx.save();
         ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
         ctx.beginPath();
@@ -111,7 +105,6 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
         ctx.fill();
         ctx.restore();
 
-        // Circle border
         ctx.save();
         ctx.strokeStyle = "rgba(59, 130, 246, 0.6)";
         ctx.lineWidth = 2;
@@ -121,10 +114,8 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
         ctx.restore();
     };
 
-    // ── Mouse/Touch handlers for Pan ──
     const handlePointerDown = (e) => {
         if (e.touches && e.touches.length === 2) {
-            // Pinch start
             const dx = e.touches[0].clientX - e.touches[1].clientX;
             const dy = e.touches[0].clientY - e.touches[1].clientY;
             pinchRef.current = { active: true, startDist: Math.hypot(dx, dy), startZoom: zoom };
@@ -159,7 +150,6 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
         pinchRef.current.active = false;
     };
 
-    // ── Generate Cropped Image ──
     const handleCrop = () => {
         const canvas = canvasRef.current;
         const img = imgRef.current;
@@ -167,15 +157,12 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
 
         const size = canvas.width;
         const circleR = size / 2 - 16;
-
-        // Create a new canvas for the cropped output (1:1 square)
         const outSize = 512;
         const outCanvas = document.createElement("canvas");
         outCanvas.width = outSize;
         outCanvas.height = outSize;
         const outCtx = outCanvas.getContext("2d");
 
-        // Replicate the same image draw transform
         const imgAspect = img.naturalWidth / img.naturalHeight;
         let drawW, drawH;
         if (imgAspect > 1) {
@@ -188,8 +175,6 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
 
         const dx = (size - drawW) / 2 + offset.x;
         const dy = (size - drawH) / 2 + offset.y;
-
-        // Map from circle region in the display canvas to the output canvas
         const cropX = size / 2 - circleR;
         const cropY = size / 2 - circleR;
         const cropSize = circleR * 2;
@@ -219,27 +204,21 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
         );
     };
 
-    // ── Step 3: Upload ──
     const handleUpload = async () => {
         if (!croppedBlob) return;
         setUploading(true);
         setError("");
-
         try {
             setStatus("compressing");
             const compressed = await compressImage(
                 new File([croppedBlob], "profile.jpg", { type: "image/jpeg" }),
                 150, 512
             );
-
             setStatus("uploading");
             const formData = new FormData();
             formData.append("file", compressed, "profile.jpg");
-
             const data = await api.upload("/api/auth/profile-pic", formData);
-
             await updateProfilePic(data.profile_pic_url, data.pic_version);
-
             setStatus("");
             resetAll();
             onClose();
@@ -251,7 +230,6 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
         }
     };
 
-    // ── Remove ──
     const handleRemove = async () => {
         setUploading(true);
         setError("");
@@ -275,48 +253,60 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
         onClose();
     };
 
-    // ── RENDER ──
     return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4" onClick={handleClose}>
+        <div 
+            data-theme={theme}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4" 
+            onClick={handleClose}
+            style={{ 
+                backgroundColor: isLight ? 'rgba(238,242,255,0.4)' : 'rgba(0,0,0,0.7)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)'
+            }}
+        >
             <div
-                className="relative w-full max-w-sm bg-[#0c0e17]/95 backdrop-blur-3xl border border-white/10 rounded-[2rem] shadow-[0_24px_80px_rgba(0,0,0,0.7)] overflow-hidden animate-modal-in"
+                className="relative w-full max-w-sm rounded-[2.5rem] overflow-hidden animate-modal-in shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
-                style={{ transform: "translateZ(0)", isolation: "isolate" }}
+                style={{ 
+                    backgroundColor: isLight ? 'rgba(255,255,255,0.25)' : 'rgba(12,14,23,0.85)',
+                    border: `1px solid ${isLight ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                    backdropFilter: 'blur(40px) saturate(2.0)',
+                    WebkitBackdropFilter: 'blur(40px) saturate(2.0)',
+                    transform: "translateZ(0)", 
+                    isolation: "isolate" 
+                }}
             >
-                {/* ═══ STEP: SELECT ═══ */}
                 {step === "select" && (
-                    <div className="p-6 space-y-5">
-                        <h3 className="text-white font-extrabold text-lg text-center tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                    <div className="p-8 space-y-6">
+                        <h3 className="font-extrabold text-2xl text-center tracking-tight" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>
                             Profile Picture
                         </h3>
 
-                        {/* Current Picture */}
                         <div className="flex flex-col items-center">
                             <div className="relative group">
-                                <div className="absolute -inset-1 bg-gradient-to-tr from-[#3b82f6] to-[#4af8e3] rounded-full blur-sm opacity-30" />
-                                <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-white/10">
-                                    <ProfilePicture size={96} showBadge={false} />
+                                <div className="absolute -inset-2 bg-gradient-to-tr from-[#3b82f6] to-[#4af8e3] rounded-full blur-md opacity-30" />
+                                <div className="relative w-28 h-28 rounded-full overflow-hidden border-2" style={{ borderColor: 'var(--st-card-border)' }}>
+                                    <ProfilePicture size={112} showBadge={false} />
                                 </div>
-
                                 <button
                                     onClick={() => fileRef.current?.click()}
-                                    className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                                    className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer backdrop-blur-[2px]"
                                 >
-                                    <span className="material-symbols-outlined text-white text-[28px]">photo_camera</span>
+                                    <span className="material-symbols-outlined text-white text-[32px]">photo_camera</span>
                                 </button>
                             </div>
                         </div>
 
                         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
 
-                        {error && <p className="text-[#ff9dac] text-xs text-center">{error}</p>}
+                        {error && <p className="text-xs text-center font-bold" style={{ color: 'var(--st-error)' }}>{error}</p>}
 
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-3">
                             <button
                                 onClick={() => fileRef.current?.click()}
-                                className="w-full py-3 rounded-2xl bg-[#3b82f6]/15 border border-[#3b82f6]/30 text-[#3b82f6] text-sm font-bold hover:bg-[#3b82f6]/25 transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+                                className="w-full py-3.5 rounded-2xl bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] text-sm font-bold hover:bg-[#3b82f6]/20 transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
                             >
-                                <span className="material-symbols-outlined text-[18px]">add_photo_alternate</span>
+                                <span className="material-symbols-outlined text-[20px]">add_photo_alternate</span>
                                 Choose Photo
                             </button>
 
@@ -324,16 +314,17 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
                                 <button
                                     onClick={handleRemove}
                                     disabled={uploading}
-                                    className="w-full py-3 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/30 text-[#ff6e84] text-sm font-bold hover:bg-[#ff6e84]/20 transition-all disabled:opacity-50 cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+                                    className="w-full py-3.5 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/30 text-[#ff6e84] text-sm font-bold hover:bg-[#ff6e84]/20 transition-all disabled:opacity-50 cursor-pointer active:scale-95 flex items-center justify-center gap-2"
                                 >
-                                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                                    <span className="material-symbols-outlined text-[20px]">delete</span>
                                     Remove Photo
                                 </button>
                             )}
 
                             <button
                                 onClick={handleClose}
-                                className="w-full py-2.5 text-[#aaaab7] text-sm hover:text-white transition-colors cursor-pointer"
+                                className="w-full py-2.5 text-sm font-bold transition-colors cursor-pointer"
+                                style={{ color: 'var(--st-text-secondary)' }}
                             >
                                 Cancel
                             </button>
@@ -342,13 +333,12 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
                         {status && (
                             <div className="flex items-center justify-center gap-2">
                                 <div className="w-4 h-4 border-2 border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
-                                <span className="text-[#aaaab7] text-sm capitalize">{status}...</span>
+                                <span className="text-sm font-bold capitalize" style={{ color: 'var(--st-text-muted)' }}>{status}...</span>
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* ═══ STEP: CROP ═══ */}
                 {step === "crop" && (
                     <CropStep
                         rawImage={rawImage}
@@ -367,10 +357,9 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
                     />
                 )}
 
-                {/* ═══ STEP: PREVIEW ═══ */}
                 {step === "preview" && (
-                    <div className="p-6 space-y-5">
-                        <h3 className="text-white font-extrabold text-lg text-center tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                    <div className="p-8 space-y-6">
+                        <h3 className="font-extrabold text-2xl text-center tracking-tight" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>
                             Preview
                         </h3>
 
@@ -380,43 +369,39 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
                                 <img
                                     src={croppedPreview}
                                     alt="Cropped preview"
-                                    className="relative w-32 h-32 rounded-full object-cover border-2 border-white/15 shadow-2xl"
+                                    className="relative w-36 h-36 rounded-full object-cover shadow-2xl"
+                                    style={{ border: `2px solid var(--st-card-border)` }}
                                 />
                             </div>
-                            <p className="text-[#aaaab7] text-xs mt-3">This is how your profile photo will look</p>
+                            <p className="text-xs mt-4 font-bold text-center" style={{ color: 'var(--st-text-muted)' }}>This is how your photo will look</p>
                         </div>
 
-                        {error && <p className="text-[#ff9dac] text-xs text-center">{error}</p>}
-
-                        {status && (
-                            <div className="flex items-center justify-center gap-2">
-                                <div className="w-4 h-4 border-2 border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
-                                <span className="text-[#aaaab7] text-sm capitalize">{status}...</span>
-                            </div>
-                        )}
+                        {error && <p className="text-xs text-center font-bold" style={{ color: 'var(--st-error)' }}>{error}</p>}
 
                         <div className="flex gap-3">
                             <button
                                 onClick={() => { setCroppedBlob(null); setCroppedPreview(null); setStep("crop"); }}
                                 disabled={uploading}
-                                className="flex-1 py-3 rounded-2xl bg-white/5 border border-[#464752]/50 text-[#aaaab7] text-sm font-bold hover:bg-white/10 hover:text-white transition-all disabled:opacity-50 cursor-pointer active:scale-95"
+                                className="flex-1 py-3.5 rounded-2xl transition-all disabled:opacity-50 cursor-pointer active:scale-95 text-sm font-bold"
+                                style={{ backgroundColor: 'var(--st-icon-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-secondary)' }}
                             >
                                 Re-crop
                             </button>
                             <button
                                 onClick={handleUpload}
                                 disabled={uploading}
-                                className="flex-1 py-3 rounded-2xl bg-[#3b82f6]/15 border border-[#3b82f6]/30 text-[#3b82f6] text-sm font-bold hover:bg-[#3b82f6]/25 transition-all disabled:opacity-50 cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+                                className="flex-1 py-3.5 rounded-2xl bg-[#3b82f6]/20 border border-[#3b82f6]/40 text-[#3b82f6] text-sm font-bold hover:bg-[#3b82f6]/30 transition-all disabled:opacity-50 cursor-pointer active:scale-95 flex items-center justify-center gap-2"
                             >
-                                <span className="material-symbols-outlined text-[16px]">cloud_upload</span>
-                                {uploading ? "Processing..." : "Upload"}
+                                <span className="material-symbols-outlined text-[20px]">cloud_upload</span>
+                                {uploading ? "..." : "Upload"}
                             </button>
                         </div>
 
                         <button
                             onClick={handleClose}
                             disabled={uploading}
-                            className="w-full py-2 text-[#aaaab7] text-sm hover:text-white transition-colors cursor-pointer"
+                            className="w-full py-2 text-sm font-bold transition-colors cursor-pointer"
+                            style={{ color: 'var(--st-text-secondary)' }}
                         >
                             Cancel
                         </button>
@@ -428,9 +413,6 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
     );
 }
 
-/**
- * Crop sub-component — separated to properly handle useEffect for canvas drawing.
- */
 function CropStep({
     rawImage, canvasRef, imgRef, containerRef,
     zoom, setZoom, offset,
@@ -439,13 +421,12 @@ function CropStep({
     handleCrop, onBack,
 }) {
     const [imgLoaded, setImgLoaded] = useState(false);
+    const { theme } = useStudentTheme();
 
-    // Draw canvas whenever zoom/offset/image changes
     useEffect(() => {
         if (imgLoaded) drawCropCanvas();
     }, [zoom, offset, imgLoaded, drawCropCanvas]);
 
-    // Resize canvas to container
     useEffect(() => {
         const resize = () => {
             const container = containerRef.current;
@@ -462,35 +443,29 @@ function CropStep({
     }, [imgLoaded, drawCropCanvas, containerRef, canvasRef]);
 
     return (
-        <div className="p-4 sm:p-6 space-y-4">
+        <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
                 <button
                     onClick={onBack}
-                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 text-[#aaaab7] hover:text-white hover:bg-white/10 transition-all cursor-pointer active:scale-90"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer active:scale-90 shadow-sm"
+                    style={{ backgroundColor: 'var(--st-icon-bg)', color: 'var(--st-text-secondary)', border: '1px solid var(--st-input-border)' }}
                 >
-                    <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+                    <span className="material-symbols-outlined text-[22px]">arrow_back</span>
                 </button>
-                <h3 className="text-white font-extrabold text-lg tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                <h3 className="font-extrabold text-xl tracking-tight" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>
                     Crop Photo
                 </h3>
-                <div className="w-9" /> {/* Spacer */}
+                <div className="w-10" />
             </div>
 
-            <p className="text-[#aaaab7] text-xs text-center -mt-2">Drag to reposition • Pinch or slide to zoom</p>
+            <p className="text-xs text-center font-bold" style={{ color: 'var(--st-text-muted)' }}>Drag to reposition • Pinch to zoom</p>
 
-            {/* Hidden image to load source */}
-            <img
-                ref={imgRef}
-                src={rawImage}
-                alt=""
-                className="hidden"
-                onLoad={() => setImgLoaded(true)}
-            />
+            <img ref={imgRef} src={rawImage} alt="" className="hidden" onLoad={() => setImgLoaded(true)} />
 
-            {/* Canvas crop area */}
             <div
                 ref={containerRef}
-                className="relative w-full aspect-square rounded-2xl overflow-hidden bg-black/30 cursor-grab active:cursor-grabbing touch-none select-none"
+                className="relative w-full aspect-square rounded-[2rem] overflow-hidden bg-black/10 cursor-grab active:cursor-grabbing touch-none select-none border"
+                style={{ borderColor: 'var(--st-input-border)' }}
                 onMouseDown={handlePointerDown}
                 onMouseMove={handlePointerMove}
                 onMouseUp={handlePointerUp}
@@ -502,9 +477,8 @@ function CropStep({
                 <canvas ref={canvasRef} className="w-full h-full" />
             </div>
 
-            {/* Zoom slider */}
-            <div className="flex items-center gap-3 px-2">
-                <span className="material-symbols-outlined text-[18px] text-[#aaaab7]">zoom_out</span>
+            <div className="flex items-center gap-4 px-2">
+                <span className="material-symbols-outlined text-[20px]" style={{ color: 'var(--st-text-muted)' }}>zoom_out</span>
                 <input
                     type="range"
                     min="0.5"
@@ -512,21 +486,17 @@ function CropStep({
                     step="0.05"
                     value={zoom}
                     onChange={(e) => setZoom(parseFloat(e.target.value))}
-                    className="flex-1 h-1.5 bg-[#464752]/50 rounded-full appearance-none cursor-pointer
-                        [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
-                        [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3b82f6]
-                        [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(59,130,246,0.4)] [&::-webkit-slider-thumb]:cursor-pointer
-                        [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/20"
+                    className="flex-1 h-2 rounded-full appearance-none cursor-pointer"
+                    style={{ backgroundColor: 'var(--st-progress-bg)' }}
                 />
-                <span className="material-symbols-outlined text-[18px] text-[#aaaab7]">zoom_in</span>
+                <span className="material-symbols-outlined text-[20px]" style={{ color: 'var(--st-text-muted)' }}>zoom_in</span>
             </div>
 
-            {/* Crop button */}
             <button
                 onClick={handleCrop}
-                className="w-full py-3 rounded-2xl bg-[#3b82f6]/15 border border-[#3b82f6]/30 text-[#3b82f6] text-sm font-bold hover:bg-[#3b82f6]/25 transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl bg-[#3b82f6]/20 border border-[#3b82f6]/40 text-[#3b82f6] text-sm font-bold hover:bg-[#3b82f6]/30 transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
             >
-                <span className="material-symbols-outlined text-[18px]">crop</span>
+                <span className="material-symbols-outlined text-[20px]">crop</span>
                 Crop & Preview
             </button>
         </div>

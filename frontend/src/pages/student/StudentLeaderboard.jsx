@@ -166,6 +166,7 @@ function StudentLeaderboardContent() {
             {/* Date Filters */}
             <div className="flex flex-wrap justify-center gap-2 animate-fade-in-scale relative z-20">
                 <ModernSelect
+                    theme={theme}
                     icon="calendar_month"
                     value={month}
                     onChange={(e) => setMonth(Number(e.target.value))}
@@ -174,6 +175,7 @@ function StudentLeaderboardContent() {
                     style={{ backgroundColor: 'var(--st-icon-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-primary)' }}
                 />
                 <ModernSelect
+                    theme={theme}
                     icon="event"
                     value={year}
                     onChange={(e) => setYear(Number(e.target.value))}

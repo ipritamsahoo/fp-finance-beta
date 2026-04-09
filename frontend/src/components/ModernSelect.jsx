@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 
-export default function ModernSelect({ icon, value, onChange, options, placeholder = "Select...", className = "" }) {
+export default function ModernSelect({ icon, value, onChange, options, placeholder = "Select...", className = "", theme }) {
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef(null);
     const dropdownRef = useRef(null);
@@ -86,6 +86,8 @@ export default function ModernSelect({ icon, value, onChange, options, placehold
     const dropdown = isOpen ? createPortal(
         <div
             ref={dropdownRef}
+            data-theme={theme}
+            className="modern-select-dropdown"
             style={{
                 position: "fixed",
                 top: dropdownPos.top,
@@ -97,11 +99,15 @@ export default function ModernSelect({ icon, value, onChange, options, placehold
         >
             <div
                 style={{
-                    background: "rgb(26, 28, 40)", // Solid background to prevent backdrop-filter layer clipping bug
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
+                    background: theme === 'light' ? 'rgba(255, 255, 255, 0.45)' : 'var(--st-surface-high, #1a1c28)',
+                    border: `1px solid ${theme === 'light' ? 'rgba(255, 255, 255, 0.6)' : 'var(--st-nav-border, rgba(255, 255, 255, 0.12))'}`,
                     borderRadius: "20px",
-                    boxShadow: "0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05)",
+                    boxShadow: theme === 'light' 
+                        ? "0 20px 60px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8)" 
+                        : "0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
                     overflow: "hidden",
+                    backdropFilter: "blur(32px) saturate(1.8)",
+                    WebkitBackdropFilter: "blur(32px) saturate(1.8)",
                 }}
             >
                 <div
@@ -114,7 +120,7 @@ export default function ModernSelect({ icon, value, onChange, options, placehold
                     className="custom-scrollbar"
                 >
                     {options.length === 0 ? (
-                        <div style={{ padding: "12px 20px", color: "#737580", fontSize: "13px", fontStyle: "italic" }}>
+                        <div style={{ padding: "12px 20px", color: "var(--st-text-muted, #737580)", fontSize: "13px", fontStyle: "italic" }}>
                             No options available
                         </div>
                     ) : options.map((opt, idx) => {
@@ -132,32 +138,25 @@ export default function ModernSelect({ icon, value, onChange, options, placehold
                                 style={{
                                     padding: "14px 20px",
                                     fontSize: "14px",
-                                    fontWeight: isSelected ? 700 : 600,
-                                    color: isSelected ? "#c799ff" : "#f0f0fd",
-                                    backgroundColor: isSelected ? "rgba(199, 153, 255, 0.08)" : "transparent",
+                                    fontWeight: isSelected ? 800 : 600,
+                                    color: isSelected ? "var(--st-primary, #c799ff)" : "var(--st-text-primary, #f0f0fd)",
+                                    backgroundColor: isSelected 
+                                        ? (theme === 'light' ? "rgba(124, 58, 237, 0.18)" : "rgba(199, 153, 255, 0.15)")
+                                        : "transparent",
                                     cursor: "pointer",
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "space-between",
-                                    transition: "background-color 0.15s ease",
+                                    transition: "all 0.15s ease",
                                     userSelect: "none",
                                 }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = isSelected
-                                        ? "rgba(199, 153, 255, 0.12)"
-                                        : "rgba(255, 255, 255, 0.06)";
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = isSelected
-                                        ? "rgba(199, 153, 255, 0.08)"
-                                        : "transparent";
-                                }}
+                                className={isSelected ? "" : (theme === 'light' ? "hover:bg-black/5" : "hover:bg-white/5")}
                             >
                                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: "12px" }}>
                                     {label}
                                 </span>
                                 {isSelected && (
-                                    <span className="material-symbols-outlined" style={{ fontSize: "18px", color: "#c799ff", flexShrink: 0 }}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: "20px", color: "var(--st-primary, #c799ff)", flexShrink: 0, fontVariationSettings: "'FILL' 1" }}>
                                         check_circle
                                     </span>
                                 )}
@@ -176,11 +175,18 @@ export default function ModernSelect({ icon, value, onChange, options, placehold
                 ref={buttonRef}
                 type="button"
                 onClick={handleToggle}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#f0f0fd] cursor-pointer hover:bg-white/10 transition-all min-w-[120px] ${className}`}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium cursor-pointer transition-all min-w-[120px] ${className}`}
+                style={{
+                    background: theme === 'light' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.05)',
+                    borderColor: theme === 'light' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.1)',
+                    color: 'var(--st-text-primary)',
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                }}
             >
-                {icon && <span className="material-symbols-outlined text-[#aaaab7] text-base">{icon}</span>}
-                <span className="flex-1 text-left truncate pr-2 font-semibold">{displayLabel}</span>
-                <span className={`material-symbols-outlined text-[#aaaab7] text-sm transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>
+                {icon && <span className="material-symbols-outlined text-base" style={{ color: 'var(--st-text-secondary)' }}>{icon}</span>}
+                <span className="flex-1 text-left truncate pr-2 font-bold">{displayLabel}</span>
+                <span className={`material-symbols-outlined text-sm transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} style={{ color: 'var(--st-text-secondary)' }}>
                     expand_more
                 </span>
             </button>

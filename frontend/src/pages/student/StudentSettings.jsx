@@ -299,85 +299,160 @@ function StudentSettingsContent() {
 
             {/* Change Username Modal */}
             {usernameModalOpen && createPortal(
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={closeCredModals}>
+                <div 
+                    data-theme={theme}
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4" 
+                    onClick={closeCredModals}
+                    style={{
+                        backgroundColor: isLight ? 'rgba(238,242,255,0.4)' : 'rgba(0,0,0,0.6)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)'
+                    }}
+                >
                     <div
-                        className="w-full max-w-sm backdrop-blur-3xl rounded-[32px] p-6 animate-modal-in"
+                        className="w-full max-w-sm rounded-[32px] p-8 animate-modal-in shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                         style={{
-                            backgroundColor: isLight ? 'rgba(255,255,255,0.95)' : 'rgba(12,14,23,0.95)',
-                            border: `1px solid var(--st-input-border)`,
-                            boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.1)' : '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
+                            backgroundColor: isLight ? 'rgba(255,255,255,0.25)' : 'rgba(12,14,23,0.85)',
+                            border: `1px solid ${isLight ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                            backdropFilter: 'blur(40px) saturate(2.0)',
+                            WebkitBackdropFilter: 'blur(40px) saturate(2.0)',
                             transform: "translateZ(0)", isolation: "isolate"
                         }}
                     >
-                        <h3 className="font-bold text-lg mb-4" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>Change Username or Mobile</h3>
-                        {credError && <div className="mb-3 p-2.5 rounded-2xl text-xs" style={{ backgroundColor: isLight ? 'rgba(239,68,68,0.08)' : 'rgba(255,110,132,0.1)', border: `1px solid ${isLight ? 'rgba(239,68,68,0.15)' : 'rgba(255,110,132,0.2)'}`, color: isLight ? '#ef4444' : '#ff9dac' }}>{credError}</div>}
-                        {credSuccess && <div className="mb-3 p-2.5 rounded-2xl text-xs" style={{ backgroundColor: 'var(--st-accent-bg)', border: `1px solid ${isLight ? 'rgba(13,148,136,0.2)' : 'rgba(74,248,227,0.2)'}`, color: 'var(--st-accent)' }}>{credSuccess}</div>}
-                        <form onSubmit={handleUsernameSubmit}>
-                            <label className="block text-xs mb-1.5" style={{ color: 'var(--st-text-secondary)' }}>New Username or Mobile</label>
-                            <input
-                                type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)}
-                                placeholder="Enter new username or mobile" required
-                                className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 mb-4"
-                                style={{ backgroundColor: 'var(--st-input-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-primary)', '::placeholder': { color: 'var(--st-text-muted)' } }}
-                            />
-                            <div className="flex gap-2">
+                        <h3 className="font-extrabold text-2xl mb-6 tracking-tight text-center" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>Change Username</h3>
+                        
+                        {credError && (
+                            <div className="mb-5 p-3 rounded-2xl text-xs font-bold text-center" 
+                                style={{ 
+                                    backgroundColor: isLight ? 'rgba(239,68,68,0.1)' : 'rgba(255,110,132,0.1)', 
+                                    border: `1px solid ${isLight ? 'rgba(239,68,68,0.2)' : 'rgba(255,110,132,0.2)'}`, 
+                                    color: isLight ? '#ef4444' : '#ff9dac' 
+                                }}>
+                                {credError}
+                            </div>
+                        )}
+                        
+                        {credSuccess && (
+                            <div className="mb-5 p-3 rounded-2xl text-xs font-bold text-center" 
+                                style={{ 
+                                    backgroundColor: 'var(--st-accent-bg)', 
+                                    border: `1px solid ${isLight ? 'rgba(13,148,136,0.2)' : 'rgba(74,248,227,0.2)'}`, 
+                                    color: 'var(--st-accent)' 
+                                }}>
+                                {credSuccess}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleUsernameSubmit} className="space-y-5">
+                            <div>
+                                <label className="block text-xs font-bold mb-2 ml-1 uppercase tracking-widest" style={{ color: 'var(--st-text-muted)' }}>New Username or Mobile</label>
+                                <input
+                                    type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)}
+                                    placeholder="Enter new username or mobile" required
+                                    className="w-full px-5 py-4 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 transition-all placeholder:text-gray-400"
+                                    style={{ 
+                                        backgroundColor: 'var(--st-icon-bg)', 
+                                        border: `1px solid var(--st-input-border)`, 
+                                        color: 'var(--st-text-primary)' 
+                                    }}
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
                                 <button type="button" onClick={closeCredModals}
-                                    className="flex-1 px-4 py-3 rounded-full text-sm font-medium transition-colors cursor-pointer"
-                                    style={{ backgroundColor: 'var(--st-icon-bg)', color: 'var(--st-text-secondary)' }}>
+                                    className="flex-1 px-4 py-4 rounded-2xl text-sm font-bold transition-all cursor-pointer active:scale-95"
+                                    style={{ backgroundColor: 'var(--st-icon-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-secondary)' }}>
                                     Cancel
                                 </button>
                                 <button type="submit" disabled={credLoading}
-                                    className="flex-1 px-4 py-3 rounded-full bg-[#3b82f6] text-white text-sm font-bold hover:bg-[#2563eb] transition-all disabled:opacity-50 cursor-pointer shadow-[0_4px_20px_rgba(59,130,246,0.3)]">
+                                    className="flex-1 px-4 py-4 rounded-2xl bg-[#3b82f6] text-white text-sm font-bold hover:bg-[#2563eb] transition-all disabled:opacity-50 cursor-pointer shadow-[0_4px_20px_rgba(59,130,246,0.3)] active:scale-95">
                                     {credLoading ? "Updating..." : "Update"}
                                 </button>
                             </div>
                         </form>
                     </div>
-                </div>,
+                </div>, 
                 document.body
             )}
 
             {/* Change Password Modal */}
             {passwordModalOpen && createPortal(
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={closeCredModals}>
+                <div 
+                    data-theme={theme}
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4" 
+                    onClick={closeCredModals}
+                    style={{
+                        backgroundColor: isLight ? 'rgba(238,242,255,0.4)' : 'rgba(0,0,0,0.6)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)'
+                    }}
+                >
                     <div
-                        className="w-full max-w-sm backdrop-blur-3xl rounded-[32px] p-6 animate-modal-in"
+                        className="w-full max-w-sm rounded-[32px] p-8 animate-modal-in shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                         style={{
-                            backgroundColor: isLight ? 'rgba(255,255,255,0.95)' : 'rgba(12,14,23,0.95)',
-                            border: `1px solid var(--st-input-border)`,
-                            boxShadow: isLight ? '0 8px 32px rgba(0,0,0,0.1)' : '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
+                            backgroundColor: isLight ? 'rgba(255,255,255,0.25)' : 'rgba(12,14,23,0.85)',
+                            border: `1px solid ${isLight ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                            backdropFilter: 'blur(40px) saturate(2.0)',
+                            WebkitBackdropFilter: 'blur(40px) saturate(2.0)',
                             transform: "translateZ(0)", isolation: "isolate"
                         }}
                     >
-                        <h3 className="font-bold text-lg mb-1" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>Change Password</h3>
-                        <p className="text-xs mb-4" style={{ color: 'var(--st-text-secondary)' }}>Must include letters, numbers & special characters.</p>
-                        {credError && <div className="mb-3 p-2.5 rounded-2xl text-xs" style={{ backgroundColor: isLight ? 'rgba(239,68,68,0.08)' : 'rgba(255,110,132,0.1)', border: `1px solid ${isLight ? 'rgba(239,68,68,0.15)' : 'rgba(255,110,132,0.2)'}`, color: isLight ? '#ef4444' : '#ff9dac' }}>{credError}</div>}
-                        {credSuccess && <div className="mb-3 p-2.5 rounded-2xl text-xs" style={{ backgroundColor: 'var(--st-accent-bg)', border: `1px solid ${isLight ? 'rgba(13,148,136,0.2)' : 'rgba(74,248,227,0.2)'}`, color: 'var(--st-accent)' }}>{credSuccess}</div>}
-                        <form onSubmit={handlePasswordSubmit}>
-                            <label className="block text-xs mb-1.5" style={{ color: 'var(--st-text-secondary)' }}>New Password</label>
-                            <input
-                                type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-                                placeholder="Min 6 characters" required minLength={6}
-                                className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 mb-3"
-                                style={{ backgroundColor: 'var(--st-input-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-primary)' }}
-                            />
-                            <label className="block text-xs mb-1.5" style={{ color: 'var(--st-text-secondary)' }}>Confirm Password</label>
-                            <input
-                                type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                                placeholder="Re-enter password" required minLength={6}
-                                className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 mb-4"
-                                style={{ backgroundColor: 'var(--st-input-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-primary)' }}
-                            />
-                            <div className="flex gap-2">
+                        <h3 className="font-extrabold text-2xl mb-1 tracking-tight text-center" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>Change Password</h3>
+                        <p className="text-[10px] uppercase tracking-widest font-bold mb-6 text-center" style={{ color: 'var(--st-text-muted)' }}>Security update required</p>
+                        
+                        {credError && (
+                            <div className="mb-5 p-3 rounded-2xl text-xs font-bold text-center" 
+                                style={{ 
+                                    backgroundColor: isLight ? 'rgba(239,68,68,0.1)' : 'rgba(255,110,132,0.1)', 
+                                    border: `1px solid ${isLight ? 'rgba(239,68,68,0.2)' : 'rgba(255,110,132,0.2)'}`, 
+                                    color: isLight ? '#ef4444' : '#ff9dac' 
+                                }}>
+                                {credError}
+                            </div>
+                        )}
+                        
+                        {credSuccess && (
+                            <div className="mb-5 p-3 rounded-2xl text-xs font-bold text-center" 
+                                style={{ 
+                                    backgroundColor: 'var(--st-accent-bg)', 
+                                    border: `1px solid ${isLight ? 'rgba(13,148,136,0.2)' : 'rgba(74,248,227,0.2)'}`, 
+                                    color: 'var(--st-accent)' 
+                                }}>
+                                {credSuccess}
+                            </div>
+                        )}
+
+                        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold mb-2 ml-1 uppercase tracking-widest" style={{ color: 'var(--st-text-muted)' }}>New Password</label>
+                                <input
+                                    type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                                    placeholder="Min 6 characters" required minLength={6}
+                                    className="w-full px-5 py-4 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 transition-all placeholder:text-gray-400"
+                                    style={{ backgroundColor: 'var(--st-icon-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-primary)' }}
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-xs font-bold mb-2 ml-1 uppercase tracking-widest" style={{ color: 'var(--st-text-muted)' }}>Confirm Password</label>
+                                <input
+                                    type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="Re-enter password" required minLength={6}
+                                    className="w-full px-5 py-4 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 transition-all placeholder:text-gray-400"
+                                    style={{ backgroundColor: 'var(--st-icon-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-primary)' }}
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-3">
                                 <button type="button" onClick={closeCredModals}
-                                    className="flex-1 px-4 py-3 rounded-full text-sm font-medium transition-colors cursor-pointer"
-                                    style={{ backgroundColor: 'var(--st-icon-bg)', color: 'var(--st-text-secondary)' }}>
+                                    className="flex-1 px-4 py-4 rounded-2xl text-sm font-bold transition-all cursor-pointer active:scale-95"
+                                    style={{ backgroundColor: 'var(--st-icon-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-secondary)' }}>
                                     Cancel
                                 </button>
                                 <button type="submit" disabled={credLoading}
-                                    className="flex-1 px-4 py-3 rounded-full bg-[#3b82f6] text-white text-sm font-bold hover:bg-[#2563eb] transition-all disabled:opacity-50 cursor-pointer shadow-[0_4px_20px_rgba(59,130,246,0.3)]">
+                                    className="flex-1 px-4 py-4 rounded-2xl bg-[#3b82f6] text-white text-sm font-bold hover:bg-[#2563eb] transition-all disabled:opacity-50 cursor-pointer shadow-[0_4px_20px_rgba(59,130,246,0.3)] active:scale-95">
                                     {credLoading ? "Updating..." : "Update"}
                                 </button>
                             </div>

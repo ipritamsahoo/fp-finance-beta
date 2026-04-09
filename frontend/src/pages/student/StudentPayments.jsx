@@ -366,7 +366,7 @@ function StudentPaymentsContent() {
 
                 {/* Payment List */}
             <div className="space-y-4" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
-                {payments.map((p, idx) => (
+                {payments.filter(p => p.status === "Paid").map((p, idx) => (
                     <div key={p.id} className="relative group animate-fade-in-scale" style={{ animationDelay: `${idx * 80}ms`, transform: "translateZ(0)", isolation: "isolate" }}>
                         {/* Subtle glow behind card */}
                         <div
