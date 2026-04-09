@@ -5,8 +5,17 @@ import { api } from "@/lib/api";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import ModernSelect from "@/components/ModernSelect";
+import { StudentAvatarFallback } from "@/components/CachedAvatar";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+function safeOptimizedUrl(url) {
+    if (!url) return null;
+    if (url.includes("res.cloudinary.com") && !url.includes("w_150")) {
+        return url.replace("/upload/", "/upload/c_fill,h_150,w_150,q_auto,f_auto/");
+    }
+    return url;
+}
 
 function ApprovalContent() {
     const [pending, setPending] = useState([]);
@@ -132,8 +141,13 @@ function ApprovalContent() {
                     {filtered.map((item, idx) => (
                         <div key={item.id} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 sm:p-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80" style={{ animationDelay: `${idx * 80}ms` }}>
                             {/* Top: Name + Badges */}
-                            <div className="flex items-center gap-2 mb-4 flex-wrap">
-                                <h3 className="text-[#f0f0fd] font-bold text-base sm:text-lg truncate flex-1" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                            <div className="flex items-center gap-4 mb-4 flex-wrap">
+                                {item.profile_pic_url ? (
+                                    <img src={safeOptimizedUrl(item.profile_pic_url)} alt="Avatar" className="w-[44px] h-[44px] min-w-[44px] rounded-2xl object-cover shrink-0 shadow-lg border border-white/10" loading="lazy" />
+                                ) : (
+                                    <StudentAvatarFallback name={item.student_name} size={44} />
+                                )}
+                                <h3 className="text-[#f0f0fd] font-bold text-base sm:text-lg truncate flex-1 min-w-0" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                     {item.student_name || "Unknown Student"}
                                 </h3>
                                 <span className={`shrink-0 px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border

@@ -80,6 +80,8 @@ def admin_get_pending(user=Depends(require_role("admin"))):
             s = student_doc.to_dict()
             data["student_name"] = s.get("name", "")
             data["student_email"] = s.get("email", "")
+            data["profile_pic_url"] = s.get("profile_pic_url")
+            data["pic_version"] = s.get("pic_version")
         # Fetch batch info
         if data.get("batch_id"):
             batch_doc = db.collection("batches").document(data["batch_id"]).get()
@@ -1067,20 +1069,27 @@ def admin_all_payments(
     payments = query.stream()
     results = [serialize_doc(p) for p in payments]
 
-    # Dynamically inject the latest student names
+    # Dynamically inject the latest student details
     student_ids = {p.get("student_id") for p in results if p.get("student_id")}
     if student_ids:
         user_refs = [db.collection("users").document(sid) for sid in student_ids]
-        student_names = {}
+        student_details = {}
         for i in range(0, len(user_refs), 100):
             docs = db.get_all(user_refs[i:i+100])
             for doc in docs:
                 if doc.exists:
-                    student_names[doc.id] = doc.to_dict().get("name", "Unknown")
+                    d = doc.to_dict()
+                    student_details[doc.id] = {
+                        "name": d.get("name", "Unknown"),
+                        "profile_pic_url": d.get("profile_pic_url"),
+                        "pic_version": d.get("pic_version"),
+                    }
         for p in results:
             sid = p.get("student_id")
-            if sid and sid in student_names:
-                p["student_name"] = student_names[sid]
+            if sid and sid in student_details:
+                p["student_name"] = student_details[sid]["name"]
+                p["profile_pic_url"] = student_details[sid]["profile_pic_url"]
+                p["pic_version"] = student_details[sid]["pic_version"]
 
     return results
 

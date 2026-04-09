@@ -5,6 +5,7 @@ import UserDevicesModal from "@/components/UserDevicesModal";
 import { api } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import ModernSelect from "@/components/ModernSelect";
+import CachedAvatar from "@/components/CachedAvatar";
 
 
 const MONTHS = [
@@ -420,9 +421,7 @@ function StudentsContent() {
                         <div key={s.uid || s.id} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-2xl p-5 animate-fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
                             <div className="flex flex-col gap-4">
                                 <div className="flex items-center gap-3">
-                                    <span className="w-10 h-10 rounded-full bg-[#c799ff]/10 flex items-center justify-center text-[#c799ff] font-bold text-lg border border-[#c799ff]/30 shadow-[0_0_10px_rgba(199,153,255,0.2)]">
-                                        {s.name.charAt(0).toUpperCase()}
-                                    </span>
+                                    <CachedAvatar uid={s.uid || s.id} name={s.name} profile_pic_url={s.profile_pic_url} pic_version={s.pic_version} size={40} />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-[#f0f0fd] font-bold text-base truncate tracking-wide" style={{ fontFamily: "'Manrope', sans-serif" }}>{s.name}</p>
                                     </div>
@@ -487,9 +486,7 @@ function StudentsContent() {
                                     <tr key={s.uid || s.id} className="hover:bg-[#222532]/30 transition-colors group">
                                         <td className="px-6 py-5 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
-                                                <span className="w-10 h-10 rounded-xl bg-[#c799ff]/10 flex items-center justify-center text-[#c799ff] font-bold text-lg border border-[#c799ff]/30 shadow-[0_0_10px_rgba(199,153,255,0.2)]">
-                                                    {s.name.charAt(0).toUpperCase()}
-                                                </span>
+                                                <CachedAvatar uid={s.uid || s.id} name={s.name} profile_pic_url={s.profile_pic_url} pic_version={s.pic_version} size={40} />
                                                 <div>
                                                     <p className="text-[#f0f0fd] font-bold tracking-wide">{s.name}</p>
                                                     <p className="text-[#aaaab7] text-xs mt-0.5">{s.username || "—"}</p>

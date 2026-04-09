@@ -3,6 +3,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import TeacherLayout from "@/components/TeacherLayout";
 import ProfilePicture from "@/components/ProfilePicture";
 import AnimatedGreeting from "@/components/AnimatedGreeting";
+import CachedAvatar from "@/components/CachedAvatar";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
@@ -44,25 +45,7 @@ function StatusBadge({ status }) {
 }
 
 // ── Student Initial Avatar ──
-function StudentAvatar({ name, size = 44 }) {
-    const initial = (name || "?").charAt(0).toUpperCase();
-    const colors = [
-        "from-[#c799ff] to-[#7744b5]",
-        "from-[#4af8e3] to-[#006a60]",
-        "from-[#ff9dac] to-[#a70138]",
-        "from-[#bc87fe] to-[#440080]",
-        "from-[#33e9d5] to-[#005b51]",
-    ];
-    const colorIndex = (name || "").charCodeAt(0) % colors.length;
-    return (
-        <div
-            className={`rounded-2xl bg-gradient-to-br ${colors[colorIndex]} flex items-center justify-center text-white font-bold shadow-lg`}
-            style={{ width: size, height: size, minWidth: size, fontSize: size * 0.4 }}
-        >
-            {initial}
-        </div>
-    );
-}
+// Removed in favor of CachedAvatar
 
 // ── Glass Card Component ──
 function GlassCard({ children, className = "", style = {} }) {
@@ -331,7 +314,7 @@ function TeacherDashboardContent() {
                                 >
                                     <div className="flex items-center gap-4">
                                         {/* Avatar */}
-                                        <StudentAvatar name={p.student_name} size={48} />
+                                        <CachedAvatar uid={p.student_id} name={p.student_name} profile_pic_url={p.profile_pic_url} pic_version={p.pic_version} size={48} />
 
                                         {/* Info */}
                                         <div className="flex-1 min-w-0">

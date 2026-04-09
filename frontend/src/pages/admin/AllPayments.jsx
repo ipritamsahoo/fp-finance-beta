@@ -4,6 +4,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import ModernSelect from "@/components/ModernSelect";
+import CachedAvatar from "@/components/CachedAvatar";
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -53,7 +54,7 @@ function PaymentsContent() {
     for (const p of payments) {
         const sid = p.student_id;
         if (!studentMap[sid]) {
-            studentMap[sid] = { name: p.student_name, months: {} };
+            studentMap[sid] = { name: p.student_name, profile_pic_url: p.profile_pic_url, pic_version: p.pic_version, months: {} };
         }
         studentMap[sid].months[p.month] = p;
     }
@@ -171,7 +172,10 @@ function PaymentsContent() {
                                 {students.map((student) => (
                                     <tr key={student.id} className="border-b border-[#464752]/20 hover:bg-white/5 transition-colors group">
                                         <td className="px-4 py-4 text-sm text-[#f0f0fd] font-bold whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#171924]/60 backdrop-blur-md group-hover:bg-[#1f2231]/80 transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                                            {student.name}
+                                            <div className="flex items-center gap-3">
+                                                <CachedAvatar uid={student.id} name={student.name} profile_pic_url={student.profile_pic_url} pic_version={student.pic_version} size={32} />
+                                                <span>{student.name}</span>
+                                            </div>
                                         </td>
                                         {MONTHS_SHORT.map((_, mi) => {
                                             const monthNum = mi + 1;
