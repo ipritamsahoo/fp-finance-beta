@@ -93,7 +93,7 @@ export default function ProfilePicture({ size = 36, picUrl, name, className = ""
     const iconSize = Math.max(14, Math.round(size * 0.32));
 
     return (
-        <div className="relative inline-flex" style={{ width: outerSize, height: outerSize }}>
+        <div className="relative inline-flex" style={{ width: outerSize, height: outerSize, isolation: "isolate", transform: "translateZ(0)" }}>
             {/* Animated gradient ring */}
             <div
                 className={`absolute inset-0 rounded-full bg-gradient-to-br ${badge.gradient} ${badge.shadow} animate-badge-ring`}

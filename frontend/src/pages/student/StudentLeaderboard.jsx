@@ -208,6 +208,7 @@ function StudentLeaderboardContent() {
                                 className="glass-card-student rounded-3xl p-4 flex items-center gap-4 hover:border-[#c799ff]/30 transition-all animate-fade-in-scale"
                                 style={{
                                     animationDelay: `${300 + idx * 80}ms`,
+                                    transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden"
                                 }}>
                                 <span className="text-[#aaaab7] font-bold w-6" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                     #{entry.rank}

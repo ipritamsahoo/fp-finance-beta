@@ -291,14 +291,10 @@ function TeachersContent() {
                     {teachers.map((t, idx) => (
                         <div key={t.uid || t.id} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-2xl p-5 animate-fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
                             <div className="flex flex-col gap-4">
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-10 h-10 rounded-full bg-[#c799ff]/10 flex items-center justify-center text-[#c799ff] font-bold text-lg border border-[#c799ff]/30 shadow-[0_0_10px_rgba(199,153,255,0.2)]">
-                                            {t.name.charAt(0).toUpperCase()}
-                                        </span>
-                                        <p className="text-[#f0f0fd] font-bold text-base truncate tracking-wide" style={{ fontFamily: "'Manrope', sans-serif" }}>{t.name}</p>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2 mt-3 ml-13">
+                                <div>
+                                    <p className="text-[#f0f0fd] font-bold text-lg truncate tracking-wide" style={{ fontFamily: "'Manrope', sans-serif" }}>{t.name}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-2 -mt-1">
                                         {(t.assigned_batches || []).map((b) => (
                                             <span key={b.id} className="px-3 py-1 rounded-full bg-[#c799ff]/10 text-[#c799ff] text-[11px] border border-[#c799ff]/30 font-bold uppercase tracking-widest whitespace-nowrap">
                                                 {b.batch_name}
@@ -308,7 +304,6 @@ function TeachersContent() {
                                             <span className="text-[#ff9dac] text-xs font-medium italic">No batches</span>
                                         )}
                                     </div>
-                                </div>
                                 <div className="flex gap-2 justify-end w-full border-t border-[#464752]/30 pt-4">
                                     <button onClick={() => setDevicesTeacher(t)}
                                         className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:bg-[#4af8e3]/10 hover:border-[#4af8e3]/30 hover:text-[#4af8e3] transition-all cursor-pointer flex-1 flex justify-center">
@@ -353,14 +348,9 @@ function TeachersContent() {
                                 {teachers.map((t) => (
                                     <tr key={t.uid || t.id} className="hover:bg-[#222532]/30 transition-colors group">
                                         <td className="px-6 py-5 whitespace-nowrap">
-                                            <div className="flex items-center gap-3">
-                                                <span className="w-10 h-10 rounded-xl bg-[#c799ff]/10 flex items-center justify-center text-[#c799ff] font-bold text-lg border border-[#c799ff]/30 shadow-[0_0_10px_rgba(199,153,255,0.2)]">
-                                                    {t.name.charAt(0).toUpperCase()}
-                                                </span>
-                                                <div>
-                                                    <p className="text-[#f0f0fd] font-bold tracking-wide">{t.name}</p>
-                                                    <p className="text-[#aaaab7] text-xs mt-0.5">{t.username}</p>
-                                                </div>
+                                            <div>
+                                                <p className="text-[#f0f0fd] font-bold tracking-wide">{t.name}</p>
+                                                <p className="text-[#aaaab7] text-xs mt-0.5">{t.username}</p>
                                             </div>
                                         </td>
                                         <td className="px-6 py-5">

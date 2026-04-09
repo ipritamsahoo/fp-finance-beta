@@ -43,7 +43,7 @@ export default function NotificationsPage() {
     return (
         <div className="min-h-screen bg-[#0a0a12] text-white flex flex-col">
             {/* Header */}
-            <header className="sticky top-0 z-40 bg-[#0f1117]/80 backdrop-blur-2xl border-b border-white/10">
+            <header className="sticky top-0 z-40 bg-[#0f1117]/80 backdrop-blur-2xl border-b border-white/10" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
                 <div className="flex items-center px-4 h-16 gap-4">
                     <button 
                         onClick={() => navigate(-1)} 

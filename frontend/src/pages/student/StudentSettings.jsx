@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import StudentLayout from "@/components/StudentLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -74,8 +75,8 @@ function StudentSettingsContent() {
     return (
         <div className="space-y-8">
             {/* ── Profile Header Card ── */}
-            <section className="relative animate-fade-in-scale">
-                <div className="bg-[#3b82f6]/10 backdrop-blur-2xl p-8 rounded-[32px] ring-1 ring-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex flex-col items-center text-center">
+            <section className="relative animate-fade-in-scale" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+                <div className="bg-[#3b82f6]/10 backdrop-blur-2xl p-8 rounded-[32px] ring-1 ring-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex flex-col items-center text-center" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
                     {/* Profile Picture */}
                     <div className="mb-4 flex items-center justify-center">
                         <ProfilePicture size={96} className="border-2 border-white/20" />
@@ -109,7 +110,7 @@ function StudentSettingsContent() {
             </section>
 
             {/* ── Settings List ── */}
-            <section className="space-y-3 animate-fade-in-scale" style={{ animationDelay: "100ms" }}>
+            <section className="space-y-3 animate-fade-in-scale" style={{ animationDelay: "100ms", transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
                 {/* Change Profile Photo */}
                 <button
                     onClick={() => setPicModalOpen(true)}
@@ -232,9 +233,9 @@ function StudentSettingsContent() {
             <ProfilePicUpload isOpen={picModalOpen} onClose={() => setPicModalOpen(false)} />
 
             {/* Change Username Modal */}
-            {usernameModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={closeCredModals}>
-                    <div className="w-full max-w-sm mx-4 bg-[#0c0e17]/80 backdrop-blur-3xl border border-white/10 rounded-[32px] shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] p-6 animate-fade-in-scale" onClick={(e) => e.stopPropagation()}>
+            {usernameModalOpen && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={closeCredModals}>
+                    <div className="w-full max-w-sm bg-[#0c0e17]/95 backdrop-blur-3xl border border-white/10 rounded-[32px] shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] p-6 animate-modal-in" onClick={(e) => e.stopPropagation()} style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                         <h3 className="text-[#f0f0fd] font-bold text-lg mb-4" style={{ fontFamily: "'Manrope', sans-serif" }}>Change Username or Mobile</h3>
                         {credError && <div className="mb-3 p-2.5 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff9dac] text-xs">{credError}</div>}
                         {credSuccess && <div className="mb-3 p-2.5 rounded-2xl bg-[#4af8e3]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-xs">{credSuccess}</div>}
@@ -257,13 +258,14 @@ function StudentSettingsContent() {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Change Password Modal */}
-            {passwordModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={closeCredModals}>
-                    <div className="w-full max-w-sm mx-4 bg-[#0c0e17]/80 backdrop-blur-3xl border border-white/10 rounded-[32px] shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] p-6 animate-fade-in-scale" onClick={(e) => e.stopPropagation()}>
+            {passwordModalOpen && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={closeCredModals}>
+                    <div className="w-full max-w-sm bg-[#0c0e17]/95 backdrop-blur-3xl border border-white/10 rounded-[32px] shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] p-6 animate-modal-in" onClick={(e) => e.stopPropagation()} style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                         <h3 className="text-[#f0f0fd] font-bold text-lg mb-1" style={{ fontFamily: "'Manrope', sans-serif" }}>Change Password</h3>
                         <p className="text-[#aaaab7] text-xs mb-4">Must include letters, numbers & special characters.</p>
                         {credError && <div className="mb-3 p-2.5 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff9dac] text-xs">{credError}</div>}
@@ -293,7 +295,8 @@ function StudentSettingsContent() {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Devices Modal */}

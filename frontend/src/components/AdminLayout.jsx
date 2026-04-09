@@ -134,7 +134,7 @@ export default function AdminLayout({ children }) {
     };
 
     return (
-        <div className="h-[100dvh] w-full overflow-y-auto overflow-x-hidden bg-[#0c0e17] text-[#f0f0fd] relative" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div className="min-h-[100dvh] w-full overflow-x-hidden bg-[#0c0e17] text-[#f0f0fd] relative isolate" style={{ fontFamily: "'Inter', sans-serif" }}>
             {/* ── Ambient Backgrounds ── */}
             <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(59,130,246,0.15)_0%,transparent_70%)] blur-[100px]" />
@@ -143,8 +143,8 @@ export default function AdminLayout({ children }) {
 
             {/* ── Mobile TopAppBar (Main Pages) ── */}
             {!isSubPageMobile && (
-                <div className="md:hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-32px)]">
-                    <header className="flex justify-between items-center px-5 h-14 rounded-[28px] bg-[#111427]/70 backdrop-blur-2xl border border-[#2a3055]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] animate-fade-in">
+                <div className="md:hidden fixed top-4 left-4 right-4 z-50 overflow-hidden rounded-[28px] isolate">
+                    <header className="flex justify-between items-center px-5 h-14 bg-[#111427]/70 backdrop-blur-2xl border border-[#2a3055]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] animate-fade-in overflow-hidden" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                     <div className="flex items-center gap-3" onClick={() => navigate("/admin")}>
                         <div className="w-10 h-10 rounded-full overflow-hidden border border-[#3b82f6]/40 bg-[#0c0e17] shadow-lg shadow-[#3b82f6]/20 flex items-center justify-center p-0.5">
                             <img src="/logo.png" alt="Logo" className="w-full h-full object-cover scale-[1.1]" />
@@ -176,7 +176,7 @@ export default function AdminLayout({ children }) {
 
             {/* ── Mobile Header (Sub-Pages) ── */}
             {isSubPageMobile && (
-                <header className="md:hidden fixed top-0 w-full bg-[#0c0e17]/90 backdrop-blur-3xl flex items-center px-4 h-16 z-50 border-b border-white/5 animate-fade-in-down shadow-xl">
+                <header className="md:hidden fixed top-0 w-full bg-[#0c0e17]/90 backdrop-blur-3xl flex items-center px-4 h-16 z-50 border-b border-white/5 animate-fade-in-down shadow-xl" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                     <button 
                         onClick={() => navigate("/admin")}
                         className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-[#aaaab7] active:scale-90 transition-all mr-3"
@@ -200,6 +200,7 @@ export default function AdminLayout({ children }) {
                     <button 
                         onClick={() => setNotifOpen(true)}
                         className="relative text-[#aaaab7] hover:text-white transition-all active:scale-95 duration-200 cursor-pointer w-10 h-10 flex items-center justify-center rounded-full bg-[#171924]/60 backdrop-blur-md border border-[#464752]/50 hover:border-[#3b82f6]/50 shadow-lg"
+                        style={{ transform: "translateZ(0)", isolation: "isolate" }}
                     >
                         <span className="material-symbols-outlined text-[24px]">notifications</span>
                         {unreadCount > 0 && (
@@ -222,7 +223,7 @@ export default function AdminLayout({ children }) {
 
                     {/* Profile Dropdown Popup */}
                     {desktopProfileOpen && (
-                        <div className="absolute top-14 right-0 w-72 bg-[#0c0e17]/95 backdrop-blur-3xl border border-[#464752]/50 rounded-[2rem] shadow-[0_24px_60px_rgba(0,0,0,0.7)] overflow-hidden animate-[modalIn_0.2s_ease-out] z-50 p-4 space-y-4">
+                        <div className="absolute top-14 right-0 w-72 bg-[#0c0e17]/95 backdrop-blur-3xl border border-[#464752]/50 rounded-[2rem] shadow-[0_24px_60px_rgba(0,0,0,0.7)] overflow-hidden animate-[modalIn_0.2s_ease-out] z-50 p-4 space-y-4" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                             {/* Profile Header Card */}
                             <div className="bg-[#3b82f6]/10 p-5 rounded-[1.5rem] border border-white/5 flex flex-col items-center text-center relative overflow-hidden">
                                 <div className="absolute -top-4 -right-4 w-24 h-24 bg-[radial-gradient(circle,rgba(59,130,246,0.3)_0%,transparent_70%)] blur-xl pointer-events-none" />
@@ -275,6 +276,7 @@ export default function AdminLayout({ children }) {
             {/* ── Desktop Sidebar ── */}
             <aside 
                 className="hidden md:flex fixed top-0 left-0 h-full z-40 w-64 flex-col bg-[#0c0e17]/95 backdrop-blur-[40px] border-r border-white/5 shadow-[20px_0_40px_rgba(0,0,0,0.3)]"
+                style={{ transform: "translateZ(0)", isolation: "isolate" }}
             >
                 {/* Profile / Header */}
                 <div className="p-6 border-b border-white/5 relative overflow-hidden group">
@@ -323,8 +325,8 @@ export default function AdminLayout({ children }) {
             </main>
 
             {/* ── Mobile: FAB Menu Drawer ── */}
-            <div className={`md:hidden fixed bottom-[120px] right-6 z-[60] w-48 flex flex-col gap-3 transition-all duration-300 transform origin-bottom-right ${fabOpen && !isSubPageMobile ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-10 pointer-events-none"}`}>
-                <div className="bg-[#171924]/95 backdrop-blur-3xl rounded-3xl p-3 shadow-2xl border border-white/5 space-y-1">
+            <div className={`md:hidden fixed bottom-[120px] right-6 z-[60] w-48 flex flex-col gap-3 transition-all duration-300 transform origin-bottom-right ${fabOpen && !isSubPageMobile ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-10 pointer-events-none"}`} style={{ transform: fabOpen ? "translateZ(0) scale(1) translateY(0)" : "translateZ(0) scale(0.5) translateY(40px)" }}>
+                <div className="bg-[#171924]/95 backdrop-blur-3xl rounded-3xl p-3 shadow-2xl border border-white/5 space-y-1" style={{ isolation: "isolate" }}>
                     {adminFabNav.map((item) => (
                         <button 
                             key={item.href}
@@ -360,8 +362,8 @@ export default function AdminLayout({ children }) {
 
             {/* ── Mobile: Bottom Navigation Bar ── */}
             {!isSubPageMobile && (
-                <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-32px)]">
-                    <nav className="relative flex items-center rounded-[28px] bg-[#111427]/70 backdrop-blur-2xl border border-[#2a3055]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="md:hidden fixed bottom-6 left-4 right-4 z-40 overflow-hidden rounded-[28px] isolate">
+                    <nav className="relative flex items-center bg-[#111427]/70 backdrop-blur-2xl border border-[#2a3055]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                         {/* ── Sliding blue circle indicator ── */}
                         {activeIdx >= 0 && (
                             <div
@@ -427,4 +429,3 @@ export default function AdminLayout({ children }) {
         </div>
     );
 }
-

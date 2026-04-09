@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -41,10 +42,12 @@ export default function UserDevicesModal({ user, onClose, onSessionDeleted }) {
         );
     };
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fade-in overflow-y-auto" onClick={onClose}>
-            <div className="w-full max-w-lg bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2.5rem] border border-[#737580]/20 shadow-2xl flex flex-col max-h-[85vh] animate-fade-in-up overflow-hidden m-auto"
-                onClick={(e) => e.stopPropagation()}>
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 overflow-y-auto" onClick={onClose}>
+            <div className="w-full max-w-lg bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2.5rem] border border-[#737580]/20 shadow-2xl flex flex-col max-h-[85vh] animate-modal-in overflow-hidden m-auto"
+                onClick={(e) => e.stopPropagation()}
+                style={{ transform: "translateZ(0)", isolation: "isolate" }}
+            >
 
                 {/* Header */}
                 <div className="px-8 pt-8 pb-6 border-b border-[#464752]/30 relative">
@@ -98,8 +101,8 @@ export default function UserDevicesModal({ user, onClose, onSessionDeleted }) {
                                                     </span>
                                                 </div>
                                                 <p className="text-[#aaaab7] text-xs mt-1 font-medium flex items-center gap-1">
-                                                    <span className="material-symbols-outlined text-[14px]">public</span>
-                                                    {session.platform || "Unknown"} • {session.location || "Unknown"}
+                                                    <span className="material-symbols-outlined text-[14px]">devices</span>
+                                                    {session.platform || "Unknown"}
                                                 </p>
                                                 <p className="text-[#737580] text-[10px] mt-2 font-bold uppercase tracking-tighter flex items-center gap-1">
                                                     <span className="material-symbols-outlined text-[12px]">schedule</span>
@@ -127,6 +130,7 @@ export default function UserDevicesModal({ user, onClose, onSessionDeleted }) {
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

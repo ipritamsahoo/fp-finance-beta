@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useNotifications } from "@/context/NotificationContext";
+import { useAuth } from "@/context/AuthContext";
 import ProfilePicture from "./ProfilePicture";
+import NotificationPanel from "./NotificationPanel";
 
 // ── Heavy inertia cubic-bezier(0.85, 0, 0.15, 1) solver ──
 const heavyInertia = (progress) => {
@@ -30,6 +32,8 @@ export default function StudentLayout({ children }) {
     const { pathname } = useLocation();
     const navigate = useNavigate();
     const { unreadCount } = useNotifications();
+    const { user } = useAuth();
+    const [notifOpen, setNotifOpen] = useState(false);
 
     // ── Bottom nav: kinetic sliding indicator ──
     const activeIdx = studentNav.findIndex(item => pathname === item.href);
@@ -88,17 +92,17 @@ export default function StudentLayout({ children }) {
     };
 
     return (
-        <div className="h-[100dvh] w-full overflow-y-auto overflow-x-hidden bg-[#0c0e17] text-[#f0f0fd] relative" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div className="min-h-[100dvh] w-full overflow-x-hidden bg-[#0c0e17] text-[#f0f0fd] relative isolate" style={{ fontFamily: "'Inter', sans-serif" }}>
             {/* ── Ambient Backgrounds ── */}
-            <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(59,130,246,0.15)_0%,transparent_70%)] blur-[100px]" />
-                <div className="absolute -bottom-[10%] -right-[10%] w-[70%] h-[70%] bg-[radial-gradient(circle,rgba(59,130,246,0.1)_0%,transparent_70%)] blur-[100px]" />
+            <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" style={{ transform: "translateZ(0)" }}>
+                <div className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(59,130,246,0.15)_0%,transparent_70%)] blur-[100px]" style={{ transform: "translateZ(0)", willChange: "transform" }} />
+                <div className="absolute -bottom-[10%] -right-[10%] w-[70%] h-[70%] bg-[radial-gradient(circle,rgba(59,130,246,0.1)_0%,transparent_70%)] blur-[100px]" style={{ transform: "translateZ(0)", willChange: "transform" }} />
             </div>
 
             {/* ── Mobile TopAppBar (Main Pages) ── */}
             {!isSubPageMobile && (
-                <div className="md:hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-32px)]">
-                    <header className="flex justify-between items-center px-5 h-14 rounded-[28px] bg-[#111427]/70 backdrop-blur-2xl border border-[#2a3055]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] animate-fade-in">
+                <div className="md:hidden fixed top-4 left-4 right-4 z-50 overflow-hidden rounded-[28px] isolate">
+                    <header className="flex justify-between items-center px-5 h-14 bg-[#111427]/70 backdrop-blur-2xl border border-[#2a3055]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] animate-fade-in overflow-hidden" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                     <div className="flex items-center gap-3" onClick={() => navigate("/student")}>
                         <div className="w-10 h-10 rounded-full overflow-hidden border border-[#3b82f6]/40 bg-[#0c0e17] shadow-lg shadow-[#3b82f6]/20 flex items-center justify-center p-0.5">
                             <img src="/logo.png" alt="Logo" className="w-full h-full object-cover scale-[1.1]" />
@@ -118,7 +122,7 @@ export default function StudentLayout({ children }) {
                             )}
                         </button>
                         <div 
-                            className="rounded-full flex items-center justify-center p-[2px] border-2 border-white/10 active:border-[#3b82f6]/50 transition-all cursor-pointer shadow-lg"
+                            className="transition-all cursor-pointer"
                             onClick={() => navigate("/student/settings")}
                         >
                             <ProfilePicture size={34} />
@@ -130,7 +134,7 @@ export default function StudentLayout({ children }) {
 
             {/* ── Mobile Header (Sub-Pages) ── */}
             {isSubPageMobile && (
-                <header className="md:hidden fixed top-0 w-full bg-[#0c0e17]/90 backdrop-blur-3xl flex items-center px-4 h-16 z-50 border-b border-white/5 animate-fade-in-down shadow-xl">
+                <header className="md:hidden fixed top-0 w-full bg-[#0c0e17]/90 backdrop-blur-3xl flex items-center px-4 h-16 z-50 border-b border-white/5 animate-fade-in-down shadow-xl" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                     <button 
                         onClick={() => navigate(-1)}
                         className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-[#aaaab7] active:scale-90 transition-all mr-3"
@@ -146,7 +150,7 @@ export default function StudentLayout({ children }) {
             )}
 
             {/* ── Desktop Sidebar ── */}
-            <aside className="hidden md:flex fixed top-0 left-0 h-full z-40 w-64 flex-col bg-[#0c0e17]/95 backdrop-blur-[40px] border-r border-white/5 shadow-[20px_0_40px_rgba(0,0,0,0.3)]">
+            <aside className="hidden md:flex fixed top-0 left-0 h-full z-40 w-64 flex-col bg-[#0c0e17]/95 backdrop-blur-[40px] border-r border-white/5 shadow-[20px_0_40px_rgba(0,0,0,0.3)]" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                 {/* Logo Section */}
                 <div className="p-6 border-b border-white/5 relative overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -182,27 +186,41 @@ export default function StudentLayout({ children }) {
                     })}
                 </nav>
 
-                {/* Sidebar Footer */}
-                <div className="p-4 border-t border-white/5 bg-[#0c0e17]/50">
+            </aside>
+
+            {/* ── Desktop Top Nav (Notifications & Profile) ── */}
+            <div className="hidden md:flex fixed top-0 right-0 z-50 p-6 items-center gap-5">
+                {/* Notification Bell */}
+                <div className="relative">
                     <button 
-                        onClick={() => navigate("/notifications")}
-                        className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-[#aaaab7] hover:text-white hover:bg-[#3b82f6]/10 border border-transparent hover:border-[#3b82f6]/20 transition-all cursor-pointer group"
+                        onClick={() => setNotifOpen(true)}
+                        className="relative text-[#aaaab7] hover:text-white transition-all active:scale-95 duration-200 cursor-pointer w-10 h-10 flex items-center justify-center rounded-full bg-[#171924]/60 backdrop-blur-md border border-[#464752]/50 hover:border-[#3b82f6]/50 shadow-lg"
+                        style={{ transform: "translateZ(0)", isolation: "isolate" }}
                     >
-                        <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined text-[22px] group-hover:rotate-12 transition-transform">notifications</span>
-                            <span className="text-sm font-bold" style={{ fontFamily: "'Manrope', sans-serif" }}>Alerts</span>
-                        </div>
+                        <span className="material-symbols-outlined text-[24px]">notifications</span>
                         {unreadCount > 0 && (
-                            <span className="min-w-[18px] h-[18px] bg-[#ff6e84] text-white text-[9px] font-extrabold rounded-full flex items-center justify-center px-1 shadow-[0_0_10px_rgba(255,110,132,0.4)] animate-pulse">
+                            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#ff6e84] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 shadow-[0_0_10px_rgba(255,110,132,0.4)] animate-pulse border border-[#0c0e17]">
                                 {unreadCount > 9 ? "9+" : unreadCount}
                             </span>
                         )}
                     </button>
+                    <NotificationPanel isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
                 </div>
-            </aside>
+
+                {/* Profile Picture */}
+                <div 
+                    className="flex items-center justify-center cursor-pointer active:scale-95 transition-all"
+                    onClick={() => navigate("/student/settings")}
+                >
+                    <ProfilePicture size={40} />
+                </div>
+            </div>
 
             {/* ── Main Content ── */}
-            <main className={`relative md:ml-64 min-h-screen flex flex-col pt-28 ${!isSubPageMobile ? "pb-24" : "pb-12"} md:pt-8 md:pb-8 px-6 md:px-12`}>
+            <main 
+                className={`relative z-10 md:ml-64 min-h-screen flex flex-col pt-28 ${!isSubPageMobile ? "pb-24" : "pb-12"} md:pt-8 md:pb-8 px-6 md:px-12`}
+                style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", contain: "paint layout", scrollbarGutter: "stable" }}
+            >
                 <div className="max-w-4xl w-full mx-auto flex-1">
                     {children}
                 </div>
@@ -210,8 +228,8 @@ export default function StudentLayout({ children }) {
 
             {/* ── Mobile Bottom Navigation ── */}
             {!isSubPageMobile && (
-                <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-32px)]">
-                    <nav className="relative flex items-center rounded-[28px] bg-[#111427]/70 backdrop-blur-2xl border border-[#2a3055]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="md:hidden fixed bottom-6 left-4 right-4 z-40 overflow-hidden rounded-[28px] isolate">
+                    <nav className="relative flex items-center bg-[#111427]/70 backdrop-blur-2xl border border-[#2a3055]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                         {activeIdx >= 0 && (
                             <div
                                 className="absolute top-1/2 -translate-y-1/2 z-0 flex items-center justify-center pointer-events-none will-change-[left]"

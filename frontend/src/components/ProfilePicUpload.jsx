@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { compressImage } from "@/lib/imageCompress";
@@ -275,11 +276,12 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
     };
 
     // ── RENDER ──
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4" onClick={handleClose}>
             <div
-                className="relative w-full max-w-sm bg-[#0c0e17]/95 backdrop-blur-3xl border border-[#464752]/50 rounded-[2rem] shadow-[0_24px_80px_rgba(0,0,0,0.7)] overflow-hidden animate-[modalIn_0.3s_ease-out]"
+                className="relative w-full max-w-sm bg-[#0c0e17]/95 backdrop-blur-3xl border border-white/10 rounded-[2rem] shadow-[0_24px_80px_rgba(0,0,0,0.7)] overflow-hidden animate-modal-in"
                 onClick={(e) => e.stopPropagation()}
+                style={{ transform: "translateZ(0)", isolation: "isolate" }}
             >
                 {/* ═══ STEP: SELECT ═══ */}
                 {step === "select" && (
@@ -293,7 +295,7 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
                             <div className="relative group">
                                 <div className="absolute -inset-1 bg-gradient-to-tr from-[#3b82f6] to-[#4af8e3] rounded-full blur-sm opacity-30" />
                                 <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-white/10">
-                                    <ProfilePicture size={96} />
+                                    <ProfilePicture size={96} showBadge={false} />
                                 </div>
 
                                 <button
@@ -421,7 +423,8 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 

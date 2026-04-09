@@ -62,6 +62,7 @@ export default function NotificationPanel({ isOpen, onClose }) {
         <div
             ref={panelRef}
             className="fixed top-16 left-4 right-4 w-auto z-[100] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:w-96 sm:z-50 bg-[#0f1117]/98 backdrop-blur-xl border border-[#1a1f2e]/60 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up"
+            style={{ transform: "translateZ(0)", isolation: "isolate" }}
         >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1a1f2e]/60">

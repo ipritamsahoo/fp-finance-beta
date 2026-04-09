@@ -158,17 +158,15 @@ function DistributionContent() {
                         <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl p-5 animate-fade-in-up transition-colors hover:bg-[#171924]/80">
                             <p className="text-[#aaaab7] text-xs font-bold uppercase tracking-widest mb-1 pointer-events-none text-opacity-80">Total Distributed</p>
                             <p className="text-3xl sm:text-4xl font-extrabold text-[#4af8e3] mt-2 drop-shadow-md">₹{data.total_collected.toLocaleString()}</p>
-                            <p className="text-[#aaaab7] text-sm mt-3 font-medium opacity-80">{MONTHS[month - 1]} {year}</p>
                         </div>
                         <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl p-5 animate-fade-in-up transition-colors hover:bg-[#171924]/80" style={{ animationDelay: "50ms" }}>
-                            <p className="text-[#aaaab7] text-xs font-bold uppercase tracking-widest mb-1 pointer-events-none text-opacity-80">Teachers Earning</p>
-                            <p className="text-3xl sm:text-4xl font-extrabold text-[#c799ff] mt-2 drop-shadow-md">{data.teacher_totals.length}</p>
-                            <p className="text-[#aaaab7] text-sm mt-3 font-medium opacity-80">Across {data.batches.length} batch(es)</p>
+                            <p className="text-[#aaaab7] text-xs font-bold uppercase tracking-widest mb-1 pointer-events-none text-opacity-80">Teachers Shared</p>
+                            <p className="text-3xl sm:text-4xl font-extrabold text-[#c799ff] mt-2 drop-shadow-md">{data.total_teachers_shared || 0}</p>
                         </div>
                     </div>
 
                     {/* ═══ Tab Bar ═══ */}
-                    <div className="flex flex-col sm:flex-row gap-2 mb-6 p-1.5 rounded-[1.25rem] bg-[#171924]/60 backdrop-blur-[20px] border border-[#464752]/40 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+                    <div className="flex flex-col sm:flex-row gap-2 mb-6 p-1.5 rounded-[1.25rem] bg-[#171924]/60 backdrop-blur-[20px] border border-[#464752]/40 animate-fade-in-up" style={{ animationDelay: "100ms", transform: "translateZ(0)", isolation: "isolate", willChange: "transform", backfaceVisibility: "hidden" }}>
                         <button
                             onClick={() => setActiveTab("datewise")}
                             className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 cursor-pointer flex items-center justify-center gap-2
@@ -231,8 +229,6 @@ function DistributionContent() {
                                                                 <p className="text-[#f0f0fd] font-bold text-sm md:text-lg tracking-wide truncate" style={{ fontFamily: "'Manrope', sans-serif" }}>{formattedDate}</p>
                                                                 <p className="text-[#aaaab7] text-[11px] md:text-xs font-medium tracking-wide mt-0.5 md:mt-1 flex items-center gap-1.5 md:gap-2 flex-wrap">
                                                                     <span>{dist.payments_count} payment(s)</span>
-                                                                    <span className="w-1 h-1 rounded-full bg-[#aaaab7]/50"></span>
-                                                                    <span>{dist.teachers.length} teacher(s)</span>
                                                                     {dist.settled && (
                                                                         <>
                                                                             <span className="w-1 h-1 rounded-full bg-[#4af8e3]/50"></span>
@@ -270,7 +266,7 @@ function DistributionContent() {
                                                     <div className={`transition-all overflow-hidden ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}>
                                                         <div className="px-5 pb-5 sm:px-6 sm:pb-6 border-t border-[#464752]/30 pt-4">
                                                             <p className="text-[#c799ff] text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
-                                                                <span className="material-symbols-outlined text-sm">receipt_long</span> Student Payments
+                                                                <span className="material-symbols-outlined text-sm">group</span> Student Payments
                                                                 {dist.settled && <span className="text-[#4af8e3] lowercase font-semibold text-[10px] bg-[#4af8e3]/10 px-2 py-0.5 rounded-full border border-[#4af8e3]/20 ml-2 shadow-[0_0_8px_rgba(74,248,227,0.2)]">frozen</span>}
                                                             </p>
 

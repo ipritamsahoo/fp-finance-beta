@@ -291,35 +291,10 @@ def update_own_credentials(req: SelfUpdateCredentials, user=Depends(get_current_
 def register_active_session(req: SessionRegisterRequest, request: Request, user=Depends(get_current_user)):
     """Register a new active device session. Cleans up old ghost sessions (>30 days)."""
     uid = user["uid"]
-    ip_address = request.client.host if request.client else "Unknown IP"
-
-    # Try to extract real IP if behind proxy/ngrok/lb
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        ip_address = forwarded.split(",")[0].strip()
-
-    # Look up location via free IP-API
-    location = "Unknown Location"
-    if ip_address and ip_address not in ["127.0.0.1", "localhost", "Unknown IP", "::1"]:
-        try:
-            with httpx.Client(timeout=3.0) as client:
-                res = client.get(f"http://ip-api.com/json/{ip_address}")
-                if res.status_code == 200:
-                    data = res.json()
-                    if data.get("status") == "success":
-                        city = data.get("city", "")
-                        region = data.get("regionName", "")
-                        country = data.get("countryCode", "")
-                        location = f"{city}, {region}, {country}".strip(", ")
-        except Exception as e:
-            print(f"IP Location lookup failed for {ip_address}: {e}")
-
     session_data = {
         "session_id": req.session_id,
         "device_name": req.device_name,
         "platform": req.platform,
-        "ip_address": ip_address,
-        "location": location,
         "created_at": ts_now(),
         "last_active": ts_now(),
     }

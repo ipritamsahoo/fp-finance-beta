@@ -223,7 +223,7 @@ def teacher_distribution(
             raise HTTPException(status_code=403, detail="Not assigned to this batch")
         batch_map = {batch_id: batch_map[batch_id]}
 
-    # 2. Query paid payments for each batch
+    # 2. Query paid payments for each batch (to build the date list)
     all_payments = []
     for bid in batch_map:
         payments = db.collection("payments") \
@@ -237,37 +237,47 @@ def teacher_distribution(
             data["_batch_id"] = bid
             all_payments.append(data)
 
-    # 3. Calculate teacher earnings per batch
-    teacher_earnings = {}  # teacher_uid -> { name, total }
+    # 3. Fetch settlement snapshots
+    snapshot_query = db.collection("distribution_snapshots") \
+        .where("month", "==", month) \
+        .where("year", "==", year)
+    if batch_id:
+        snapshot_query = snapshot_query.where("batch_id", "==", batch_id)
+    else:
+        # If no batch_id filter, we need to filter snapshots manually for the teacher's batches
+        # Or we can just let it fetch all for the month and filter in Python
+        pass
+
+    settled_dates = {}
+    snapshots_list = []
+    for snap in snapshot_query.stream():
+        sd = snap.to_dict()
+        # Verify if this snapshot belongs to one of the teacher's assigned batches
+        if sd.get("batch_id") in batch_map:
+            settled_dates[sd["date"]] = sd
+            snapshots_list.append(sd)
+
+    # 4. Calculate Summary Totals from Snapshots ONLY
     my_total = 0
+    total_collected = 0
+    teacher_acc = {} # uid -> {name, total}
 
-    for bid, binfo in batch_map.items():
-        batch_payments = [p for p in all_payments if p.get("_batch_id") == bid]
-        batch_total = sum(p.get("amount", 0) for p in batch_payments)
-        teacher_ids = binfo["teacher_ids"]
-        tc = len(teacher_ids)
-        per_teacher = round(batch_total / tc, 2) if tc > 0 else 0
-
-        for tid in teacher_ids:
-            t_doc = db.collection("users").document(tid).get()
-            t_name = t_doc.to_dict().get("name", "Unknown") if t_doc.exists else "Unknown"
-            if tid not in teacher_earnings:
-                teacher_earnings[tid] = {"name": t_name, "total": 0}
-            teacher_earnings[tid]["total"] = round(
-                teacher_earnings[tid]["total"] + per_teacher, 2
-            )
+    for snap in snapshots_list:
+        total_collected += snap.get("total", 0)
+        for t in snap.get("teachers", []):
+            tid = t["uid"]
+            tname = t["name"]
+            tamount = t["amount"]
+            if tid not in teacher_acc:
+                teacher_acc[tid] = {"uid": tid, "name": tname, "total": 0}
+            teacher_acc[tid]["total"] = round(teacher_acc[tid]["total"] + tamount, 2)
             if tid == uid:
-                my_total = round(my_total + per_teacher, 2)
+                my_total = round(my_total + tamount, 2)
 
-    teacher_totals = [
-        {"uid": tid, "name": info["name"], "total": info["total"]}
-        for tid, info in teacher_earnings.items()
-    ]
-    teacher_totals.sort(key=lambda t: t["total"], reverse=True)
+    teacher_totals = list(teacher_acc.values())
+    teacher_totals.sort(key=lambda x: x["total"], reverse=True)
 
-    total_collected = sum(p.get("amount", 0) for p in all_payments)
-
-    # 4. Date-wise breakdown
+    # 5. Date-wise breakdown (from all paid payments)
     payments_by_date = {}
     for p in all_payments:
         updated_at = p.get("updated_at", "")
@@ -277,78 +287,44 @@ def teacher_distribution(
     date_results = []
     for date_str in sorted(payments_by_date.keys(), reverse=True):
         dp = payments_by_date[date_str]
-        date_total = sum(x.get("amount", 0) for x in dp)
+        
+        if date_str in settled_dates:
+            snap = settled_dates[date_str]
+            date_results.append({
+                "date": date_str,
+                "total": snap.get("total", 0),
+                "payments_count": len(dp),
+                "teachers": snap.get("teachers", []),
+                "payments": dp,
+                "settled": True,
+                "settled_at": snap.get("settled_at", ""),
+            })
+        else:
+            # Unsettled - Volume is student payments, but Teacher details are empty as per request
+            # "calculation hobe tokhon e jokhon settled... not collection"
+            date_total = sum(x.get("amount", 0) for x in dp)
+            date_results.append({
+                "date": date_str,
+                "total": date_total,
+                "payments_count": len(dp),
+                "teachers": [], # No teacher details if not settled
+                "payments": dp,
+                "settled": False,
+            })
 
-        # Per-teacher for this date
-        date_teacher_earnings = {}
-        date_by_batch = {}
-        for x in dp:
-            bid = x.get("_batch_id", x.get("batch_id", "unassigned"))
-            date_by_batch.setdefault(bid, []).append(x)
+    # 6. Calculate total unique teachers shared (regardless of settlement)
+    all_shared_teacher_ids = set()
+    for binfo in batch_map.values():
+        for tid in binfo.get("teacher_ids", []):
+            all_shared_teacher_ids.add(tid)
+    total_teachers_shared = len(all_shared_teacher_ids)
 
-        for bid, bp in date_by_batch.items():
-            bt = sum(x.get("amount", 0) for x in bp)
-            tids = batch_map.get(bid, {}).get("teacher_ids", [])
-            tc = len(tids)
-            pt = round(bt / tc, 2) if tc > 0 else 0
-            for tid in tids:
-                t_doc = db.collection("users").document(tid).get()
-                t_name = t_doc.to_dict().get("name", "Unknown") if t_doc.exists else "Unknown"
-                if tid not in date_teacher_earnings:
-                    date_teacher_earnings[tid] = {"name": t_name, "total": 0}
-                date_teacher_earnings[tid]["total"] = round(
-                    date_teacher_earnings[tid]["total"] + pt, 2
-                )
-
-        teachers = [
-            {"uid": tid, "name": info["name"], "amount": info["total"]}
-            for tid, info in date_teacher_earnings.items()
-        ]
-        teachers.sort(key=lambda t: t["amount"], reverse=True)
-
-        date_results.append({
-            "date": date_str,
-            "total": date_total,
-            "payments_count": len(dp),
-            "teachers": teachers,
-            "payments": dp,
-            "settled": False,
-        })
-
-    # 5. Check for existing settlement snapshots
-    snapshot_query = db.collection("distribution_snapshots") \
-        .where("month", "==", month) \
-        .where("year", "==", year)
-    if batch_id:
-        snapshot_query = snapshot_query.where("batch_id", "==", batch_id)
-
-    settled_dates = {}
-    for snap in snapshot_query.stream():
-        sd = snap.to_dict()
-        settled_dates[sd["date"]] = sd
-
-    # Overlay snapshot data onto date results
-    for dr in date_results:
-        if dr["date"] in settled_dates:
-            snap = settled_dates[dr["date"]]
-            dr["settled"] = True
-            dr["settled_at"] = snap.get("settled_at", "")
-            # Only show this specific teacher's earnings from the snapshot
-            snapshot_teachers = snap.get("teachers", [])
-            my_share = next((t for t in snapshot_teachers if t.get("uid") == uid), None)
-            
-            # Reconstruct the teachers array for consistency, but only showing this teacher's locked amount
-            # or all teachers if the UI expects it (the UI filters it itself)
-            dr["teachers"] = snapshot_teachers
-            dr["total"] = snap.get("total", dr["total"])
-
-    # Build batch list for the filter dropdown
+    # Return summary + list
     return {
-        "month": month,
-        "year": year,
-        "total_collected": total_collected,
-        "my_total": my_total,
+        "total_collected": round(total_collected, 2),
+        "my_total": round(my_total, 2),
         "teacher_totals": teacher_totals,
+        "total_teachers_shared": total_teachers_shared,
         "dates": date_results,
         "batches": all_teacher_batches,
     }

@@ -40,7 +40,7 @@ function StatusBadge({ status }) {
     };
     const c = config[status] || config.Unpaid;
     return (
-        <div className={`${c.bg} ${c.text} ${c.border} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md border`}>
+        <div className={`${c.bg} ${c.text} ${c.border} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md border`} style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
             {c.label}
         </div>
     );
@@ -81,7 +81,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
     if (!payment) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] bg-[#0c0e17] flex flex-col sm:bg-black/80 sm:backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose}>
+        <div className="fixed inset-0 z-[100] bg-[#0c0e17] flex flex-col sm:bg-black/80 sm:backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose} style={{ transform: "translateZ(0)", isolation: "isolate" }}>
             <div className="relative bg-[#0c0e17] w-full h-full sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:rounded-[28px] sm:border sm:border-white/10 sm:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col animate-fade-in-scale"
                 onClick={(e) => e.stopPropagation()}>
 
@@ -202,7 +202,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
 
                 {/* ── Fullscreen Image Preview Modal ── */}
                 {showPreviewModal && preview && (
-                    <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex flex-col animate-fade-in" onClick={() => setShowPreviewModal(false)}>
+                    <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex flex-col animate-fade-in" onClick={() => setShowPreviewModal(false)} style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                         <div className="flex justify-end p-5">
                             <button className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white cursor-pointer hover:bg-white/20 active:scale-90 transition-all">
                                 <span className="material-symbols-outlined">close</span>
@@ -290,7 +290,7 @@ function StudentPaymentsContent() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="mb-8 animate-fade-in-scale">
+            <div className="mb-8 animate-fade-in-scale" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                 <h1 className="text-3xl font-extrabold tracking-tight text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                     History
                 </h1>
@@ -314,14 +314,14 @@ function StudentPaymentsContent() {
                 </div>
             )}
 
-            {/* Payment List */}
-            <div className="space-y-4">
-                {payments.filter(p => p.status === "Paid").map((p, idx) => (
-                    <div key={p.id} className="relative group animate-fade-in-scale" style={{ animationDelay: `${idx * 80}ms` }}>
+                {/* Payment List */}
+            <div className="space-y-4" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
+                {payments.map((p, idx) => (
+                    <div key={p.id} className="relative group animate-fade-in-scale" style={{ animationDelay: `${idx * 80}ms`, transform: "translateZ(0)", isolation: "isolate" }}>
                         {/* Subtle glow behind card */}
                         <div className="absolute inset-0 bg-white/[0.03] blur-sm rounded-3xl -z-10 group-hover:bg-white/[0.06] transition-all" />
 
-                        <div className="glass-card-student p-6 rounded-3xl flex flex-col gap-4">
+                        <div className="glass-card-student p-6 rounded-3xl flex flex-col gap-4" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
                             {/* Top row: Billing info + Amount + Status */}
                             <div className="flex justify-between items-start">
                                 <div className="space-y-1">
@@ -343,6 +343,7 @@ function StudentPaymentsContent() {
                                 <button
                                     onClick={() => generateReceiptPDF(p, user)}
                                     className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 hover:bg-white/10 transition-colors active:scale-[0.98] cursor-pointer"
+                                    style={{ transform: "translateZ(0)", isolation: "isolate" }}
                                 >
                                     <span className="material-symbols-outlined text-[20px]">description</span>
                                     <span className="text-sm font-semibold">Download Receipt</span>
@@ -360,7 +361,7 @@ function StudentPaymentsContent() {
                             )}
 
                             {p.status === "Pending_Verification" && (
-                                <div className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full bg-[#3b82f6]/10 backdrop-blur-md border border-[#3b82f6]/20">
+                                <div className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full bg-[#3b82f6]/10 backdrop-blur-md border border-[#3b82f6]/20" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                                     <span className="material-symbols-outlined text-[20px] text-[#3b82f6]" style={{ fontVariationSettings: "'FILL' 1" }}>hourglass_top</span>
                                     <span className="text-sm font-semibold text-[#3b82f6]">Verification Pending</span>
                                     {p.screenshot_url && (
@@ -377,7 +378,7 @@ function StudentPaymentsContent() {
                     </div>
                 ))}
 
-                {payments.filter(p => p.status === "Paid").length === 0 && (
+                {payments.length === 0 && (
                     <div className="glass-card-student rounded-[32px] p-8 text-center text-[#aaaab7] animate-fade-in-scale">
                         <span className="material-symbols-outlined text-5xl text-[#737580] mb-3 block">receipt_long</span>
                         <p className="text-lg font-medium">No payment records yet</p>
@@ -397,7 +398,7 @@ function StudentPaymentsContent() {
 
             {/* Image preview modal */}
             {previewImg && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setPreviewImg(null)}>
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setPreviewImg(null)} style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                     <div className="relative max-w-2xl max-h-[80vh] mx-4" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => setPreviewImg(null)}
                             className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-white/10 border border-white/20 text-white flex items-center justify-center hover:bg-white/20 cursor-pointer z-10">
@@ -430,3 +431,4 @@ export default function StudentPayments() {
         </ProtectedRoute>
     );
 }
+

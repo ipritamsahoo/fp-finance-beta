@@ -58,7 +58,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
     if (!payment) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] bg-[#0c0e17] flex flex-col sm:bg-black/80 sm:backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose}>
+        <div className="fixed inset-0 z-[100] bg-[#0c0e17] flex flex-col sm:bg-black/80 sm:backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose} style={{ transform: "translateZ(0)", isolation: "isolate" }}>
             <div
                 className="relative bg-[#0c0e17] w-full h-full sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:rounded-[28px] sm:border sm:border-white/10 sm:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col animate-fade-in-scale"
                 onClick={(e) => e.stopPropagation()}
@@ -208,7 +208,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
 
                 {/* ── Fullscreen Image Preview Modal ── */}
                 {showPreviewModal && preview && (
-                    <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex flex-col animate-fade-in" onClick={() => setShowPreviewModal(false)}>
+                    <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex flex-col animate-fade-in" onClick={() => setShowPreviewModal(false)} style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                         <div className="flex justify-end p-5">
                             <button className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white cursor-pointer hover:bg-white/20 active:scale-90 transition-all">
                                 <span className="material-symbols-outlined">close</span>

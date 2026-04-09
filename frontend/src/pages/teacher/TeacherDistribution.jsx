@@ -189,18 +189,13 @@ function TeacherDistributionContent() {
                                     {(data.my_total || 0).toLocaleString()}
                                 </span>
                             </div>
-                            <div className="mt-6 flex items-center gap-2">
-                                <div className="px-3 py-1 rounded-full bg-[#4af8e3]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-[10px] font-bold uppercase tracking-wider">
-                                    {MONTHS[month - 1]} {year}
-                                </div>
-                            </div>
                         </GlassCard>
 
                         {/* Total Collected */}
                         <GlassCard className="p-5 hover:bg-[#171924]/60 transition-colors border-white/5">
-                            <p className="text-[#aaaab7] text-[10px] font-bold uppercase tracking-[0.15em] mb-3 opacity-70">Total Volume</p>
+                            <p className="text-[#aaaab7] text-[10px] font-bold uppercase tracking-[0.15em] mb-3 opacity-70">Total Distributed</p>
                             <p className="text-[#f0f0fd] font-extrabold text-2xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                                ₹{data.total_collected.toLocaleString()}
+                                ₹{(data.total_collected || 0).toLocaleString()}
                             </p>
                             <div className="w-8 h-1 rounded-full bg-[#3b82f6]/40 mt-3" />
                         </GlassCard>
@@ -209,14 +204,14 @@ function TeacherDistributionContent() {
                         <GlassCard className="p-5 hover:bg-[#171924]/60 transition-colors border-white/5">
                             <p className="text-[#aaaab7] text-[10px] font-bold uppercase tracking-[0.15em] mb-3 opacity-70">Teachers Shared</p>
                             <p className="text-[#f0f0fd] font-extrabold text-2xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                                {data.teacher_totals.length}
+                                {data.total_teachers_shared || 0}
                             </p>
                             <div className="w-8 h-1 rounded-full bg-[#c799ff]/40 mt-3" />
                         </GlassCard>
                     </section>
 
                     {/* ═══ Tab Bar ═══ */}
-                    <div className="flex flex-col sm:flex-row gap-2 mb-6 p-1.5 rounded-[1.25rem] bg-[#171924]/60 backdrop-blur-[20px] border border-[#464752]/40 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+                    <div className="flex flex-col sm:flex-row gap-2 mb-6 p-1.5 rounded-[1.25rem] bg-[#171924]/60 backdrop-blur-[20px] border border-[#464752]/40 animate-fade-in-up" style={{ animationDelay: "100ms", transform: "translateZ(0)", isolation: "isolate", willChange: "transform", backfaceVisibility: "hidden" }}>
                         <button
                             onClick={() => setActiveTab("datewise")}
                             className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 cursor-pointer flex items-center justify-center gap-2

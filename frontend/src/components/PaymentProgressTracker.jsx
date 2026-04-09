@@ -247,8 +247,8 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
 
             {/* ── Status Message ── */}
             {status === "Pending_Verification" && (
-                <div className="mt-3 flex items-start gap-2 px-1">
-                    <span className="material-symbols-outlined text-[#4af8e3]/70 text-sm mt-0.5 shrink-0">info</span>
+                <div className="mt-3 flex items-start sm:items-center gap-2 px-1">
+                    <span className="material-symbols-outlined text-[#4af8e3]/70 text-sm mt-0.5 sm:mt-0 shrink-0">info</span>
                     <p className="text-[11px] sm:text-xs text-[#aaaab7] leading-relaxed">
                         Your payment for{" "}
                         <span className="font-semibold text-[#f0f0fd]">
@@ -260,8 +260,8 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
             )}
 
             {status === "Paid" && (
-                <div className="mt-3 flex items-start gap-2 px-1">
-                    <span className="material-symbols-outlined text-[#4af8e3] text-sm mt-0.5 shrink-0 material-symbols-filled">verified</span>
+                <div className="mt-3 flex items-start sm:items-center gap-2 px-1">
+                    <span className="material-symbols-outlined text-[#4af8e3] text-[15px] sm:text-base mt-0.5 sm:mt-0 shrink-0 material-symbols-filled">verified</span>
                     <p className="text-[11px] sm:text-xs text-[#4af8e3] leading-relaxed font-medium">
                         Payment for{" "}
                         <span className="font-bold text-[#f0f0fd]">
