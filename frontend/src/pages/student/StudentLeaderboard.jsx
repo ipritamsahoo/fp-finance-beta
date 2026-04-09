@@ -4,6 +4,7 @@ import StudentLayout from "@/components/StudentLayout";
 import ProfilePicture from "@/components/ProfilePicture";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useStudentTheme } from "@/context/StudentThemeContext";
 import { getYearOptions } from "@/lib/yearOptions";
 import ModernSelect from "@/components/ModernSelect";
 
@@ -20,19 +21,27 @@ function formatTime(isoString) {
 
 // ── Podium Avatar ──
 function PodiumAvatar({ entry, rank, size = "lg" }) {
+    const { theme } = useStudentTheme();
+    const isLight = theme === "light";
     const sizeMap = { lg: 96, md: 64 };
     const px = sizeMap[size] || 64;
 
     const borderGradients = {
-        1: "from-[#c799ff] via-[#4af8e3] to-[#bc87fe]",
+        1: isLight ? "from-[#7c3aed] via-[#0d9488] to-[#6d28d9]" : "from-[#c799ff] via-[#4af8e3] to-[#bc87fe]",
         2: "from-slate-400 to-transparent",
         3: "from-[#ff9dac] to-transparent",
     };
 
     const rankBadges = {
-        1: "bg-gradient-to-br from-[#c799ff] to-[#bc87fe] text-[#340064] ring-4 ring-[#0c0e17]",
-        2: "bg-slate-400 text-slate-900 ring-2 ring-[#0c0e17]",
-        3: "bg-[#fb899c] text-[#5b0a22] ring-2 ring-[#0c0e17]",
+        1: isLight
+            ? "bg-gradient-to-br from-[#7c3aed] to-[#6d28d9] text-white ring-4 ring-[#eef2ff]"
+            : "bg-gradient-to-br from-[#c799ff] to-[#bc87fe] text-[#340064] ring-4 ring-[#0c0e17]",
+        2: isLight
+            ? "bg-slate-400 text-white ring-2 ring-[#eef2ff]"
+            : "bg-slate-400 text-slate-900 ring-2 ring-[#0c0e17]",
+        3: isLight
+            ? "bg-[#fb899c] text-white ring-2 ring-[#eef2ff]"
+            : "bg-[#fb899c] text-[#5b0a22] ring-2 ring-[#0c0e17]",
     };
 
     return (
@@ -41,15 +50,15 @@ function PodiumAvatar({ entry, rank, size = "lg" }) {
                 {/* Crown for #1 */}
                 {rank === 1 && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
-                        <span className="material-symbols-outlined text-[#c799ff] text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1", color: isLight ? '#7c3aed' : '#c799ff' }}>
                             workspace_premium
                         </span>
                     </div>
                 )}
                 {/* Gradient ring */}
-                <div className={`rounded-full ${rank === 1 ? "p-[3px]" : "p-[2px]"} bg-gradient-to-b ${borderGradients[rank]} shadow-lg ${rank === 1 ? "shadow-[#c799ff]/20" : rank === 3 ? "shadow-[#ff9dac]/20" : "shadow-slate-900/40"}`}
+                <div className={`rounded-full ${rank === 1 ? "p-[3px]" : "p-[2px]"} bg-gradient-to-b ${borderGradients[rank]} shadow-lg ${rank === 1 ? (isLight ? "shadow-[#7c3aed]/20" : "shadow-[#c799ff]/20") : rank === 3 ? "shadow-[#ff9dac]/20" : "shadow-slate-900/40"}`}
                     style={{ width: px + 6, height: px + 6 }}>
-                    <div className="w-full h-full rounded-full overflow-hidden" style={{ border: `${rank === 1 ? 4 : 2}px solid #0c0e17` }}>
+                    <div className="w-full h-full rounded-full overflow-hidden" style={{ border: `${rank === 1 ? 4 : 2}px solid ${isLight ? '#eef2ff' : '#0c0e17'}` }}>
                         <ProfilePicture size={px} picUrl={entry.profile_pic_url} name={entry.student_name} />
                     </div>
                 </div>
@@ -61,11 +70,13 @@ function PodiumAvatar({ entry, rank, size = "lg" }) {
                 </div>
             </div>
             <div className="text-center">
-                <p className={`font-semibold text-[#f0f0fd] truncate max-w-[100px] ${rank === 1 ? "text-sm" : "text-xs"}`}
-                    style={rank === 1 ? { textShadow: "0 0 15px rgba(199,153,255,0.5)" } : {}}>
+                <p className={`font-semibold truncate max-w-[100px] ${rank === 1 ? "text-sm" : "text-xs"}`}
+                    style={{
+                        color: 'var(--st-text-primary)',
+                        ...(rank === 1 ? { textShadow: isLight ? '0 0 15px rgba(124,58,237,0.3)' : '0 0 15px rgba(199,153,255,0.5)' } : {})
+                    }}>
                     {entry.student_name}
                 </p>
-                {/* Time removed as requested */}
             </div>
         </div>
     );
@@ -75,6 +86,8 @@ function PodiumAvatar({ entry, rank, size = "lg" }) {
 // ── Main Content ──
 function StudentLeaderboardContent() {
     const { user } = useAuth();
+    const { theme } = useStudentTheme();
+    const isLight = theme === "light";
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -112,7 +125,7 @@ function StudentLeaderboardContent() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
+                <div className="w-10 h-10 border-4 rounded-full animate-spin" style={{ borderColor: `${isLight ? 'rgba(124,58,237,0.3)' : 'rgba(199,153,255,0.3)'}`, borderTopColor: isLight ? '#7c3aed' : '#c799ff' }} />
             </div>
         );
     }
@@ -120,11 +133,15 @@ function StudentLeaderboardContent() {
     if (error) {
         return (
             <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff9dac] text-sm">
+                <div className="p-4 rounded-2xl text-sm"
+                    style={{ backgroundColor: isLight ? 'rgba(239,68,68,0.08)' : 'rgba(255,110,132,0.1)', border: `1px solid ${isLight ? 'rgba(239,68,68,0.15)' : 'rgba(255,110,132,0.2)'}`, color: isLight ? '#ef4444' : '#ff9dac' }}
+                >
                     {error}
                 </div>
                 <button onClick={() => fetchLeaderboard(month, year)}
-                    className="px-6 py-2 rounded-full bg-[#c799ff] text-[#440080] font-bold text-sm cursor-pointer">
+                    className="px-6 py-2 rounded-full font-bold text-sm cursor-pointer"
+                    style={{ backgroundColor: isLight ? '#7c3aed' : '#c799ff', color: isLight ? 'white' : '#440080' }}
+                >
                     Retry
                 </button>
             </div>
@@ -135,7 +152,6 @@ function StudentLeaderboardContent() {
 
     const top3 = data.top5.filter(e => e.rank <= 3);
     const rank4and5 = data.top5.filter(e => e.rank > 3);
-    // Keep exact length of 3 to preserve grid columns (Rank 2, Rank 1, Rank 3)
     const podiumOrder = [
         { rank: 2, entry: top3.find(e => e.rank === 2) },
         { rank: 1, entry: top3.find(e => e.rank === 1) },
@@ -143,6 +159,7 @@ function StudentLeaderboardContent() {
     ];
     
     const hasAnyPodium = top3.length > 0;
+    const primaryColor = isLight ? '#7c3aed' : '#c799ff';
 
     return (
         <div className="space-y-8 pt-2 md:pt-0">
@@ -153,24 +170,30 @@ function StudentLeaderboardContent() {
                     value={month}
                     onChange={(e) => setMonth(Number(e.target.value))}
                     options={MONTH_FULL.map((m, i) => ({ value: i + 1, label: MONTH_NAMES[i] }))}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#f0f0fd] cursor-pointer hover:bg-white/10 transition-all min-w-[120px]"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium cursor-pointer transition-all min-w-[120px]"
+                    style={{ backgroundColor: 'var(--st-icon-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-primary)' }}
                 />
                 <ModernSelect
                     icon="event"
                     value={year}
                     onChange={(e) => setYear(Number(e.target.value))}
                     options={yearOptions}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#f0f0fd] cursor-pointer hover:bg-white/10 transition-all min-w-[100px]"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium cursor-pointer transition-all min-w-[100px]"
+                    style={{ backgroundColor: 'var(--st-icon-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-primary)' }}
                 />
             </div>
 
             {/* Hero Section */}
             <section className="text-center space-y-2 animate-fade-in-scale">
-                <h2 className="text-4xl font-extrabold tracking-tight text-[#f0f0fd]"
-                    style={{ fontFamily: "'Manrope', sans-serif", textShadow: "0 0 15px rgba(199,153,255,0.5)" }}>
+                <h2 className="text-4xl font-extrabold tracking-tight"
+                    style={{
+                        fontFamily: "'Manrope', sans-serif",
+                        color: 'var(--st-text-primary)',
+                        textShadow: isLight ? '0 0 15px rgba(124,58,237,0.3)' : '0 0 15px rgba(199,153,255,0.5)',
+                    }}>
                     Fastest Payers
                 </h2>
-                <p className="text-[#aaaab7] text-sm font-medium">
+                <p className="text-sm font-medium" style={{ color: 'var(--st-text-secondary)' }}>
                     {MONTH_FULL[month - 1]} {year} Billing Cycle
                 </p>
             </section>
@@ -184,7 +207,7 @@ function StudentLeaderboardContent() {
                                 <PodiumAvatar entry={slot.entry} rank={slot.rank} size={slot.rank === 1 ? "lg" : "md"} />
                             ) : (
                                 <div className="flex flex-col items-center justify-end h-32 opacity-20">
-                                    <div className="w-16 h-16 rounded-full border border-dashed border-white/20" />
+                                    <div className="w-16 h-16 rounded-full border border-dashed" style={{ borderColor: 'var(--st-input-border)' }} />
                                 </div>
                             )}
                         </div>
@@ -192,40 +215,39 @@ function StudentLeaderboardContent() {
                 </section>
             ) : (
                 <section className="text-center py-10 animate-fade-in-scale">
-                    <span className="material-symbols-outlined text-6xl text-[#737580] mb-3 block">emoji_events</span>
-                    <p className="text-lg font-medium text-[#aaaab7]">No paid entries yet</p>
-                    <p className="text-sm text-[#737580] mt-1">Be the first to pay and claim the #1 spot!</p>
+                    <span className="material-symbols-outlined text-6xl mb-3 block" style={{ color: 'var(--st-text-muted)' }}>emoji_events</span>
+                    <p className="text-lg font-medium" style={{ color: 'var(--st-text-secondary)' }}>No paid entries yet</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--st-text-muted)' }}>Be the first to pay and claim the #1 spot!</p>
                 </section>
             )}
 
             {/* Ranking Details (#4, #5) */}
             {rank4and5.length > 0 && (
                 <section className="space-y-4 animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
-                    {/* Heading removed as requested */}
                     <div className="space-y-3">
                         {rank4and5.map((entry, idx) => (
                             <div key={entry.rank}
-                                className="glass-card-student rounded-3xl p-4 flex items-center gap-4 hover:border-[#c799ff]/30 transition-all animate-fade-in-scale"
+                                className="glass-card-student rounded-3xl p-4 flex items-center gap-4 transition-all animate-fade-in-scale"
                                 style={{
                                     animationDelay: `${300 + idx * 80}ms`,
                                     transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden"
                                 }}>
-                                <span className="text-[#aaaab7] font-bold w-6" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                <span className="font-bold w-6" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-secondary)' }}>
                                     #{entry.rank}
                                 </span>
-                                <div className="w-12 h-12 rounded-2xl overflow-hidden bg-[#222532]">
+                                <div className="w-12 h-12 rounded-2xl overflow-hidden" style={{ backgroundColor: isLight ? '#e2e8f0' : '#222532' }}>
                                     <ProfilePicture size={48} picUrl={entry.profile_pic_url} name={entry.student_name} />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="font-bold text-[#f0f0fd]">{entry.student_name}</p>
-                                    {/* Subtitle removed as requested */}
+                                    <p className="font-bold" style={{ color: 'var(--st-text-primary)' }}>{entry.student_name}</p>
                                 </div>
-                                <div className={`flex items-center gap-1 px-3 py-1 rounded-full
-                                    ${entry.rank <= 5 ? "bg-[#4af8e3]/10" : "bg-white/5"}`}>
+                                <div className="flex items-center gap-1 px-3 py-1 rounded-full"
+                                    style={{ backgroundColor: entry.rank <= 5 ? 'var(--st-accent-bg)' : 'var(--st-icon-bg)' }}
+                                >
                                     {entry.rank <= 5 && (
-                                        <span className="material-symbols-outlined text-[#4af8e3] text-xs">trending_up</span>
+                                        <span className="material-symbols-outlined text-xs" style={{ color: 'var(--st-accent)' }}>trending_up</span>
                                     )}
-                                    <span className={`text-[10px] font-bold ${entry.rank <= 5 ? "text-[#4af8e3]" : "text-[#aaaab7]"}`}>
+                                    <span className="text-[10px] font-bold" style={{ color: entry.rank <= 5 ? 'var(--st-accent)' : 'var(--st-text-secondary)' }}>
                                         {entry.rank <= 5 ? "TOP 5" : "LOCKED IN"}
                                     </span>
                                 </div>
@@ -238,52 +260,75 @@ function StudentLeaderboardContent() {
             {/* Your Current Position */}
             <section className="animate-fade-in-scale" style={{ animationDelay: "400ms" }}>
                 {data.is_current_paid ? (
-                    <div className="p-4 rounded-3xl bg-gradient-to-r from-[#c799ff]/20 to-[#4af8e3]/10 border border-[#c799ff]/30 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)]">
+                    <div
+                        className="p-4 rounded-3xl backdrop-blur-2xl"
+                        style={{
+                            background: isLight
+                                ? 'linear-gradient(to right, rgba(124,58,237,0.1), rgba(13,148,136,0.08))'
+                                : 'linear-gradient(to right, rgba(199,153,255,0.2), rgba(74,248,227,0.1))',
+                            border: `1px solid ${isLight ? 'rgba(124,58,237,0.2)' : 'rgba(199,153,255,0.3)'}`,
+                            boxShadow: isLight ? '0 4px 20px rgba(0,0,0,0.04)' : '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
+                        }}
+                    >
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full bg-[#c799ff]/20 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-[#c799ff]">person_pin</span>
+                                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: isLight ? 'rgba(124,58,237,0.1)' : 'rgba(199,153,255,0.2)' }}>
+                                    <span className="material-symbols-outlined" style={{ color: primaryColor }}>person_pin</span>
                                 </div>
                                 <div>
-                                    <p className="text-xs font-medium text-[#bc87fe]">Your Current Rank</p>
-                                    <p className="text-lg font-bold text-[#f0f0fd]">
+                                    <p className="text-xs font-medium" style={{ color: isLight ? '#6d28d9' : '#bc87fe' }}>Your Current Rank</p>
+                                    <p className="text-lg font-bold" style={{ color: 'var(--st-text-primary)' }}>
                                         #{data.current_position}
-                                        <span className="text-xs font-normal text-[#aaaab7] ml-2">
+                                        <span className="text-xs font-normal ml-2" style={{ color: 'var(--st-text-secondary)' }}>
                                             among {data.total_students} students
                                         </span>
                                     </p>
                                 </div>
                             </div>
                             {data.current_position <= 5 && (
-                                <span className="material-symbols-outlined text-[#4af8e3] text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1", color: 'var(--st-accent)' }}>
                                     emoji_events
                                 </span>
                             )}
                         </div>
                     </div>
                 ) : data.has_bill ? (
-                    <div className="p-4 rounded-3xl bg-[#ff6e84]/10 backdrop-blur-2xl border border-[#ff6e84]/30 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]">
+                    <div
+                        className="p-4 rounded-3xl backdrop-blur-2xl"
+                        style={{
+                            backgroundColor: isLight ? 'rgba(239,68,68,0.06)' : 'rgba(255,110,132,0.1)',
+                            border: `1px solid ${isLight ? 'rgba(239,68,68,0.15)' : 'rgba(255,110,132,0.3)'}`,
+                            boxShadow: isLight ? '0 4px 20px rgba(0,0,0,0.04)' : '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+                        }}
+                    >
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-[#ff6e84]/20 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-[#ff6e84]">lock</span>
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: isLight ? 'rgba(239,68,68,0.1)' : 'rgba(255,110,132,0.2)' }}>
+                                <span className="material-symbols-outlined" style={{ color: isLight ? '#ef4444' : '#ff6e84' }}>lock</span>
                             </div>
                             <div>
-                                <p className="text-sm font-semibold text-[#ff9dac]">Position Locked</p>
-                                <p className="text-xs text-[#aaaab7] mt-0.5">
+                                <p className="text-sm font-semibold" style={{ color: isLight ? '#ef4444' : '#ff9dac' }}>Position Locked</p>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--st-text-secondary)' }}>
                                     Pay your bill first to see your ranking position
                                 </p>
                             </div>
                         </div>
                     </div>
                 ) : (
-                    <div className="p-4 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]">
+                    <div
+                        className="p-4 rounded-3xl backdrop-blur-2xl"
+                        style={{
+                            backgroundColor: 'var(--st-icon-bg)',
+                            border: `1px solid var(--st-input-border)`,
+                            boxShadow: isLight ? '0 4px 20px rgba(0,0,0,0.04)' : '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+                        }}
+                    >
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-[#737580]">info</span>
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--st-icon-bg)' }}>
+                                <span className="material-symbols-outlined" style={{ color: 'var(--st-text-muted)' }}>info</span>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-[#aaaab7]">No bill for this cycle</p>
-                                <p className="text-xs text-[#737580] mt-0.5">You don't have a payment record for this month</p>
+                                <p className="text-sm font-medium" style={{ color: 'var(--st-text-secondary)' }}>No bill for this cycle</p>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--st-text-muted)' }}>You don't have a payment record for this month</p>
                             </div>
                         </div>
                     </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import gsap from "gsap";
+import { useStudentTheme } from "@/context/StudentThemeContext";
 
 const STAGES = [
     { key: "requested", label: "Requested", sub: "Receipt Uploaded", icon: "check" },
@@ -8,9 +9,11 @@ const STAGES = [
 ];
 
 // ── Confetti Burst ─────────────────────────────────────────
-function createConfetti(container) {
+function createConfetti(container, isLight) {
     if (!container) return;
-    const colors = ["#4af8e3", "#20B2AA", "#3b82f6", "#c799ff", "#fff", "#ff9dac"];
+    const colors = isLight
+        ? ["#0d9488", "#059669", "#3b82f6", "#7c3aed", "#1a1a2e", "#ef4444"]
+        : ["#4af8e3", "#20B2AA", "#3b82f6", "#c799ff", "#fff", "#ff9dac"];
     const particles = [];
 
     for (let i = 0; i < 28; i++) {
@@ -43,6 +46,9 @@ function createConfetti(container) {
 
 // ── Main Component ─────────────────────────────────────────
 export default function PaymentProgressTracker({ status, mode, month, year, paused }) {
+    const { theme } = useStudentTheme();
+    const isLight = theme === "light";
+
     const trackFillRef = useRef(null);
     const nodesRef = useRef([]);
     const confettiAnchorRef = useRef(null);
@@ -65,6 +71,10 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
 
     // Determine target fill width based on status
     const targetFill = activeStep >= 2 ? "100%" : activeStep >= 1 ? "50%" : "0%";
+
+    // Pulse glow color based on theme
+    const pulseColor = isLight ? "rgba(13,148,136,0.35)" : "rgba(16,185,129,0.45)";
+    const pulseColorDim = isLight ? "rgba(13,148,136,0.1)" : "rgba(16,185,129,0.15)";
 
     useEffect(() => {
         if (paused) return;
@@ -106,7 +116,7 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
                     tl.call(() => {
                         setVisualStep(1);
                         pulseAnimRef.current = gsap.to(nodes[1], {
-                            boxShadow: "0 0 18px 6px rgba(16,185,129,0.45), 0 0 40px 12px rgba(16,185,129,0.15)",
+                            boxShadow: `0 0 18px 6px ${pulseColor}, 0 0 40px 12px ${pulseColorDim}`,
                             duration: 1.2,
                             yoyo: true,
                             repeat: -1,
@@ -119,7 +129,7 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
                 setVisualStep(1);
                 if (!pulseAnimRef.current && nodes[1]) {
                     pulseAnimRef.current = gsap.to(nodes[1], {
-                        boxShadow: "0 0 18px 6px rgba(16,185,129,0.45), 0 0 40px 12px rgba(16,185,129,0.15)",
+                        boxShadow: `0 0 18px 6px ${pulseColor}, 0 0 40px 12px ${pulseColorDim}`,
                         duration: 1.2,
                         yoyo: true,
                         repeat: -1,
@@ -127,7 +137,7 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
                     });
                 }
             }
-        } 
+        }
         else if (activeStep >= 2) {
             // Instantly ensure node 1 is green if we skipped stage 1
             if (visualStep < 1) setVisualStep(1);
@@ -143,7 +153,7 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
 
                 tl.call(() => {
                     setVisualStep(2);
-                    createConfetti(confettiAnchorRef.current);
+                    createConfetti(confettiAnchorRef.current, isLight);
                 }, null, "-=0.2");
             } else {
                 setVisualStep(2);
@@ -158,6 +168,30 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
     // Don't render tracker for Unpaid
     if (status === "Unpaid") return null;
 
+    // Node colors based on theme
+    const activeNodeGradient = isLight
+        ? "linear-gradient(to bottom right, #0d9488, #059669)"
+        : "linear-gradient(to bottom right, #4af8e3, #20B2AA)";
+    const activeNodeBorder = isLight ? "rgba(13,148,136,0.5)" : "rgba(74,248,227,0.5)";
+    const activeNodeShadow = isLight ? "0 0 12px 3px rgba(13,148,136,0.2)" : "0 0 12px 3px rgba(74,248,227,0.3)";
+
+    const verifyingNodeGradient = isLight
+        ? "linear-gradient(to bottom right, #059669, #047857)"
+        : "linear-gradient(to bottom right, #10b981, #059669)";
+    const verifyingNodeBorder = isLight ? "rgba(5,150,105,0.6)" : "rgba(16,185,129,0.8)";
+
+    const approvedNodeGradient = isLight
+        ? "linear-gradient(to bottom right, #059669, #047857)"
+        : "linear-gradient(to bottom right, #20B2AA, #008B8B)";
+    const approvedNodeBorder = isLight ? "#0d9488" : "#4af8e3";
+
+    const fillGradient = isLight
+        ? "linear-gradient(90deg, #0d9488, #059669, #3b82f6)"
+        : "linear-gradient(90deg, #4af8e3, #20B2AA, #1E90FF)";
+
+    const labelActiveColor = isLight ? '#0d9488' : '#4af8e3';
+    const labelActiveSubColor = isLight ? 'rgba(13,148,136,0.5)' : 'rgba(74,248,227,0.6)';
+
     return (
         <div ref={containerRef} className="w-full mt-1">
             {/* ── Glassmorphism Tracker Container ── */}
@@ -165,14 +199,15 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
                 {/* ── Track ── */}
                 <div className="relative flex items-center justify-between w-full">
                     {/* Background track line (contains the fill as a child) */}
-                    <div className="absolute top-[18px] sm:top-[22px] left-[16.66%] right-[16.66%] h-[3px] bg-[#2a2d3a] rounded-full overflow-hidden">
+                    <div
+                        className="absolute top-[18px] sm:top-[22px] left-[16.66%] right-[16.66%] h-[3px] rounded-full overflow-hidden"
+                        style={{ backgroundColor: 'var(--st-tracker-track)' }}
+                    >
                         {/* Animated fill line — width % is now relative to the track */}
                         <div
                             ref={trackFillRef}
                             className="h-full rounded-full"
-                            style={{
-                                background: "linear-gradient(90deg, #4af8e3, #20B2AA, #1E90FF)",
-                            }}
+                            style={{ background: fillGradient }}
                         />
                     </div>
 
@@ -181,6 +216,32 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
                         const isActive = idx <= visualStep;
                         const isCurrent = idx === visualStep && activeStep === visualStep;
                         const isApprovedDone = idx === 2 && visualStep >= 2;
+
+                        let nodeStyle = {};
+                        if (isActive && idx < 1) {
+                            nodeStyle = {
+                                background: activeNodeGradient,
+                                borderColor: activeNodeBorder,
+                                boxShadow: activeNodeShadow,
+                            };
+                        } else if (isActive && idx === 1) {
+                            nodeStyle = {
+                                background: verifyingNodeGradient,
+                                borderColor: verifyingNodeBorder,
+                            };
+                        } else if (!isActive) {
+                            nodeStyle = {
+                                backgroundColor: 'var(--st-tracker-node-inactive-bg)',
+                                borderColor: 'var(--st-tracker-node-inactive-border)',
+                            };
+                        }
+
+                        if (isApprovedDone) {
+                            nodeStyle = {
+                                background: approvedNodeGradient,
+                                borderColor: approvedNodeBorder,
+                            };
+                        }
 
                         return (
                             <div
@@ -191,24 +252,15 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
                                 {/* Node circle */}
                                 <div
                                     ref={(el) => setNodeRef(el, idx)}
-                                    className={`
-                                        w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center
-                                        border-2 transition-colors duration-500 relative
-                                        ${isActive && idx < 1
-                                            ? "bg-gradient-to-br from-[#4af8e3] to-[#20B2AA] border-[#4af8e3]/50 shadow-[0_0_12px_3px_rgba(74,248,227,0.3)]"
-                                            : isActive && idx === 1
-                                                ? "bg-gradient-to-br from-[#10b981] to-[#059669] border-[#10b981]/80"
-                                                : "bg-[#1a1d2e] border-[#2a2d3a]"
-                                        }
-                                        ${isApprovedDone ? "!bg-gradient-to-br !from-[#20B2AA] !to-[#008B8B] !border-[#4af8e3]" : ""}
-                                    `}
+                                    className="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center border-2 transition-colors duration-500 relative"
+                                    style={nodeStyle}
                                 >
                                     {isActive ? (
                                         <span className="material-symbols-outlined text-white text-base sm:text-lg material-symbols-filled drop-shadow-md">
                                             {idx === 1 && visualStep === 1 ? "hourglass_top" : "check"}
                                         </span>
                                     ) : (
-                                        <span className="material-symbols-outlined text-[#464752] text-base sm:text-lg">
+                                        <span className="material-symbols-outlined text-base sm:text-lg" style={{ color: 'var(--st-tracker-label-inactive)' }}>
                                             {stage.icon}
                                         </span>
                                     )}
@@ -224,16 +276,14 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
 
                                 {/* Labels */}
                                 <span
-                                    className={`mt-2 text-[10px] sm:text-xs font-bold tracking-wide leading-tight text-center
-                                        ${isActive ? "text-[#4af8e3]" : "text-[#464752]"}
-                                    `}
+                                    className="mt-2 text-[10px] sm:text-xs font-bold tracking-wide leading-tight text-center"
+                                    style={{ color: isActive ? labelActiveColor : 'var(--st-tracker-label-inactive)' }}
                                 >
                                     {stage.label}
                                 </span>
                                 <span
-                                    className={`text-[8px] sm:text-[10px] leading-tight text-center mt-0.5
-                                        ${isActive ? "text-[#4af8e3]/60" : "text-[#363848]"}
-                                    `}
+                                    className="text-[8px] sm:text-[10px] leading-tight text-center mt-0.5"
+                                    style={{ color: isActive ? labelActiveSubColor : 'var(--st-tracker-label-inactive)' }}
                                 >
                                     {idx === 0
                                         ? (mode === "offline" ? "Offline Mode" : "Screenshot Uploaded")
@@ -248,10 +298,10 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
             {/* ── Status Message ── */}
             {status === "Pending_Verification" && (
                 <div className="mt-3 flex items-start sm:items-center gap-2 px-1">
-                    <span className="material-symbols-outlined text-[#4af8e3]/70 text-sm mt-0.5 sm:mt-0 shrink-0">info</span>
-                    <p className="text-[11px] sm:text-xs text-[#aaaab7] leading-relaxed">
+                    <span className="material-symbols-outlined text-sm mt-0.5 sm:mt-0 shrink-0" style={{ color: labelActiveSubColor }}>info</span>
+                    <p className="text-[11px] sm:text-xs leading-relaxed" style={{ color: 'var(--st-text-secondary)' }}>
                         Your payment for{" "}
-                        <span className="font-semibold text-[#f0f0fd]">
+                        <span className="font-semibold" style={{ color: 'var(--st-text-primary)' }}>
                             {month} {year}
                         </span>{" "}
                         is undergoing verification. Track progress above.
@@ -261,10 +311,10 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
 
             {status === "Paid" && (
                 <div className="mt-3 flex items-start sm:items-center gap-2 px-1">
-                    <span className="material-symbols-outlined text-[#4af8e3] text-[15px] sm:text-base mt-0.5 sm:mt-0 shrink-0 material-symbols-filled">verified</span>
-                    <p className="text-[11px] sm:text-xs text-[#4af8e3] leading-relaxed font-medium">
+                    <span className="material-symbols-outlined text-[15px] sm:text-base mt-0.5 sm:mt-0 shrink-0 material-symbols-filled" style={{ color: 'var(--st-accent)' }}>verified</span>
+                    <p className="text-[11px] sm:text-xs leading-relaxed font-medium" style={{ color: 'var(--st-accent)' }}>
                         Payment for{" "}
-                        <span className="font-bold text-[#f0f0fd]">
+                        <span className="font-bold" style={{ color: 'var(--st-text-primary)' }}>
                             {month} {year}
                         </span>{" "}
                         has been verified and settled!

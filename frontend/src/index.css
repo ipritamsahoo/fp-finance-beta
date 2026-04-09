@@ -425,8 +425,14 @@ select option {
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-/* Student color palette CSS variables */
-.student-theme {
+/* ════════════════════════════════════════════
+   STUDENT THEME — CSS Custom Properties
+   Dark (default) + Light mode via data-theme
+   ════════════════════════════════════════════ */
+
+/* Dark theme (default) */
+.student-theme,
+[data-theme="dark"] {
     --st-surface: #0c0e17;
     --st-surface-container: #171924;
     --st-surface-high: #1c1f2b;
@@ -439,6 +445,163 @@ select option {
     --st-on-surface: #f0f0fd;
     --st-on-surface-variant: #aaaab7;
     --st-outline: #737580;
+
+    /* Extended dark variables */
+    --st-page-bg: #0c0e17;
+    --st-text-primary: #f0f0fd;
+    --st-text-secondary: #aaaab7;
+    --st-text-muted: #737580;
+    --st-accent: #4af8e3;
+    --st-accent-dark: #006a60;
+    --st-accent-bg: rgba(74, 248, 227, 0.1);
+    --st-blue: #3b82f6;
+    --st-blue-bg: rgba(59, 130, 246, 0.1);
+    --st-card-bg: radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.04) 100%);
+    --st-card-border: rgba(255, 255, 255, 0.1);
+    --st-card-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    --st-nav-bg: rgba(17, 20, 39, 0.7);
+    --st-nav-border: rgba(42, 48, 85, 0.5);
+    --st-nav-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --st-nav-indicator: #3b82f6;
+    --st-nav-icon-inactive: rgba(59, 89, 152, 0.5);
+    --st-divider: rgba(255, 255, 255, 0.05);
+    --st-input-bg: rgba(255, 255, 255, 0.03);
+    --st-input-border: rgba(255, 255, 255, 0.1);
+    --st-hover-bg: rgba(255, 255, 255, 0.05);
+    --st-icon-bg: rgba(255, 255, 255, 0.05);
+    --st-progress-bg: rgba(255, 255, 255, 0.05);
+    --st-tracker-bg: radial-gradient(ellipse at 30% 20%, rgba(74, 248, 227, 0.04) 0%, rgba(255, 255, 255, 0.03) 60%, rgba(12, 14, 23, 0.5) 100%);
+    --st-tracker-border: rgba(74, 248, 227, 0.08);
+    --st-tracker-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --st-tracker-track: #2a2d3a;
+    --st-tracker-node-inactive-bg: #1a1d2e;
+    --st-tracker-node-inactive-border: #2a2d3a;
+    --st-tracker-label-inactive: #464752;
+    --st-sidebar-bg: rgba(12, 14, 23, 0.95);
+    --st-logo-border: rgba(59, 130, 246, 0.4);
+    --st-logo-shadow: rgba(59, 130, 246, 0.2);
+}
+
+/* Light theme */
+[data-theme="light"] {
+    --st-surface: #eef2ff;
+    --st-surface-container: #f8fafc;
+    --st-surface-high: #ffffff;
+    --st-primary: #7c3aed;
+    --st-primary-dim: #6d28d9;
+    --st-secondary: #0d9488;
+    --st-secondary-dim: #0f766e;
+    --st-error: #ef4444;
+    --st-tertiary: #f87171;
+    --st-on-surface: #1a1a2e;
+    --st-on-surface-variant: #6b7280;
+    --st-outline: #9ca3af;
+
+    /* Extended light variables — TRUE GLASSMORPHISM */
+    --st-page-bg: #eef2ff;
+    --st-text-primary: #1a1a2e;
+    --st-text-secondary: #6b7280;
+    --st-text-muted: #9ca3af;
+    --st-accent: #0d9488;
+    --st-accent-dark: #0f766e;
+    --st-accent-bg: rgba(13, 148, 136, 0.1);
+    --st-blue: #3b82f6;
+    --st-blue-bg: rgba(59, 130, 246, 0.08);
+
+    /* ▼ Cards: LOW opacity (0.45) = see-through frosted glass ▼ */
+    --st-card-bg: rgba(255, 255, 255, 0.45);
+    --st-card-border: rgba(255, 255, 255, 0.55);
+    --st-card-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.06),
+        0 2px 8px rgba(0, 0, 0, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+    /* ▼ Nav bars: semi-transparent frosted glass ▼ */
+    --st-nav-bg: rgba(255, 255, 255, 0.42);
+    --st-nav-border: rgba(255, 255, 255, 0.5);
+    --st-nav-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.07),
+        0 2px 6px rgba(0, 0, 0, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    --st-nav-indicator: #0d9488;
+    --st-nav-icon-inactive: rgba(100, 116, 139, 0.5);
+    --st-divider: rgba(0, 0, 0, 0.06);
+    --st-input-bg: rgba(255, 255, 255, 0.35);
+    --st-input-border: rgba(255, 255, 255, 0.5);
+    --st-hover-bg: rgba(255, 255, 255, 0.25);
+    --st-icon-bg: rgba(255, 255, 255, 0.35);
+    --st-progress-bg: rgba(0, 0, 0, 0.06);
+
+    /* ▼ Tracker: transparent glass ▼ */
+    --st-tracker-bg: rgba(255, 255, 255, 0.4);
+    --st-tracker-border: rgba(255, 255, 255, 0.5);
+    --st-tracker-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    --st-tracker-track: rgba(0, 0, 0, 0.08);
+    --st-tracker-node-inactive-bg: rgba(255, 255, 255, 0.5);
+    --st-tracker-node-inactive-border: rgba(0, 0, 0, 0.08);
+    --st-tracker-label-inactive: #94a3b8;
+
+    /* ▼ Sidebar: frosted glass ▼ */
+    --st-sidebar-bg: rgba(255, 255, 255, 0.5);
+    --st-logo-border: rgba(13, 148, 136, 0.4);
+    --st-logo-shadow: rgba(13, 148, 136, 0.15);
+}
+
+/* ═══════════════════════════════════════════════
+   LIGHT MODE — Vibrant Ambient Blobs
+   These colored blobs are what makes glassmorphism
+   look alive — they SHOW THROUGH the frosted cards
+   ═══════════════════════════════════════════════ */
+[data-theme="light"] .student-ambient-bg {
+    background: linear-gradient(135deg, #eef2ff 0%, #dbeafe 25%, #ede9fe 50%, #fce7f3 75%, #eef2ff 100%) !important;
+}
+
+[data-theme="light"] .student-ambient-bg .ambient-blob-1 {
+    background: radial-gradient(circle, rgba(99, 165, 255, 0.50) 0%, rgba(147, 197, 253, 0.20) 50%, transparent 70%) !important;
+}
+
+[data-theme="light"] .student-ambient-bg .ambient-blob-2 {
+    background: radial-gradient(circle, rgba(167, 139, 250, 0.40) 0%, rgba(196, 181, 253, 0.15) 50%, transparent 70%) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   LIGHT MODE — True Frosted Glass Cards
+   backdrop-filter: blur(24px) is the KEY ingredient
+   ═══════════════════════════════════════════════ */
+[data-theme="light"] .glass-card-student {
+    background: var(--st-card-bg) !important;
+    border: 1px solid var(--st-card-border) !important;
+    box-shadow: var(--st-card-shadow) !important;
+    backdrop-filter: blur(24px) saturate(1.6) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
+}
+
+[data-theme="light"] .glass-card-student:hover {
+    background: rgba(255, 255, 255, 0.55) !important;
+    border-color: rgba(255, 255, 255, 0.65) !important;
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.07),
+        0 4px 12px rgba(0, 0, 0, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   LIGHT MODE — Frosted Glass Tracker
+   ═══════════════════════════════════════════════ */
+[data-theme="light"] .glass-tracker {
+    background: var(--st-tracker-bg) !important;
+    border: 1px solid var(--st-tracker-border) !important;
+    box-shadow: var(--st-tracker-shadow) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(1.5) !important;
+}
+
+/* ── Light theme skeleton loader ── */
+[data-theme="light"] .skeleton-loader {
+    background: linear-gradient(-45deg, rgba(226, 232, 240, 0.6) 25%, rgba(241, 245, 249, 0.8) 50%, rgba(226, 232, 240, 0.6) 75%);
+    background-size: 400% 400%;
 }
 
 /* Fade-in scale animation for student cards — translateZ(0) preserved every frame */

@@ -7,6 +7,7 @@ import PaymentProgressTracker from "@/components/PaymentProgressTracker";
 import BadgeCelebrationOverlay from "@/components/BadgeCelebrationOverlay";
 import { api, apiFetch } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useStudentTheme } from "@/context/StudentThemeContext";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { generateReceiptPDF } from "@/lib/pdfUtils";
@@ -26,6 +27,8 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
     const [submitting, setSubmitting] = useState(false);
     const [upiNotice, setUpiNotice] = useState(false);
     const [showPreviewModal, setShowPreviewModal] = useState(false);
+    const { theme } = useStudentTheme();
+    const isLight = theme === "light";
 
     const handleFileChange = (e) => {
         const selected = e.target.files?.[0];
@@ -58,27 +61,54 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
     if (!payment) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] bg-[#0c0e17] flex flex-col sm:bg-black/80 sm:backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose} style={{ transform: "translateZ(0)", isolation: "isolate" }}>
+        <div
+            className="fixed inset-0 z-[100] flex flex-col sm:items-center sm:justify-center"
+            onClick={onClose}
+            style={{
+                backgroundColor: isLight ? '#eef2ff' : '#0c0e17',
+                transform: "translateZ(0)", isolation: "isolate"
+            }}
+        >
             <div
-                className="relative bg-[#0c0e17] w-full h-full sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:rounded-[28px] sm:border sm:border-white/10 sm:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col animate-fade-in-scale"
+                className="relative w-full h-full sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:rounded-[28px] flex flex-col animate-fade-in-scale overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
+                style={{
+                    backgroundColor: isLight ? 'rgba(255,255,255,0.45)' : 'rgba(12,14,23,0.7)',
+                    border: isLight ? '1px solid rgba(255,255,255,0.6)' : '1px solid rgba(255,255,255,0.1)',
+                    boxShadow: isLight
+                        ? '0 24px 48px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8)'
+                        : '0 24px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
+                    backdropFilter: 'blur(32px) saturate(1.8)',
+                    WebkitBackdropFilter: 'blur(32px) saturate(1.8)',
+                    transform: "translateZ(0)", isolation: "isolate"
+                }}
             >
                 {/* ── Header Bar ── */}
-                <div className="flex items-center gap-3 px-4 h-16 border-b border-white/5 shrink-0 bg-gradient-to-r from-[#0c0e17] via-[#111427] to-[#0c0e17]">
+                <div
+                    className="flex items-center gap-3 px-4 h-16 shrink-0"
+                    style={{
+                        borderBottom: `1px solid var(--st-divider)`,
+                        background: isLight
+                            ? 'linear-gradient(to right, rgba(255,255,255,0.2), rgba(240,244,255,0.4), rgba(255,255,255,0.2))'
+                            : 'linear-gradient(to right, rgba(12,14,23,0.4), rgba(17,20,39,0.6), rgba(12,14,23,0.4))',
+                    }}
+                >
                     <button onClick={onClose}
-                        className="w-10 h-10 rounded-full hover:bg-white/5 flex items-center justify-center text-[#aaaab7] active:scale-90 transition-all cursor-pointer">
+                        className="w-10 h-10 rounded-full flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                        style={{ color: 'var(--st-text-secondary)' }}
+                    >
                         <span className="material-symbols-outlined">arrow_back</span>
                     </button>
                     <div className="flex-1 flex items-center justify-between">
                         <div>
-                            <h3 className="text-[#f0f0fd] font-bold text-lg leading-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>Secure Checkout</h3>
-                            <p className="text-[#4af8e3] text-[11px] font-medium tracking-wide flex items-center gap-1">
+                            <h3 className="font-bold text-lg leading-tight" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>Secure Checkout</h3>
+                            <p className="text-[11px] font-medium tracking-wide flex items-center gap-1" style={{ color: 'var(--st-accent)' }}>
                                 <span className="material-symbols-outlined text-[12px] material-symbols-filled">verified</span> 100% SECURE
                             </p>
                         </div>
                         <div className="text-right">
-                            <h3 className="text-[#f0f0fd] font-extrabold text-xl leading-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>₹{payment.amount}</h3>
-                            <p className="text-[#aaaab7] text-[11px] uppercase tracking-wider">{MONTHS[payment.month - 1]} {payment.year}</p>
+                            <h3 className="font-extrabold text-xl leading-tight" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>₹{payment.amount}</h3>
+                            <p className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--st-text-secondary)' }}>{MONTHS[payment.month - 1]} {payment.year}</p>
                         </div>
                     </div>
                 </div>
@@ -87,12 +117,12 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                 <div className="flex-1 overflow-y-auto overscroll-contain px-5 pt-4">
 
                 {/* Divider */}
-                <div className="mb-4 border-t border-white/5" />
+                <div className="mb-4" style={{ borderTop: `1px solid var(--st-divider)` }} />
 
                 {/* Step 1: Make Payment */}
                 <div>
-                    <p className="text-[#f0f0fd] text-sm font-semibold mb-3 flex items-center gap-2">
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3b82f6]/20 text-[#3b82f6] text-xs font-bold">1</span>
+                    <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--st-text-primary)' }}>
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold" style={{ backgroundColor: 'var(--st-blue-bg)', color: 'var(--st-blue)' }}>1</span>
                         Make Payment
                     </p>
 
@@ -102,21 +132,35 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                                 {/* Glowing backdrop */}
                                 <div className="absolute -inset-1 bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] rounded-[1.25rem] blur opacity-40"></div>
                                 {/* QR Container */}
-                                <div className="relative p-3.5 bg-white rounded-2xl shadow-xl flex flex-col items-center border border-white/20">
-                                    <QRCodeSVG value={upiData.upi_link} size={160} level="H" includeMargin={false} />
-                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 w-full justify-center">
+                                <div
+                                    className="relative p-3.5 rounded-2xl shadow-xl flex flex-col items-center backdrop-blur-md"
+                                    style={{
+                                        backgroundColor: isLight ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.05)',
+                                        border: `1px solid ${isLight ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.1)'}`
+                                    }}
+                                >
+                                    <div className="bg-white p-2 rounded-xl text-black">
+                                        <QRCodeSVG value={upiData.upi_link} size={150} level="H" includeMargin={false} />
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100/20 w-full justify-center">
                                         <span className="text-[11px] font-extrabold text-gray-400 tracking-wider">BHIM UPI</span>
                                     </div>
                                 </div>
                             </div>
-                            <p className="text-[#737580] text-[13px] mt-4 font-medium">Scan with any UPI app to pay</p>
+                            <p className="text-[13px] mt-4 font-medium" style={{ color: 'var(--st-text-muted)' }}>Scan with any UPI app to pay</p>
                         </div>
                     )}
 
                     {isMobile() && upiData && (
                         <button
                             onClick={() => setUpiNotice(true)}
-                            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#3b82f6] text-sm font-medium hover:bg-[#3b82f6]/20 transition-all mb-2 cursor-pointer"
+                            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl text-sm font-medium transition-all mb-2 cursor-pointer"
+                            style={{
+                                backgroundColor: 'var(--st-blue-bg)',
+                                borderWidth: 1, borderStyle: 'solid',
+                                borderColor: isLight ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.2)',
+                                color: 'var(--st-blue)',
+                            }}
                         >
                             <span className="material-symbols-outlined text-lg">credit_card</span>
                             Open UPI App
@@ -134,31 +178,45 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                     {!upiData && (
                         <div className="flex items-center justify-center py-6">
                             <div className="w-6 h-6 border-3 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
-                            <span className="text-[#aaaab7] text-sm ml-3">Loading payment info...</span>
+                            <span className="text-sm ml-3" style={{ color: 'var(--st-text-secondary)' }}>Loading payment info...</span>
                         </div>
                     )}
                 </div>
 
                 {/* Divider */}
-                <div className="my-4 border-t border-white/5" />
+                <div className="my-4" style={{ borderTop: `1px solid var(--st-divider)` }} />
 
                 {/* Step 2: Upload Screenshot */}
                 <div>
-                    <p className="text-[#f0f0fd] text-sm font-semibold mb-3 flex items-center gap-2">
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3b82f6]/20 text-[#3b82f6] text-xs font-bold">2</span>
+                    <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--st-text-primary)' }}>
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold" style={{ backgroundColor: 'var(--st-blue-bg)', color: 'var(--st-blue)' }}>2</span>
                         Upload Payment Screenshot
                     </p>
 
                     {!preview ? (
-                        <label className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed border-white/10 bg-white/[0.02] hover:border-[#3b82f6]/30 hover:bg-white/[0.04] transition-all cursor-pointer">
-                            <span className="material-symbols-outlined text-4xl text-[#aaaab7] mb-2">cloud_upload</span>
-                            <span className="text-[#aaaab7] text-sm">Tap to upload screenshot</span>
-                            <span className="text-[#737580] text-xs mt-1">PNG, JPG up to 5MB</span>
+                        <label
+                            className="flex flex-col items-center justify-center w-full py-8 rounded-2xl border-2 border-dashed transition-all cursor-pointer"
+                            style={{
+                                borderColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+                                backgroundColor: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
+                            }}
+                        >
+                            <span className="material-symbols-outlined text-4xl mb-2" style={{ color: 'var(--st-text-secondary)' }}>cloud_upload</span>
+                            <span className="text-sm" style={{ color: 'var(--st-text-secondary)' }}>Tap to upload screenshot</span>
+                            <span className="text-xs mt-1" style={{ color: 'var(--st-text-muted)' }}>PNG, JPG up to 5MB</span>
                             <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                         </label>
                     ) : (
                         <div className="relative">
-                            <div className="relative group p-1 bg-white/[0.02] rounded-2xl border border-white/10 hover:border-[#3b82f6]/30 transition-all cursor-zoom-in" onClick={() => setShowPreviewModal(true)}>
+                            <div
+                                className="relative group p-1 rounded-2xl transition-all cursor-zoom-in"
+                                onClick={() => setShowPreviewModal(true)}
+                                style={{
+                                    backgroundColor: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
+                                    borderWidth: 1, borderStyle: 'solid',
+                                    borderColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)',
+                                }}
+                            >
                                 <img
                                     src={preview}
                                     alt="Payment screenshot preview"
@@ -174,7 +232,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                             >
                                 <span className="material-symbols-outlined text-sm">close</span>
                             </button>
-                            <p className="text-[#4af8e3] text-xs mt-2 text-center flex items-center justify-center gap-1">
+                            <p className="text-xs mt-2 text-center flex items-center justify-center gap-1" style={{ color: 'var(--st-accent)' }}>
                                 <span className="material-symbols-outlined text-sm material-symbols-filled">check_circle</span>
                                 Screenshot selected — review it above
                             </p>
@@ -184,7 +242,13 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                 </div>
 
                 {/* ── Sticky Proceed Button ── */}
-                <div className="p-5 pt-3 border-t border-white/5 bg-[#0c0e17] shrink-0">
+                <div
+                    className="p-5 pt-3 shrink-0"
+                    style={{
+                        borderTop: `1px solid var(--st-divider)`,
+                        backgroundColor: isLight ? 'rgba(255,255,255,0.2)' : 'rgba(12,14,23,0.4)',
+                    }}
+                >
                     <button
                         onClick={handleSubmit}
                         disabled={!file || submitting}
@@ -202,7 +266,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                         )}
                     </button>
                     {!file && (
-                        <p className="text-[#737580] text-xs text-center mt-1.5">Upload a screenshot to enable proceed</p>
+                        <p className="text-xs text-center mt-1.5" style={{ color: 'var(--st-text-muted)' }}>Upload a screenshot to enable proceed</p>
                     )}
                 </div>
 
@@ -227,6 +291,8 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
 // ── Main Dashboard Content ──
 function StudentDashboardContent() {
     const { user, refreshUser } = useAuth();
+    const { theme } = useStudentTheme();
+    const isLight = theme === "light";
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [success, setSuccess] = useState("");
@@ -238,8 +304,6 @@ function StudentDashboardContent() {
     // Persist seen approvals across sessions to guarantee the student sees the animation
     const [seenApprovals, setSeenApprovals] = useState(() => {
         try {
-            // Need user.uid, but we are initializing state synchronously. We will handle user.uid changes via a useEffect if needed.
-            // Actually, we can just do it without user.uid globally, or initialize inside useEffect.
             return new Set(JSON.parse(localStorage.getItem(`fp_seen_approvals`) || "[]"));
         } catch {
             return new Set();
@@ -260,7 +324,6 @@ function StudentDashboardContent() {
 
     useEffect(() => {
         if (user?.uid) {
-            // Load user-specific seen approvals from localStorage once we have user context
             try {
                 const stored = localStorage.getItem(`fp_seen_approvals_${user.uid}`);
                 if (stored) {
@@ -391,8 +454,8 @@ function StudentDashboardContent() {
             {/* ── Welcome Section ── */}
             <section className="space-y-1 animate-fade-in-scale">
                 <h1
-                    className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#f0f0fd]"
-                    style={{ fontFamily: "'Manrope', sans-serif" }}
+                    className="text-2xl md:text-3xl font-extrabold tracking-tight"
+                    style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}
                 >
                     <AnimatedGreeting name={user?.name || "Student"} />
                 </h1>
@@ -400,9 +463,17 @@ function StudentDashboardContent() {
 
             {/* ── Alerts ── */}
             {success && (
-                <div className="p-3 rounded-2xl bg-[#4af8e3]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-sm flex items-center justify-between animate-fade-in-scale">
+                <div
+                    className="p-3 rounded-2xl text-sm flex items-center justify-between animate-fade-in-scale"
+                    style={{
+                        backgroundColor: 'var(--st-accent-bg)',
+                        borderWidth: 1, borderStyle: 'solid',
+                        borderColor: isLight ? 'rgba(13,148,136,0.2)' : 'rgba(74,248,227,0.2)',
+                        color: 'var(--st-accent)',
+                    }}
+                >
                     <span>{success}</span>
-                    <button onClick={() => setSuccess("")} className="ml-2 cursor-pointer text-[#4af8e3] hover:text-white">
+                    <button onClick={() => setSuccess("")} className="ml-2 cursor-pointer" style={{ color: 'var(--st-accent)' }}>
                         <span className="material-symbols-outlined text-lg">close</span>
                     </button>
                 </div>
@@ -413,23 +484,28 @@ function StudentDashboardContent() {
                 {/* Total Paid Card */}
                 <div className="glass-card-student rounded-[32px] p-6 relative overflow-hidden group animate-fade-in-scale" style={{ animationDelay: "100ms" }}>
                     <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-30 transition-opacity">
-                        <span className="material-symbols-outlined text-6xl text-[#aaaab7]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                        <span className="material-symbols-outlined text-6xl" style={{ fontVariationSettings: "'FILL' 1", color: 'var(--st-accent)' }}>check_circle</span>
                     </div>
                     <div className="relative z-10 space-y-4">
                         <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[#4af8e3]">payments</span>
-                            <span className="text-[#aaaab7] font-medium">Total Paid</span>
+                            <span className="material-symbols-outlined" style={{ color: 'var(--st-accent)' }}>payments</span>
+                            <span className="font-medium" style={{ color: 'var(--st-text-secondary)' }}>Total Paid</span>
                         </div>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-bold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>₹{totalPaid.toLocaleString("en-IN")}</span>
-                            <span className="text-[#4af8e3] text-xs font-bold uppercase tracking-wider">
+                            <span className="text-3xl font-bold" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>₹{totalPaid.toLocaleString("en-IN")}</span>
+                            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--st-accent)' }}>
                                 {totalDue === 0 && totalPaid > 0 ? "Settled" : "Partial"}
                             </span>
                         </div>
-                        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-1 w-full rounded-full overflow-hidden" style={{ backgroundColor: 'var(--st-progress-bg)' }}>
                             <div
-                                className="h-full bg-gradient-to-r from-[#4af8e3] to-[#006a60] rounded-full transition-all duration-700"
-                                style={{ width: `${paidProgress}%` }}
+                                className="h-full rounded-full transition-all duration-700"
+                                style={{
+                                    width: `${paidProgress}%`,
+                                    background: isLight
+                                        ? 'linear-gradient(to right, #0d9488, #3b82f6)'
+                                        : 'linear-gradient(to right, #4af8e3, #006a60)',
+                                }}
                             />
                         </div>
                     </div>
@@ -438,23 +514,26 @@ function StudentDashboardContent() {
                 {/* Due Amount Card */}
                 <div className="glass-card-student rounded-[32px] p-6 relative overflow-hidden group animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
                     <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-30 transition-opacity">
-                        <span className="material-symbols-outlined text-6xl text-[#aaaab7]">hourglass_empty</span>
+                        <span className="material-symbols-outlined text-6xl" style={{ color: 'var(--st-text-secondary)' }}>hourglass_empty</span>
                     </div>
                     <div className="relative z-10 space-y-4">
                         <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[#3b82f6]">info</span>
-                            <span className="text-[#aaaab7] font-medium">Due Amount</span>
+                            <span className="material-symbols-outlined" style={{ color: 'var(--st-blue)' }}>info</span>
+                            <span className="font-medium" style={{ color: 'var(--st-text-secondary)' }}>Due Amount</span>
                         </div>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-bold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>₹{totalDue.toLocaleString("en-IN")}</span>
-                            <span className="text-[#3b82f6] text-xs font-bold uppercase tracking-wider">
+                            <span className="text-3xl font-bold" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>₹{totalDue.toLocaleString("en-IN")}</span>
+                            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--st-accent)' }}>
                                 {totalDue === 0 ? "No Action Needed" : `${actionPayments.filter(p => p.status === "Unpaid").length} Pending`}
                             </span>
                         </div>
-                        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-1 w-full rounded-full overflow-hidden" style={{ backgroundColor: 'var(--st-progress-bg)' }}>
                             <div
-                                className="h-full bg-gradient-to-r from-[#3b82f6] to-[#1e40af] rounded-full transition-all duration-700"
-                                style={{ width: totalDue > 0 ? "100%" : "0%" }}
+                                className="h-full rounded-full transition-all duration-700"
+                                style={{
+                                    width: totalDue > 0 ? "100%" : "0%",
+                                    background: 'linear-gradient(to right, #3b82f6, #1e40af)',
+                                }}
                             />
                         </div>
                     </div>
@@ -465,7 +544,7 @@ function StudentDashboardContent() {
             {actionPayments.length > 0 && (
                 <section className="space-y-4 animate-fade-in-scale" style={{ animationDelay: "300ms" }}>
                     <div className="flex items-center">
-                        <h2 className="text-2xl font-extrabold tracking-tight text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                        <h2 className="text-2xl font-extrabold tracking-tight" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>
                             Action Required
                         </h2>
                     </div>
@@ -480,14 +559,27 @@ function StudentDashboardContent() {
                                     /* ── Unpaid: Original horizontal layout with Pay Now ── */
                                     <div className="p-5 flex items-center justify-between">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center border bg-[#ff6e84]/10 border-[#ff6e84]/20">
-                                                <span className="material-symbols-outlined text-[#ff6e84]">calendar_today</span>
+                                            <div
+                                                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                                                style={{
+                                                    backgroundColor: isLight ? 'rgba(239,68,68,0.08)' : 'rgba(255,110,132,0.1)',
+                                                    borderWidth: 1, borderStyle: 'solid',
+                                                    borderColor: isLight ? 'rgba(239,68,68,0.15)' : 'rgba(255,110,132,0.2)',
+                                                }}
+                                            >
+                                                <span className="material-symbols-outlined" style={{ color: isLight ? '#ef4444' : '#ff6e84' }}>calendar_today</span>
                                             </div>
                                             <div className="space-y-1">
-                                                <h3 className="text-xl font-bold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                                <h3 className="text-xl font-bold" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>
                                                     {MONTHS[p.month - 1]} {p.year}
                                                 </h3>
-                                                <span className="inline-block px-2 py-0.5 bg-[#ff6e84]/10 text-[#ff6e84] text-[10px] font-bold uppercase rounded">
+                                                <span
+                                                    className="inline-block px-2 py-0.5 text-[10px] font-bold uppercase rounded"
+                                                    style={{
+                                                        backgroundColor: isLight ? 'rgba(239,68,68,0.08)' : 'rgba(255,110,132,0.1)',
+                                                        color: isLight ? '#ef4444' : '#ff6e84',
+                                                    }}
+                                                >
                                                     UNPAID
                                                 </span>
                                             </div>
@@ -505,21 +597,34 @@ function StudentDashboardContent() {
                                         {p.status === "Paid" && (
                                             <button
                                                 onClick={() => handleDismissPaid(p.id)}
-                                                className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-[#ff6e84]/20 hover:border-[#ff6e84]/40 hover:text-[#ff6e84] text-[#aaaab7] transition-colors cursor-pointer z-10"
+                                                className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full transition-colors cursor-pointer z-10"
+                                                style={{
+                                                    backgroundColor: 'var(--st-icon-bg)',
+                                                    borderWidth: 1, borderStyle: 'solid',
+                                                    borderColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)',
+                                                    color: 'var(--st-text-secondary)',
+                                                }}
                                                 title="Dismiss"
                                             >
                                                 <span className="material-symbols-outlined text-[16px]">close</span>
                                             </button>
                                         )}
                                         <div className="flex items-center gap-3 pr-8">
-                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center border bg-[#4af8e3]/10 border-[#4af8e3]/20">
-                                                <span className="material-symbols-outlined text-[#4af8e3] text-lg">history</span>
+                                            <div
+                                                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                                                style={{
+                                                    backgroundColor: 'var(--st-accent-bg)',
+                                                    borderWidth: 1, borderStyle: 'solid',
+                                                    borderColor: isLight ? 'rgba(13,148,136,0.15)' : 'rgba(74,248,227,0.2)',
+                                                }}
+                                            >
+                                                <span className="material-symbols-outlined text-lg" style={{ color: 'var(--st-accent)' }}>history</span>
                                             </div>
                                             <div>
-                                                <h3 className="text-lg font-bold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                                <h3 className="text-lg font-bold" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>
                                                     {MONTHS[p.month - 1]} {p.year}
                                                 </h3>
-                                                <span className="text-[10px] font-semibold text-[#4af8e3]/70 uppercase tracking-wider">
+                                                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--st-accent)', opacity: 0.7 }}>
                                                     ₹{p.amount?.toLocaleString("en-IN")} • {p.status === "Paid" ? "Approved" : "In Progress"}
                                                 </span>
                                             </div>
@@ -543,10 +648,10 @@ function StudentDashboardContent() {
 
             {/* No payments */}
             {payments.length === 0 && (
-                <div className="glass-card-student rounded-[32px] p-8 text-center text-[#aaaab7] animate-fade-in-scale">
-                    <span className="material-symbols-outlined text-5xl text-[#737580] mb-3 block">receipt_long</span>
-                    <p className="text-lg font-medium">No payment records yet</p>
-                    <p className="text-sm text-[#737580] mt-1">Your payment history will appear here</p>
+                <div className="glass-card-student rounded-[32px] p-8 text-center animate-fade-in-scale">
+                    <span className="material-symbols-outlined text-5xl mb-3 block" style={{ color: 'var(--st-text-muted)' }}>receipt_long</span>
+                    <p className="text-lg font-medium" style={{ color: 'var(--st-text-secondary)' }}>No payment records yet</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--st-text-muted)' }}>Your payment history will appear here</p>
                 </div>
             )}
 
