@@ -2,11 +2,18 @@ import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
+import { getCache, setCache } from "@/lib/memoryCache";
+import { GenericListSkeleton } from "@/components/Skeletons";
 
 function BatchesContent() {
-    const [batches, setBatches] = useState([]);
-    const [teachers, setTeachers] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const cacheKeyBatches = "admin_batches";
+    const cacheKeyTeachers = "admin_teachers";
+    const cachedBatches = getCache(cacheKeyBatches);
+    const cachedTeachers = getCache(cacheKeyTeachers);
+    
+    const [batches, setBatches] = useState(cachedBatches || []);
+    const [teachers, setTeachers] = useState(cachedTeachers || []);
+    const [loading, setLoading] = useState(!cachedBatches || !cachedTeachers);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [showForm, setShowForm] = useState(false);
@@ -16,19 +23,30 @@ function BatchesContent() {
     const [formLoading, setFormLoading] = useState(false);
 
     const fetchData = useCallback(async () => {
+        if (!getCache("admin_batches") || !getCache("admin_teachers")) {
+            if (!loading) setLoading(true);
+        }
+        
         try {
             const [b, t] = await Promise.all([
                 api.get("/api/admin/batches"),
                 api.get("/api/admin/teachers"),
             ]);
-            setBatches(b);
-            setTeachers(t);
+            
+            if (JSON.stringify(getCache("admin_batches")) !== JSON.stringify(b)) {
+                setBatches(b);
+                setCache("admin_batches", b);
+            }
+            if (JSON.stringify(getCache("admin_teachers")) !== JSON.stringify(t)) {
+                setTeachers(t);
+                setCache("admin_teachers", t);
+            }
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (loading) setLoading(false);
         }
-    }, []);
+    }, [loading]);
 
     useEffect(() => {
         fetchData();
@@ -93,8 +111,8 @@ function BatchesContent() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
+            <div className="animate-fade-in p-6">
+                <GenericListSkeleton />
             </div>
         );
     }

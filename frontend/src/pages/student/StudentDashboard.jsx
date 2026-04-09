@@ -12,6 +12,8 @@ import { useStudentTheme } from "@/context/StudentThemeContext";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { generateReceiptPDF } from "@/lib/pdfUtils";
+import { getCache, setCache } from "@/lib/memoryCache";
+import { StudentDashboardSkeleton } from "@/components/Skeletons";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -313,8 +315,13 @@ function StudentDashboardContent() {
     const { user, refreshUser } = useAuth();
     const { theme } = useStudentTheme();
     const isLight = theme === "light";
-    const [payments, setPayments] = useState([]);
-    const [loading, setLoading] = useState(true);
+    
+    // In-Memory Caching for instant load
+    const cacheKey = `student_payments_${user?.uid}`;
+    const cachedPayments = getCache(cacheKey);
+    
+    const [payments, setPayments] = useState(cachedPayments || []);
+    const [loading, setLoading] = useState(!cachedPayments);
     const [success, setSuccess] = useState("");
     const [previewImg, setPreviewImg] = useState(null);
     const [showBadgeCelebration, setShowBadgeCelebration] = useState(() => 
@@ -358,13 +365,18 @@ function StudentDashboardContent() {
     const fetchPayments = useCallback(async () => {
         try {
             const data = await api.get("/api/student/payments");
-            setPayments(data);
+            
+            // Optimization: Update state and cache only if data has changed (prevent unnecessary re-renders)
+            if (JSON.stringify(getCache(cacheKey)) !== JSON.stringify(data)) {
+                setPayments(data);
+                setCache(cacheKey, data);
+            }
         } catch (err) {
             // GlobalErrorModal handles systemic errors automatically via lib/api.js
         } finally {
-            setLoading(false);
+            if (loading) setLoading(false);
         }
-    }, []);
+    }, [cacheKey, loading]);
 
     useEffect(() => {
         fetchPayments();
@@ -452,8 +464,8 @@ function StudentDashboardContent() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
+            <div className="animate-fade-in">
+                <StudentDashboardSkeleton />
             </div>
         );
     }

@@ -3,11 +3,18 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
 import UserDevicesModal from "@/components/UserDevicesModal";
 import { api } from "@/lib/api";
+import { getCache, setCache } from "@/lib/memoryCache";
+import { GenericListSkeleton } from "@/components/Skeletons";
 
 function TeachersContent() {
-    const [teachers, setTeachers] = useState([]);
-    const [batches, setBatches] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const cacheKeyTeachers = "admin_teachers";
+    const cacheKeyBatches = "admin_teacher_batches";
+    const cachedTeachers = getCache(cacheKeyTeachers);
+    const cachedBatches = getCache(cacheKeyBatches);
+
+    const [teachers, setTeachers] = useState(cachedTeachers || []);
+    const [batches, setBatches] = useState(cachedBatches || []);
+    const [loading, setLoading] = useState(!cachedTeachers || !cachedBatches);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [showForm, setShowForm] = useState(false);
@@ -24,19 +31,30 @@ function TeachersContent() {
     const [devicesTeacher, setDevicesTeacher] = useState(null);
 
     const fetchData = useCallback(async () => {
+        if (!getCache("admin_teachers") || !getCache("admin_teacher_batches")) {
+            if (!loading) setLoading(true);
+        }
+        
         try {
             const [t, b] = await Promise.all([
                 api.get("/api/admin/teachers"),
                 api.get("/api/admin/batches"),
             ]);
-            setTeachers(t);
-            setBatches(b);
+            
+            if (JSON.stringify(getCache("admin_teachers")) !== JSON.stringify(t)) {
+                setTeachers(t);
+                setCache("admin_teachers", t);
+            }
+            if (JSON.stringify(getCache("admin_teacher_batches")) !== JSON.stringify(b)) {
+                setBatches(b);
+                setCache("admin_teacher_batches", b);
+            }
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (loading) setLoading(false);
         }
-    }, []);
+    }, [loading]);
 
     useEffect(() => {
         fetchData();
@@ -133,8 +151,8 @@ function TeachersContent() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
+            <div className="animate-fade-in p-6">
+                <GenericListSkeleton />
             </div>
         );
     }

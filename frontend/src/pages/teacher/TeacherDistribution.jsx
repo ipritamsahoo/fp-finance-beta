@@ -5,6 +5,8 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { getYearOptions } from "@/lib/yearOptions";
 import ModernSelect from "@/components/ModernSelect";
+import { getCache, setCache } from "@/lib/memoryCache";
+import { GenericListSkeleton } from "@/components/Skeletons";
 
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -61,32 +63,54 @@ function InitialAvatar({ name, size = 36, className = "" }) {
 function TeacherDistributionContent() {
     const { user } = useAuth();
     const now = new Date();
-    const [month, setMonth] = useState(now.getMonth() + 1);
-    const [year, setYear] = useState(now.getFullYear());
+    
+    // Attempt cache restoration based on default filters
+    const defaultMonth = now.getMonth() + 1;
+    const defaultYear = now.getFullYear();
+    const [month, setMonth] = useState(defaultMonth);
+    const [year, setYear] = useState(defaultYear);
+    
+    // We cannot fully predict the initial batch filter without making the first call,
+    // but if we cached it before, we can use it.
+    const cacheKeyInit = `teacher_distribution_${defaultMonth}_${defaultYear}_init`;
+    const cachedData = getCache(cacheKeyInit);
+    
     const [batchFilter, setBatchFilter] = useState("");
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState(cachedData || null);
+    const [loading, setLoading] = useState(!cachedData);
     const [error, setError] = useState("");
     const [expandedDate, setExpandedDate] = useState(null);
     const [activeTab, setActiveTab] = useState("datewise");
 
     const fetchDistribution = useCallback(async () => {
-        setLoading(true);
+        const cacheKeyCall = `teacher_distribution_${month}_${year}_${batchFilter || 'init'}`;
+        const currentCache = getCache(cacheKeyCall);
+        if (!currentCache && !loading) {
+            setLoading(true);
+        }
+        
         setError("");
         try {
             let url = `/api/teacher/distribution?month=${month}&year=${year}`;
             if (batchFilter) url += `&batch_id=${batchFilter}`;
+            
             const res = await api.get(url);
-            setData(res);
+            
+            if (JSON.stringify(currentCache) !== JSON.stringify(res)) {
+                setData(res);
+                setCache(cacheKeyCall, res);
+                if (!batchFilter) setCache(`teacher_distribution_${month}_${year}_init`, res);
+            }
+            
             if (!batchFilter && res.batches && res.batches.length > 0) {
                 setBatchFilter(res.batches[0].id);
             }
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (loading) setLoading(false);
         }
-    }, [month, year, batchFilter]);
+    }, [month, year, batchFilter, loading]);
 
     useEffect(() => {
         fetchDistribution();
@@ -169,8 +193,8 @@ function TeacherDistributionContent() {
             )}
 
             {loading ? (
-                <div className="flex items-center justify-center py-20">
-                    <div className="w-10 h-10 border-4 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
+                <div className="animate-fade-in p-6">
+                    <GenericListSkeleton />
                 </div>
             ) : data ? (
                 <>

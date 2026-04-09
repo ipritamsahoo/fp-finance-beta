@@ -5,6 +5,8 @@ import UserDevicesModal from "@/components/UserDevicesModal";
 import { api } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import ModernSelect from "@/components/ModernSelect";
+import { getCache, setCache } from "@/lib/memoryCache";
+import { GenericListSkeleton } from "@/components/Skeletons";
 
 
 const MONTHS = [
@@ -13,10 +15,15 @@ const MONTHS = [
 ];
 
 function StudentsContent() {
-    const [students, setStudents] = useState([]);
-    const [batches, setBatches] = useState([]);
+    const cacheKeyStudents = "admin_students";
+    const cacheKeyBatches = "admin_batches";
+    const cachedStudents = getCache(cacheKeyStudents);
+    const cachedBatches = getCache(cacheKeyBatches);
+
+    const [students, setStudents] = useState(cachedStudents || []);
+    const [batches, setBatches] = useState(cachedBatches || []);
     const [filterBatch, setFilterBatch] = useState("");
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!cachedStudents || !cachedBatches);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [showForm, setShowForm] = useState(false);
@@ -41,19 +48,28 @@ function StudentsContent() {
     const [devicesStudent, setDevicesStudent] = useState(null);
 
     const fetchData = useCallback(async () => {
+        if (!getCache("admin_students") || !getCache("admin_batches")) {
+             if (!loading) setLoading(true);
+        }
         try {
             const [s, b] = await Promise.all([
                 api.get("/api/admin/students"),
                 api.get("/api/admin/batches"),
             ]);
-            setStudents(s);
-            setBatches(b);
+            if (JSON.stringify(getCache("admin_students")) !== JSON.stringify(s)) {
+                setStudents(s);
+                setCache("admin_students", s);
+            }
+            if (JSON.stringify(getCache("admin_batches")) !== JSON.stringify(b)) {
+                setBatches(b);
+                setCache("admin_batches", b);
+            }
         } catch (err) {
             // Handled globally
         } finally {
-            setLoading(false);
+            if (loading) setLoading(false);
         }
-    }, []);
+    }, [loading]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -186,8 +202,8 @@ function StudentsContent() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
+            <div className="animate-fade-in p-6">
+                <GenericListSkeleton />
             </div>
         );
     }

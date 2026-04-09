@@ -4,36 +4,58 @@ import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import ModernSelect from "@/components/ModernSelect";
+import { getCache, setCache } from "@/lib/memoryCache";
+import { GenericListSkeleton } from "@/components/Skeletons";
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function PaymentsContent() {
     const now = new Date();
-    const [batches, setBatches] = useState([]);
-    const [payments, setPayments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    
+    const cacheKeyBatches = "admin_all_batches";
+    const cachedBatches = getCache(cacheKeyBatches);
 
+    const [batches, setBatches] = useState(cachedBatches || []);
     const [filterBatch, setFilterBatch] = useState("");
     const [filterYear, setFilterYear] = useState(now.getFullYear());
+    
+    const cacheKeyPayments = `admin_all_payments_${filterBatch}_${filterYear}`;
+    const cachedPayments = filterBatch ? getCache(cacheKeyPayments) : null;
+
+    const [payments, setPayments] = useState(cachedPayments || []);
+    const [loading, setLoading] = useState(!cachedBatches || (filterBatch && !cachedPayments));
+    const [error, setError] = useState("");
 
     useEffect(() => {
-        api.get("/api/admin/batches").then(setBatches).catch(() => { });
+        api.get("/api/admin/batches").then((res) => {
+            if (JSON.stringify(getCache(cacheKeyBatches)) !== JSON.stringify(res)) {
+                 setBatches(res);
+                 setCache(cacheKeyBatches, res);
+            }
+        }).catch(() => { });
     }, []);
 
     const fetchPayments = useCallback(async () => {
         if (!filterBatch) { setPayments([]); setLoading(false); return; }
-        setLoading(true);
+        
+        const currentCacheKey = `admin_all_payments_${filterBatch}_${filterYear}`;
+        if (!getCache(currentCacheKey) && !loading) {
+            setLoading(true);
+        }
+        
         setError("");
         try {
             const res = await api.get(`/api/admin/payments?batch_id=${filterBatch}&year=${filterYear}`);
-            setPayments(res);
+            if (JSON.stringify(getCache(currentCacheKey)) !== JSON.stringify(res)) {
+                setPayments(res);
+                setCache(currentCacheKey, res);
+            }
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (loading) setLoading(false);
         }
-    }, [filterBatch, filterYear]);
+    }, [filterBatch, filterYear, loading]);
 
     useEffect(() => {
         fetchPayments();
@@ -135,8 +157,8 @@ function PaymentsContent() {
             {/* Pivot Table */}
             <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden animate-fade-in-up transition-colors shadow-xl">
                 {loading ? (
-                    <div className="flex-1 flex items-center justify-center p-12">
-                        <div className="w-8 h-8 border-4 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
+                    <div className="animate-fade-in p-6">
+                        <GenericListSkeleton />
                     </div>
                 ) : !filterBatch ? (
                     <div className="flex-1 flex items-center justify-center p-12 text-[#aaaab7]" style={{ fontFamily: "'Inter', sans-serif" }}>Select a batch to view payments.</div>

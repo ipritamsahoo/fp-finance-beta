@@ -5,6 +5,8 @@ import { api, apiFetch } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import { auth } from "@/lib/firebase";
 import ModernSelect from "@/components/ModernSelect";
+import { getCache, setCache } from "@/lib/memoryCache";
+import { GenericListSkeleton } from "@/components/Skeletons";
 
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -15,11 +17,16 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 function ReportExportContent() {
     const now = new Date();
-    const [batches, setBatches] = useState([]);
-    const [batchId, setBatchId] = useState("");
+    
+    // We can use the admin_batches cache
+    const cacheKeyBatches = "admin_batches";
+    const cachedBatches = getCache(cacheKeyBatches);
+
+    const [batches, setBatches] = useState(cachedBatches || []);
+    const [batchId, setBatchId] = useState(cachedBatches?.length > 0 ? cachedBatches[0].id : "");
     const [year, setYear] = useState(now.getFullYear());
     const [selectedMonths, setSelectedMonths] = useState([now.getMonth() + 1]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!cachedBatches);
     const [exporting, setExporting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
@@ -30,14 +37,19 @@ function ReportExportContent() {
     useEffect(() => {
         api.get("/api/admin/batches")
             .then((data) => {
-                setBatches(data);
-                if (data.length > 0 && !batchId) {
-                    setBatchId(data[0].id);
+                if (JSON.stringify(getCache(cacheKeyBatches)) !== JSON.stringify(data)) {
+                    setBatches(data);
+                    setCache(cacheKeyBatches, data);
+                    if (data.length > 0 && !batchId) {
+                        setBatchId(data[0].id);
+                    }
                 }
             })
             .catch((err) => setError(err.message))
-            .finally(() => setLoading(false));
-    }, []);
+            .finally(() => {
+                if (loading) setLoading(false);
+            });
+    }, [batchId, loading]);
 
     const toggleMonth = (m) => {
         setSelectedMonths((prev) =>
@@ -114,8 +126,8 @@ function ReportExportContent() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#4af8e3]/30 border-t-[#4af8e3] rounded-full animate-spin" />
+            <div className="animate-fade-in p-6">
+                <GenericListSkeleton />
             </div>
         );
     }

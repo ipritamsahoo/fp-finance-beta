@@ -10,6 +10,8 @@ import { db } from "@/lib/firebase";
 import { getYearOptions } from "@/lib/yearOptions";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import ModernSelect from "@/components/ModernSelect";
+import { getCache, setCache } from "@/lib/memoryCache";
+import { TeacherDashboardSkeleton } from "@/components/Skeletons";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTH_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -69,44 +71,69 @@ function GlassCard({ children, className = "", style = {} }) {
 // ── Main Content ──
 function TeacherDashboardContent() {
     const { user } = useAuth();
-    const [batches, setBatches] = useState([]);
-    const [selectedBatch, setSelectedBatch] = useState("");
-    const [payments, setPayments] = useState([]);
-    const [loading, setLoading] = useState(true);
+    
+    // In-memory caching keys and initial resolution
+    const cacheKeyBatches = `teacher_batches`;
+    const cachedBatches = getCache(cacheKeyBatches);
+    const initialBatch = cachedBatches?.[0]?.id || "";
+
+    const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
+    const [filterYear, setFilterYear] = useState(new Date().getFullYear());
+
+    const cacheKeyPayments = `teacher_payments_${initialBatch}_${filterYear}_${filterMonth}`;
+    const cachedPayments = initialBatch ? getCache(cacheKeyPayments) : null;
+
+    const [batches, setBatches] = useState(cachedBatches || []);
+    const [selectedBatch, setSelectedBatch] = useState(initialBatch);
+    const [payments, setPayments] = useState(cachedPayments || []);
+    
+    // If either cache is missing, trigger the skeleton
+    const [loading, setLoading] = useState(!cachedBatches || !cachedPayments);
+    
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [offlineLoading, setOfflineLoading] = useState(null);
-    const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
-    const [filterYear, setFilterYear] = useState(new Date().getFullYear());
 
     const fetchBatches = useCallback(async () => {
         try {
             const data = await api.get("/api/teacher/batches");
-            setBatches(data);
+            if (JSON.stringify(getCache(cacheKeyBatches)) !== JSON.stringify(data)) {
+                setBatches(data);
+                setCache(cacheKeyBatches, data);
+            }
             if (data.length > 0 && !selectedBatch) {
                 setSelectedBatch(data[0].id);
+            }
+        } catch (err) {
+            // Handled globally
+        }
+    }, [selectedBatch]); // Removing setLoading(false) here, relying on fetchPayments to do it.
+
+    const fetchPayments = useCallback(async () => {
+        if (!selectedBatch) return;
+        
+        // Show loading spinner ONLY if there is no cached data 
+        const currentCacheKey = `teacher_payments_${selectedBatch}_${filterYear}_${filterMonth}`;
+        const currentCache = getCache(currentCacheKey);
+        if (!currentCache && !loading) {
+            setLoading(true);
+        }
+
+        try {
+            let url = `/api/teacher/payments?batch_id=${selectedBatch}&year=${filterYear}`;
+            if (filterMonth) url += `&month=${filterMonth}`;
+            const data = await api.get(url);
+            
+            if (JSON.stringify(currentCache) !== JSON.stringify(data)) {
+                setPayments(data);
+                setCache(currentCacheKey, data);
             }
         } catch (err) {
             // Handled globally
         } finally {
             setLoading(false);
         }
-    }, [selectedBatch]);
-
-    const fetchPayments = useCallback(async () => {
-        if (!selectedBatch) return;
-        setLoading(true);
-        try {
-            let url = `/api/teacher/payments?batch_id=${selectedBatch}&year=${filterYear}`;
-            if (filterMonth) url += `&month=${filterMonth}`;
-            const data = await api.get(url);
-            setPayments(data);
-        } catch (err) {
-            // Handled globally
-        } finally {
-            setLoading(false);
-        }
-    }, [selectedBatch, filterMonth, filterYear]);
+    }, [selectedBatch, filterMonth, filterYear, loading]);
 
     useEffect(() => {
         fetchBatches();
@@ -288,8 +315,8 @@ function TeacherDashboardContent() {
 
             {/* ── Payment Status ── */}
             {loading ? (
-                <div className="flex items-center justify-center py-16">
-                    <div className="w-10 h-10 border-4 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
+                <div className="animate-fade-in mt-6">
+                    <TeacherDashboardSkeleton />
                 </div>
             ) : (
                 /* ── SINGLE MONTH — Card Layout ── */

@@ -6,6 +6,8 @@ import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import ModernSelect from "@/components/ModernSelect";
 import { StudentAvatarFallback } from "@/components/CachedAvatar";
+import { getCache, setCache } from "@/lib/memoryCache";
+import { GenericListSkeleton } from "@/components/Skeletons";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -18,29 +20,45 @@ function safeOptimizedUrl(url) {
 }
 
 function ApprovalContent() {
-    const [pending, setPending] = useState([]);
-    const [batches, setBatches] = useState([]);
+    const cacheKeyPending = "admin_pending_approvals";
+    const cacheKeyBatches = "admin_approval_batches";
+    const cachedPending = getCache(cacheKeyPending);
+    const cachedBatches = getCache(cacheKeyBatches);
+
+    const [pending, setPending] = useState(cachedPending || []);
+    const [batches, setBatches] = useState(cachedBatches || []);
     const [filterBatch, setFilterBatch] = useState("");
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!cachedPending || !cachedBatches);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [actionLoading, setActionLoading] = useState(null);
     const [previewImg, setPreviewImg] = useState(null);
 
     const fetchPending = useCallback(async () => {
+        if (!getCache("admin_pending_approvals") || !getCache("admin_approval_batches")) {
+            if (!loading) setLoading(true);
+        }
+        
         try {
             const [pendingData, batchData] = await Promise.all([
                 api.get("/api/admin/pending"),
                 api.get("/api/admin/batches"),
             ]);
-            setPending(pendingData);
-            setBatches(batchData);
+            
+            if (JSON.stringify(getCache("admin_pending_approvals")) !== JSON.stringify(pendingData)) {
+                setPending(pendingData);
+                setCache("admin_pending_approvals", pendingData);
+            }
+            if (JSON.stringify(getCache("admin_approval_batches")) !== JSON.stringify(batchData)) {
+                setBatches(batchData);
+                setCache("admin_approval_batches", batchData);
+            }
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (loading) setLoading(false);
         }
-    }, []);
+    }, [loading]);
 
     // Initial fetch
     useEffect(() => { fetchPending(); }, [fetchPending]);
@@ -87,8 +105,8 @@ function ApprovalContent() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
+            <div className="animate-fade-in p-6">
+                <GenericListSkeleton />
             </div>
         );
     }

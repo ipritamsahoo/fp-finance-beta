@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase";
 import { getYearOptions } from "@/lib/yearOptions";
 import { collection, onSnapshot } from "firebase/firestore";
 import ModernSelect from "@/components/ModernSelect";
+import { getCache, setCache } from "@/lib/memoryCache";
 
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -47,9 +48,11 @@ function BentoStatCard({ label, value, icon, iconDivClass }) {
 
 function AdminDashboardContent() {
     const { user } = useAuth();
-    const [stats, setStats] = useState(null);
-    const [batches, setBatches] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const cachedStats = getCache("admin_stats");
+    const cachedBatches = getCache("admin_batches");
+    const [stats, setStats] = useState(cachedStats || null);
+    const [batches, setBatches] = useState(cachedBatches || []);
+    const [loading, setLoading] = useState(!cachedStats || !cachedBatches);
     const [genMonth, setGenMonth] = useState(new Date().getMonth() + 1);
     const [genYear, setGenYear] = useState(new Date().getFullYear());
     const [genAmount, setGenAmount] = useState(500);
@@ -65,14 +68,21 @@ function AdminDashboardContent() {
                 api.get("/api/admin/stats"),
                 api.get("/api/admin/batches"),
             ]);
-            setStats(statsData);
-            setBatches(batchData);
+            
+            if (JSON.stringify(getCache("admin_stats")) !== JSON.stringify(statsData)) {
+                setStats(statsData);
+                setCache("admin_stats", statsData);
+            }
+            if (JSON.stringify(getCache("admin_batches")) !== JSON.stringify(batchData)) {
+                setBatches(batchData);
+                setCache("admin_batches", batchData);
+            }
         } catch (err) {
             // Handled globally
         } finally {
-            setLoading(false);
+            if (loading) setLoading(false);
         }
-    }, []);
+    }, [loading]);
 
     useEffect(() => {
         fetchStats();

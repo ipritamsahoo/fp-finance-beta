@@ -8,6 +8,8 @@ import { useStudentTheme } from "@/context/StudentThemeContext";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { generateReceiptPDF } from "@/lib/pdfUtils";
+import { getCache, setCache } from "@/lib/memoryCache";
+import { GenericListSkeleton } from "@/components/Skeletons";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -267,8 +269,13 @@ function StudentPaymentsContent() {
     const { user } = useAuth();
     const { theme } = useStudentTheme();
     const isLight = theme === "light";
-    const [payments, setPayments] = useState([]);
-    const [loading, setLoading] = useState(true);
+    
+    // Memory Cache Key
+    const cacheKey = `student_payments_history_${user?.uid}`;
+    const cachedData = getCache(cacheKey);
+
+    const [payments, setPayments] = useState(cachedData || []);
+    const [loading, setLoading] = useState(!cachedData);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [previewImg, setPreviewImg] = useState(null);
@@ -281,13 +288,16 @@ function StudentPaymentsContent() {
         setError("");
         try {
             const data = await api.get("/api/student/payments");
-            setPayments(data);
+            if (JSON.stringify(getCache(cacheKey)) !== JSON.stringify(data)) {
+                setPayments(data);
+                setCache(cacheKey, data);
+            }
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (loading) setLoading(false);
         }
-    }, []);
+    }, [cacheKey, loading]);
 
     useEffect(() => {
         fetchPayments();
@@ -327,8 +337,8 @@ function StudentPaymentsContent() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
+            <div className="animate-fade-in px-4">
+                <GenericListSkeleton />
             </div>
         );
     }

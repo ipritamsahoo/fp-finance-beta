@@ -4,6 +4,8 @@ import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import ModernSelect from "@/components/ModernSelect";
+import { getCache, setCache } from "@/lib/memoryCache";
+import { GenericListSkeleton } from "@/components/Skeletons";
 
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -12,12 +14,23 @@ const MONTHS = [
 
 function DistributionContent() {
     const now = new Date();
-    const [month, setMonth] = useState(now.getMonth() + 1);
-    const [year, setYear] = useState(now.getFullYear());
+    const defaultMonth = now.getMonth() + 1;
+    const defaultYear = now.getFullYear();
+
+    const [month, setMonth] = useState(defaultMonth);
+    const [year, setYear] = useState(defaultYear);
     const [batchFilter, setBatchFilter] = useState("");
-    const [batches, setBatches] = useState([]);
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
+    
+    const cacheKeyBatches = "admin_distribution_batches";
+    const cachedBatches = getCache(cacheKeyBatches);
+    const [batches, setBatches] = useState(cachedBatches || []);
+    
+    const cacheKeyData = `admin_distribution_${month}_${year}_${batchFilter || 'init'}`;
+    const cachedData = getCache(cacheKeyData);
+    const [data, setData] = useState(cachedData || null);
+    
+    // If we have batches, and we have a selected batch, and we lack data cache for it, we should load.
+    const [loading, setLoading] = useState(!cachedData);
     const [error, setError] = useState("");
     const [expandedDate, setExpandedDate] = useState(null);
     const [settleLoading, setSettleLoading] = useState(null);
@@ -52,7 +65,12 @@ function DistributionContent() {
 
     // Fetch batches for the filter dropdown
     useEffect(() => {
-        api.get("/api/admin/batches").then(setBatches).catch(() => { });
+        api.get("/api/admin/batches").then((res) => {
+            if (JSON.stringify(getCache(cacheKeyBatches)) !== JSON.stringify(res)) {
+                 setBatches(res);
+                 setCache(cacheKeyBatches, res);
+            }
+        }).catch(() => { });
     }, []);
 
     // Auto-select first batch
@@ -64,18 +82,27 @@ function DistributionContent() {
 
     const fetchDistribution = useCallback(async () => {
         if (!batchFilter) return;
-        setLoading(true);
+        
+        const fetchCacheKey = `admin_distribution_${month}_${year}_${batchFilter}`;
+        const currentCache = getCache(fetchCacheKey);
+        if (!currentCache && !loading) {
+            setLoading(true);
+        }
+        
         setError("");
         try {
             let url = `/api/admin/distribution?month=${month}&year=${year}&batch_id=${batchFilter}`;
             const res = await api.get(url);
-            setData(res);
+            if (JSON.stringify(currentCache) !== JSON.stringify(res)) {
+                setData(res);
+                setCache(fetchCacheKey, res);
+            }
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (loading) setLoading(false);
         }
-    }, [month, year, batchFilter]);
+    }, [month, year, batchFilter, loading]);
 
     useEffect(() => {
         fetchDistribution();
@@ -148,8 +175,8 @@ function DistributionContent() {
             )}
 
             {loading ? (
-                <div className="flex items-center justify-center py-20">
-                    <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
+                <div className="animate-fade-in p-6">
+                    <GenericListSkeleton />
                 </div>
             ) : data ? (
                 <>

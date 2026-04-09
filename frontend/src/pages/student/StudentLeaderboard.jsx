@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useStudentTheme } from "@/context/StudentThemeContext";
 import { getYearOptions } from "@/lib/yearOptions";
 import ModernSelect from "@/components/ModernSelect";
+import { getCache, setCache } from "@/lib/memoryCache";
+import { GenericListSkeleton } from "@/components/Skeletons";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTH_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -88,22 +90,42 @@ function StudentLeaderboardContent() {
     const { user } = useAuth();
     const { theme } = useStudentTheme();
     const isLight = theme === "light";
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
     
+    // Memory Cache
     const now = new Date();
-    const [month, setMonth] = useState(now.getMonth() + 1);
-    const [year, setYear] = useState(now.getFullYear());
+    const defaultMonth = now.getMonth() + 1;
+    const defaultYear = now.getFullYear();
+
+    const [month, setMonth] = useState(defaultMonth);
+    const [year, setYear] = useState(defaultYear);
     const [hasInit, setHasInit] = useState(false);
 
+    // Get the cached value for the currently selected month and year
+    const cacheKey = `student_leaderboard_${month}_${year}`;
+    const cachedData = getCache(cacheKey);
+
+    const [data, setData] = useState(cachedData || null);
+    const [loading, setLoading] = useState(!cachedData);
+    const [error, setError] = useState("");
+
     const fetchLeaderboard = useCallback(async (m, y) => {
+        const fetchCacheKey = `student_leaderboard_${m}_${y}`;
+        const currentCache = getCache(fetchCacheKey);
+        
         setError("");
-        setLoading(true);
+        if (!currentCache && !loading) {
+            setLoading(true);
+        }
+        
         try {
             const params = `?month=${m}&year=${y}`;
             const result = await api.get(`/api/student/leaderboard${params}`);
-            setData(result);
+            
+            if (JSON.stringify(currentCache) !== JSON.stringify(result)) {
+                setData(result);
+                setCache(fetchCacheKey, result);
+            }
+            
             if (!hasInit) {
                 setMonth(result.month);
                 setYear(result.year);
@@ -112,9 +134,9 @@ function StudentLeaderboardContent() {
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (loading) setLoading(false);
         }
-    }, [hasInit]);
+    }, [hasInit, loading]);
 
     useEffect(() => {
         fetchLeaderboard(month, year);
@@ -124,8 +146,8 @@ function StudentLeaderboardContent() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 rounded-full animate-spin" style={{ borderColor: `${isLight ? 'rgba(124,58,237,0.3)' : 'rgba(199,153,255,0.3)'}`, borderTopColor: isLight ? '#7c3aed' : '#c799ff' }} />
+            <div className="animate-fade-in p-6">
+                <GenericListSkeleton />
             </div>
         );
     }

@@ -4,6 +4,8 @@ import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import ModernSelect from "@/components/ModernSelect";
+import { getCache, setCache } from "@/lib/memoryCache";
+import { GenericListSkeleton } from "@/components/Skeletons";
 
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -12,13 +14,22 @@ const MONTHS = [
 
 function FeeOverrideContent() {
     const now = new Date();
-    const [students, setStudents] = useState([]);
-    const [batches, setBatches] = useState([]);
-    const [loading, setLoading] = useState(true);
+    
+    // We already have "admin_approval_batches" or "admin_batches", 
+    // but just in case, we will use a separate key or share one. Let's use "admin_fee_override_batches" and "admin_fee_override_students".
+    const [filterBatch, setFilterBatch] = useState("");
+    
+    const cacheKeyStudents = `admin_fee_override_students_${filterBatch}`;
+    const cacheKeyBatches = "admin_fee_override_batches";
+    const cachedStudents = getCache(cacheKeyStudents);
+    const cachedBatches = getCache(cacheKeyBatches);
+
+    const [students, setStudents] = useState(cachedStudents || []);
+    const [batches, setBatches] = useState(cachedBatches || []);
+    const [loading, setLoading] = useState(!cachedStudents || !cachedBatches);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-    const [filterBatch, setFilterBatch] = useState("");
 
     // Form state
     const [studentId, setStudentId] = useState("");
@@ -30,19 +41,33 @@ function FeeOverrideContent() {
     const yearOptions = getYearOptions();
 
     const fetchStudents = useCallback(async () => {
+        const cKeyStudents = `admin_fee_override_students_${filterBatch}`;
+        const cKeyBatches = "admin_fee_override_batches";
+        
+        if (!getCache(cKeyStudents) || !getCache(cKeyBatches)) {
+            if (!loading) setLoading(true);
+        }
+        
         try {
             const [s, b] = await Promise.all([
                 api.get("/api/admin/students" + (filterBatch ? `?batch_id=${filterBatch}` : "")),
                 api.get("/api/admin/batches"),
             ]);
-            setStudents(s);
-            setBatches(b);
+            
+            if (JSON.stringify(getCache(cKeyStudents)) !== JSON.stringify(s)) {
+                setStudents(s);
+                setCache(cKeyStudents, s);
+            }
+            if (JSON.stringify(getCache(cKeyBatches)) !== JSON.stringify(b)) {
+                setBatches(b);
+                setCache(cKeyBatches, b);
+            }
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (loading) setLoading(false);
         }
-    }, [filterBatch]);
+    }, [filterBatch, loading]);
 
     useEffect(() => {
         fetchStudents();
@@ -95,8 +120,8 @@ function FeeOverrideContent() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-[#c799ff]/30 border-t-[#c799ff] rounded-full animate-spin" />
+            <div className="animate-fade-in p-6">
+                <GenericListSkeleton />
             </div>
         );
     }
