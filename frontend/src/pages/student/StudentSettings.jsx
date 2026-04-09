@@ -80,7 +80,7 @@ function StudentSettingsContent() {
     return (
         <div className="space-y-8">
             {/* ── Profile Header Card ── */}
-            <section className="relative animate-fade-in-scale" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+            <section className="relative" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
                 <div
                     className="backdrop-blur-2xl p-8 rounded-[32px] ring-1 flex flex-col items-center text-center"
                     style={{
@@ -143,7 +143,7 @@ function StudentSettingsContent() {
             </section>
 
             {/* ── Settings List ── */}
-            <section className="space-y-3 animate-fade-in-scale" style={{ animationDelay: "100ms", transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+            <section className="space-y-3" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
                 {/* Change Profile Photo */}
                 <button
                     onClick={() => setPicModalOpen(true)}
@@ -275,7 +275,7 @@ function StudentSettingsContent() {
             </section>
 
             {/* ── Footer ── */}
-            <footer className="mt-12 flex flex-col items-center gap-6 animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
+            <footer className="mt-12 flex flex-col items-center gap-6">
                 <button
                     onClick={logout}
                     className="group flex items-center gap-3 px-8 py-3 transition-all rounded-full active:scale-95 cursor-pointer"

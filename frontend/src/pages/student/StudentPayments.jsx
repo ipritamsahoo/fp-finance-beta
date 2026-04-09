@@ -106,7 +106,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
             }}
         >
             <div
-                className="relative w-full h-full sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:rounded-[28px] flex flex-col animate-fade-in-scale"
+                className="relative w-full h-full sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:rounded-[28px] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
                 style={{
                     backgroundColor: isLight ? '#f8fafc' : '#0c0e17',
@@ -248,7 +248,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
 
                 {/* ── Fullscreen Image Preview Modal ── */}
                 {showPreviewModal && preview && (
-                    <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex flex-col animate-fade-in" onClick={() => setShowPreviewModal(false)} style={{ transform: "translateZ(0)", isolation: "isolate" }}>
+                    <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex flex-col" onClick={() => setShowPreviewModal(false)} style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                         <div className="flex justify-end p-5">
                             <button className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white cursor-pointer hover:bg-white/20 active:scale-90 transition-all">
                                 <span className="material-symbols-outlined">close</span>
@@ -337,7 +337,7 @@ function StudentPaymentsContent() {
 
     if (loading) {
         return (
-            <div className="animate-fade-in px-4">
+            <div className="px-4">
                 <GenericListSkeleton />
             </div>
         );
@@ -346,7 +346,7 @@ function StudentPaymentsContent() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="mb-8 animate-fade-in-scale" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
+            <div className="mb-8" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                 <h1 className="text-3xl font-extrabold tracking-tight" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>
                     History
                 </h1>
@@ -354,7 +354,7 @@ function StudentPaymentsContent() {
 
             {/* Alerts */}
             {error && (
-                <div className="p-3 rounded-2xl text-sm flex items-center justify-between animate-fade-in-scale"
+                <div className="p-3 rounded-2xl text-sm flex items-center justify-between"
                     style={{ backgroundColor: isLight ? 'rgba(239,68,68,0.08)' : 'rgba(255,110,132,0.1)', border: `1px solid ${isLight ? 'rgba(239,68,68,0.15)' : 'rgba(255,110,132,0.2)'}`, color: isLight ? '#ef4444' : '#ff9dac' }}
                 >
                     <span>{error}</span>
@@ -364,7 +364,7 @@ function StudentPaymentsContent() {
                 </div>
             )}
             {success && (
-                <div className="p-3 rounded-2xl text-sm flex items-center justify-between animate-fade-in-scale"
+                <div className="p-3 rounded-2xl text-sm flex items-center justify-between"
                     style={{ backgroundColor: 'var(--st-accent-bg)', border: `1px solid ${isLight ? 'rgba(13,148,136,0.2)' : 'rgba(74,248,227,0.2)'}`, color: 'var(--st-accent)' }}
                 >
                     <span>{success}</span>
@@ -377,7 +377,7 @@ function StudentPaymentsContent() {
                 {/* Payment List */}
             <div className="space-y-4" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                 {payments.filter(p => p.status === "Paid").map((p, idx) => (
-                    <div key={p.id} className="relative group animate-fade-in-scale" style={{ animationDelay: `${idx * 80}ms`, transform: "translateZ(0)", isolation: "isolate" }}>
+                    <div key={p.id} className="relative group" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                         {/* Subtle glow behind card */}
                         <div
                             className="absolute inset-0 blur-sm rounded-3xl -z-10 transition-all"
@@ -455,7 +455,7 @@ function StudentPaymentsContent() {
                 ))}
 
                 {payments.length === 0 && (
-                    <div className="glass-card-student rounded-[32px] p-8 text-center animate-fade-in-scale">
+                    <div className="glass-card-student rounded-[32px] p-8 text-center">
                         <span className="material-symbols-outlined text-5xl mb-3 block" style={{ color: 'var(--st-text-muted)' }}>receipt_long</span>
                         <p className="text-lg font-medium" style={{ color: 'var(--st-text-secondary)' }}>No payment records yet</p>
                         <p className="text-sm mt-1" style={{ color: 'var(--st-text-muted)' }}>Your payment history will appear here</p>

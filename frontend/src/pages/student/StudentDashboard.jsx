@@ -76,7 +76,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
             }}
         >
             <div
-                className="relative w-full h-full sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:rounded-[28px] flex flex-col animate-fade-in-scale overflow-hidden"
+                className="relative w-full h-full sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:rounded-[28px] flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
                 style={{
                     backgroundColor: isLight ? 'rgba(255,255,255,0.45)' : 'rgba(12,14,23,0.7)',
@@ -285,7 +285,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
 
                 {/* ── Fullscreen Image Preview Modal ── */}
                 {showPreviewModal && preview && (
-                    <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex flex-col animate-fade-in" onClick={() => setShowPreviewModal(false)} style={{ transform: "translateZ(0)", isolation: "isolate" }}>
+                    <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex flex-col" onClick={() => setShowPreviewModal(false)} style={{ transform: "translateZ(0)", isolation: "isolate" }}>
                         <div className="flex justify-end p-5">
                             <button
                                 className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 transition-all font-bold"
@@ -464,7 +464,7 @@ function StudentDashboardContent() {
 
     if (loading) {
         return (
-            <div className="animate-fade-in">
+            <div>
                 <StudentDashboardSkeleton />
             </div>
         );
@@ -484,7 +484,7 @@ function StudentDashboardContent() {
                 />
             )}
             {/* ── Welcome Section ── */}
-            <section className="space-y-1 animate-fade-in-scale">
+            <section className="space-y-1">
                 <h1
                     className="text-2xl md:text-3xl font-extrabold tracking-tight"
                     style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}
@@ -496,7 +496,7 @@ function StudentDashboardContent() {
             {/* ── Alerts ── */}
             {success && (
                 <div
-                    className="p-3 rounded-2xl text-sm flex items-center justify-between animate-fade-in-scale"
+                    className="p-3 rounded-2xl text-sm flex items-center justify-between"
                     style={{
                         backgroundColor: 'var(--st-accent-bg)',
                         borderWidth: 1, borderStyle: 'solid',
@@ -514,7 +514,7 @@ function StudentDashboardContent() {
             {/* ── Summary Cards ── */}
             <section className="grid grid-cols-1 gap-4">
                 {/* Total Paid Card */}
-                <div className="glass-card-student rounded-[32px] p-6 relative overflow-hidden group animate-fade-in-scale" style={{ animationDelay: "100ms" }}>
+                <div className="glass-card-student rounded-[32px] p-6 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-30 transition-opacity">
                         <span className="material-symbols-outlined text-6xl" style={{ fontVariationSettings: "'FILL' 1", color: 'var(--st-accent)' }}>check_circle</span>
                     </div>
@@ -544,7 +544,7 @@ function StudentDashboardContent() {
                 </div>
 
                 {/* Due Amount Card */}
-                <div className="glass-card-student rounded-[32px] p-6 relative overflow-hidden group animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
+                <div className="glass-card-student rounded-[32px] p-6 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-30 transition-opacity">
                         <span className="material-symbols-outlined text-6xl" style={{ color: 'var(--st-text-secondary)' }}>hourglass_empty</span>
                     </div>
@@ -574,7 +574,7 @@ function StudentDashboardContent() {
 
             {/* ── Action Required Section ── */}
             {actionPayments.length > 0 && (
-                <section className="space-y-4 animate-fade-in-scale" style={{ animationDelay: "300ms" }}>
+                <section className="space-y-4">
                     <div className="flex items-center">
                         <h2 className="text-2xl font-extrabold tracking-tight" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>
                             Action Required
@@ -584,8 +584,7 @@ function StudentDashboardContent() {
                     <div className="space-y-4">
                         {actionPayments.map((p, idx) => (
                             <div key={p.id}
-                                className="glass-card-student rounded-[32px] animate-fade-in-scale"
-                                style={{ animationDelay: `${400 + idx * 100}ms` }}
+                                className="glass-card-student rounded-[32px]"
                             >
                                 {p.status === "Unpaid" ? (
                                     /* ── Unpaid: Original horizontal layout with Pay Now ── */
@@ -680,7 +679,7 @@ function StudentDashboardContent() {
 
             {/* No payments */}
             {payments.length === 0 && (
-                <div className="glass-card-student rounded-[32px] p-8 text-center animate-fade-in-scale">
+                <div className="glass-card-student rounded-[32px] p-8 text-center">
                     <span className="material-symbols-outlined text-5xl mb-3 block" style={{ color: 'var(--st-text-muted)' }}>receipt_long</span>
                     <p className="text-lg font-medium" style={{ color: 'var(--st-text-secondary)' }}>No payment records yet</p>
                     <p className="text-sm mt-1" style={{ color: 'var(--st-text-muted)' }}>Your payment history will appear here</p>

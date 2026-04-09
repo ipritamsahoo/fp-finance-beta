@@ -146,7 +146,7 @@ function StudentLeaderboardContent() {
 
     if (loading) {
         return (
-            <div className="animate-fade-in p-6">
+            <div className="p-6">
                 <GenericListSkeleton />
             </div>
         );
@@ -186,7 +186,7 @@ function StudentLeaderboardContent() {
     return (
         <div className="space-y-8 pt-2 md:pt-0">
             {/* Date Filters */}
-            <div className="flex flex-wrap justify-center gap-2 animate-fade-in-scale relative z-20">
+            <div className="flex flex-wrap justify-center gap-2 relative z-20">
                 <ModernSelect
                     theme={theme}
                     icon="calendar_month"
@@ -208,7 +208,7 @@ function StudentLeaderboardContent() {
             </div>
 
             {/* Hero Section */}
-            <section className="text-center space-y-2 animate-fade-in-scale">
+            <section className="text-center space-y-2">
                 <h2 className="text-4xl font-extrabold tracking-tight"
                     style={{
                         fontFamily: "'Manrope', sans-serif",
@@ -224,7 +224,7 @@ function StudentLeaderboardContent() {
 
             {/* Podium / Top 3 */}
             {hasAnyPodium ? (
-                <section className="grid grid-cols-3 gap-4 items-end pb-4 animate-fade-in-scale" style={{ animationDelay: "100ms" }}>
+                <section className="grid grid-cols-3 gap-4 items-end pb-4">
                     {podiumOrder.map((slot) => (
                         <div key={slot.rank}>
                             {slot.entry ? (
@@ -238,7 +238,7 @@ function StudentLeaderboardContent() {
                     ))}
                 </section>
             ) : (
-                <section className="text-center py-10 animate-fade-in-scale">
+                <section className="text-center py-10">
                     <span className="material-symbols-outlined text-6xl mb-3 block" style={{ color: 'var(--st-text-muted)' }}>emoji_events</span>
                     <p className="text-lg font-medium" style={{ color: 'var(--st-text-secondary)' }}>No paid entries yet</p>
                     <p className="text-sm mt-1" style={{ color: 'var(--st-text-muted)' }}>Be the first to pay and claim the #1 spot!</p>
@@ -247,13 +247,12 @@ function StudentLeaderboardContent() {
 
             {/* Ranking Details (#4, #5) */}
             {rank4and5.length > 0 && (
-                <section className="space-y-4 animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
+                <section className="space-y-4">
                     <div className="space-y-3">
                         {rank4and5.map((entry, idx) => (
                             <div key={entry.rank}
-                                className="glass-card-student rounded-3xl p-4 flex items-center gap-4 transition-all animate-fade-in-scale"
+                                className="glass-card-student rounded-3xl p-4 flex items-center gap-4 transition-all"
                                 style={{
-                                    animationDelay: `${300 + idx * 80}ms`,
                                     transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden"
                                 }}>
                                 <span className="font-bold w-6" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-secondary)' }}>
@@ -282,7 +281,7 @@ function StudentLeaderboardContent() {
             )}
 
             {/* Your Current Position */}
-            <section className="animate-fade-in-scale" style={{ animationDelay: "400ms" }}>
+            <section>
                 {data.is_current_paid ? (
                     <div
                         className="p-4 rounded-3xl backdrop-blur-2xl"
