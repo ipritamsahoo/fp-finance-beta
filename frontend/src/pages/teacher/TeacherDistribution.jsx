@@ -16,11 +16,12 @@ const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "S
 function GlassCard({ children, className = "", style = {} }) {
     return (
         <div
-            className={`rounded-[28px] border border-white/[0.07] ${className}`}
+            className={`rounded-[2rem] border border-white/[0.08] ${className}`}
             style={{
-                background: "rgba(255, 255, 255, 0.05)",
-                backdropFilter: "blur(32px) saturate(180%)",
-                WebkitBackdropFilter: "blur(32px) saturate(180%)",
+                background: "rgba(23, 25, 36, 0.4)",
+                backdropFilter: "blur(24px) saturate(160%)",
+                WebkitBackdropFilter: "blur(24px) saturate(160%)",
+                boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)",
                 ...style,
             }}
         >
@@ -117,38 +118,44 @@ function TeacherDistributionContent() {
     return (
         <div className="space-y-6">
             {/* ── Title ── */}
-            <div className="animate-fade-in-scale">
-                <h1
-                    className="text-2xl font-extrabold flex items-center gap-2 tracking-tight text-[#f0f0fd]"
-                    style={{ fontFamily: "'Manrope', sans-serif" }}
-                >
-                    My Earnings 💰
-                </h1>
-                <p className="text-[#aaaab7] text-sm mt-1">Real-time revenue distribution</p>
+            {/* ── Title ── */}
+            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between mb-2 gap-4 animate-fade-in-up">
+                <div>
+                    <h1 className="text-2xl md:text-3xl font-extrabold text-[#f0f0fd] flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                        My Earnings <span className="text-2xl drop-shadow-md">💰</span>
+                    </h1>
+                    <p className="text-[#aaaab7] text-sm mt-1">Real-time revenue distribution</p>
+                </div>
             </div>
 
             {/* ── Filters ── */}
-            <div className="flex flex-wrap gap-2 animate-fade-in-scale" style={{ animationDelay: "60ms" }}>
-                <ModernSelect
-                    icon="calendar_month"
-                    value={month}
-                    options={MONTHS.map((m, i) => ({ value: i + 1, label: MONTHS_SHORT[i] }))}
-                    onChange={(e) => setMonth(Number(e.target.value))}
-                />
-                <ModernSelect
-                    icon="event"
-                    value={year}
-                    options={yearOptions}
-                    onChange={(e) => setYear(Number(e.target.value))}
-                />
-                {data && data.batches && data.batches.length > 0 && (
+            {/* ── Filters ── */}
+            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 animate-fade-in-up transition-colors">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <ModernSelect
-                        icon="school"
-                        value={batchFilter}
-                        options={data.batches}
-                        onChange={(e) => setBatchFilter(e.target.value)}
+                        icon="calendar_month"
+                        value={month}
+                        options={MONTHS.map((m, i) => ({ value: i + 1, label: MONTHS_SHORT[i] }))}
+                        onChange={(e) => setMonth(Number(e.target.value))}
+                        className="w-full"
                     />
-                )}
+                    <ModernSelect
+                        icon="event"
+                        value={year}
+                        options={yearOptions}
+                        onChange={(e) => setYear(Number(e.target.value))}
+                        className="w-full"
+                    />
+                    {data && data.batches && data.batches.length > 0 && (
+                        <ModernSelect
+                            icon="school"
+                            value={batchFilter}
+                            options={data.batches}
+                            onChange={(e) => setBatchFilter(e.target.value)}
+                            className="col-span-2 w-full"
+                        />
+                    )}
+                </div>
             </div>
 
             {/* ── Error ── */}
@@ -168,292 +175,247 @@ function TeacherDistributionContent() {
             ) : data ? (
                 <>
                     {/* ── Summary Bento Grid ── */}
-                    <section className="grid grid-cols-2 gap-4 animate-fade-in-scale" style={{ animationDelay: "100ms" }}>
+                    <section className="grid grid-cols-2 gap-4 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
                         {/* My Earnings — Full Width */}
-                        <GlassCard className="col-span-2 p-6 relative overflow-hidden group shadow-2xl" style={{ border: "1px solid rgba(59,130,246,0.15)" }}>
-                            <div className="absolute top-0 right-0 w-48 h-48 bg-[#3b82f6]/15 blur-3xl -mr-20 -mt-20 group-hover:bg-[#3b82f6]/25 transition-all duration-500" />
-                            <p className="text-[#aaaab7] text-xs font-semibold uppercase tracking-widest mb-2">My Earnings</p>
-                            <span
-                                className="text-[#4af8e3] font-extrabold text-5xl tracking-tight"
-                                style={{ fontFamily: "'Manrope', sans-serif" }}
-                            >
-                                ₹{(data.my_total || 0).toLocaleString()}
-                            </span>
+                        <GlassCard className="col-span-2 p-6 relative overflow-hidden group hover:border-[#4af8e3]/30 transition-colors" style={{ background: "linear-gradient(135deg, rgba(28, 31, 43, 0.8) 0%, rgba(28, 31, 43, 0.4) 100%)" }}>
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-[#4af8e3]/10 blur-[80px] -mr-32 -mt-32 group-hover:bg-[#4af8e3]/20 transition-all duration-700" />
+                            <p className="text-[#aaaab7] text-xs font-bold uppercase tracking-[0.2em] mb-4 opacity-80">My Cumulative Earnings</p>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-[#4af8e3] text-2xl font-bold">₹</span>
+                                <span
+                                    className="text-white font-extrabold text-5xl md:text-6xl tracking-tight drop-shadow-2xl"
+                                    style={{ fontFamily: "'Manrope', sans-serif" }}
+                                >
+                                    {(data.my_total || 0).toLocaleString()}
+                                </span>
+                            </div>
+                            <div className="mt-6 flex items-center gap-2">
+                                <div className="px-3 py-1 rounded-full bg-[#4af8e3]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-[10px] font-bold uppercase tracking-wider">
+                                    {MONTHS[month - 1]} {year}
+                                </div>
+                            </div>
                         </GlassCard>
 
                         {/* Total Collected */}
-                        <GlassCard className="p-5 shadow-xl">
-                            <p className="text-[#aaaab7] text-[10px] font-semibold uppercase tracking-widest mb-1">Total Collected</p>
-                            <p className="text-[#f0f0fd] font-bold text-xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                        <GlassCard className="p-5 hover:bg-[#171924]/60 transition-colors border-white/5">
+                            <p className="text-[#aaaab7] text-[10px] font-bold uppercase tracking-[0.15em] mb-3 opacity-70">Total Volume</p>
+                            <p className="text-[#f0f0fd] font-extrabold text-2xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                 ₹{data.total_collected.toLocaleString()}
                             </p>
+                            <div className="w-8 h-1 rounded-full bg-[#3b82f6]/40 mt-3" />
                         </GlassCard>
 
                         {/* Teachers Sharing */}
-                        <GlassCard className="p-5 shadow-xl">
-                            <p className="text-[#aaaab7] text-[10px] font-semibold uppercase tracking-widest mb-1">Teachers Sharing</p>
-                            <p className="text-[#f0f0fd] font-bold text-xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                        <GlassCard className="p-5 hover:bg-[#171924]/60 transition-colors border-white/5">
+                            <p className="text-[#aaaab7] text-[10px] font-bold uppercase tracking-[0.15em] mb-3 opacity-70">Teachers Shared</p>
+                            <p className="text-[#f0f0fd] font-extrabold text-2xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                 {data.teacher_totals.length}
                             </p>
+                            <div className="w-8 h-1 rounded-full bg-[#c799ff]/40 mt-3" />
                         </GlassCard>
                     </section>
 
-                    {/* ── Tab Bar ── */}
-                    <div
-                        className="flex gap-1 p-1.5 rounded-full border border-white/10 shadow-inner animate-fade-in-scale"
-                        style={{ background: "rgba(255,255,255,0.05)", backdropFilter: "blur(24px)", animationDelay: "150ms" }}
-                    >
+                    {/* ═══ Tab Bar ═══ */}
+                    <div className="flex flex-col sm:flex-row gap-2 mb-6 p-1.5 rounded-[1.25rem] bg-[#171924]/60 backdrop-blur-[20px] border border-[#464752]/40 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
                         <button
                             onClick={() => setActiveTab("datewise")}
-                            className={`flex-1 py-3 px-4 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer
+                            className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 cursor-pointer flex items-center justify-center gap-2
                                 ${activeTab === "datewise"
-                                    ? "bg-[#c799ff]/90 text-[#340064] shadow-lg"
-                                    : "text-[#aaaab7] hover:text-[#f0f0fd]"
+                                    ? "bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/20 shadow-[0_4px_15px_rgba(199,153,255,0.1)]"
+                                    : "text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 border border-transparent"
                                 }`}
                         >
-                            Date-wise Distribution
+                            <span className="material-symbols-outlined text-lg">calendar_month</span> Date-wise Distribution
                         </button>
                         <button
                             onClick={() => setActiveTab("earnings")}
-                            className={`flex-1 py-3 px-4 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer
+                            className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 cursor-pointer flex items-center justify-center gap-2
                                 ${activeTab === "earnings"
-                                    ? "bg-[#c799ff]/90 text-[#340064] shadow-lg"
-                                    : "text-[#aaaab7] hover:text-[#f0f0fd]"
+                                    ? "bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/20 shadow-[0_4px_15px_rgba(199,153,255,0.1)]"
+                                    : "text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 border border-transparent"
                                 }`}
                         >
-                            Teacher Earnings
+                            <span className="material-symbols-outlined text-lg">account_balance_wallet</span> Teacher Earnings
                         </button>
                     </div>
 
                     {/* ═══ Tab 1: Date-wise Distribution ═══ */}
                     {activeTab === "datewise" && (
-                        <section className="space-y-4 animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
-                            <div className="flex justify-between items-end mb-2">
-                                <h2 className="font-bold text-xl text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                        <div className="animate-fade-in-up">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="font-bold text-lg text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                     Distribution History
                                 </h2>
-                                <span className="text-[#4af8e3] text-xs font-bold border border-[#4af8e3]/30 px-4 py-1.5 rounded-full bg-[#4af8e3]/10 backdrop-blur-md">
-                                    Recent
-                                </span>
                             </div>
-
                             {data.dates && data.dates.length > 0 ? (
                                 <div className="space-y-4">
                                     {data.dates.map((dist, distIdx) => {
                                         const isExpanded = expandedDate === dist.date;
                                         const formattedDate = formatDateStr(dist.date);
                                         return (
-                                            <GlassCard
-                                                key={dist.date}
-                                                className="overflow-hidden shadow-2xl animate-fade-in-scale"
-                                                style={{
-                                                    borderRadius: 32,
-                                                    border: dist.settled ? "1px solid rgba(74,248,227,0.15)" : "1px solid rgba(255,255,255,0.07)",
-                                                    animationDelay: `${250 + distIdx * 80}ms`,
-                                                }}
-                                            >
-                                                {/* Date Header */}
+                                            <div key={dist.date} className={`relative bg-[#171924]/60 backdrop-blur-[20px] rounded-3xl overflow-hidden border transition-all ${dist.settled ? "border-[#4af8e3]/30 shadow-[0_4px_15px_rgba(74,248,227,0.05)]" : "border-[#737580]/10 hover:border-[#c799ff]/30 shadow-lg hover:shadow-[0_4px_15px_rgba(199,153,255,0.05)]"}`}>
                                                 <button
                                                     onClick={() => setExpandedDate(isExpanded ? null : dist.date)}
-                                                    className="w-full p-5 flex justify-between items-center bg-white/5 border-b border-white/5 cursor-pointer hover:bg-white/[0.08] transition-colors"
-                                                >
-                                                    <div className="flex items-center gap-4">
-                                                        <div
-                                                            className={`w-12 h-12 rounded-2xl flex items-center justify-center border backdrop-blur-xl
-                                                                ${dist.settled
-                                                                    ? "bg-[#4af8e3]/15 text-[#4af8e3] border-[#4af8e3]/20"
-                                                                    : "bg-[#c799ff]/15 text-[#c799ff] border-[#c799ff]/20"
-                                                                }`}
-                                                            style={dist.settled ? { boxShadow: "0 0 20px rgba(74,248,227,0.15)" } : {}}
-                                                        >
-                                                            <span className="material-symbols-outlined">calendar_today</span>
-                                                        </div>
-                                                        <div className="text-left">
-                                                            <p className="font-bold text-base text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                                                                {formattedDate}
-                                                            </p>
-                                                            <p className={`text-[10px] font-bold uppercase tracking-wider ${dist.settled ? "text-[#4af8e3]" : "text-amber-400"}`}>
-                                                                {dist.settled ? "Settled" : "Pending"}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="text-right">
-                                                            <p className="font-extrabold text-xl text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                                                                ₹{dist.total.toLocaleString()}
-                                                            </p>
-                                                            <p className="text-[10px] text-[#aaaab7] font-medium">Total Volume</p>
-                                                        </div>
-                                                        <span className={`material-symbols-outlined text-[#aaaab7] transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}>
-                                                            expand_more
-                                                        </span>
-                                                    </div>
+                                                    className={`absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 border border-white/5 text-[#aaaab7] transition-all duration-300 cursor-pointer hover:bg-white/10 hover:text-white z-10 ${isExpanded ? "rotate-180 bg-white/10 text-white border-white/10" : ""}`}>
+                                                    <span className="material-symbols-outlined text-[20px]">expand_more</span>
                                                 </button>
-
-                                                {/* Expandable Student Payments */}
-                                                {isExpanded && (
-                                                    <div className="p-4 space-y-2 animate-fade-in-scale">
-                                                        {/* Teacher earnings for this date */}
-                                                        <p className="text-[10px] text-[#aaaab7] uppercase tracking-widest font-bold px-2 mb-2">
-                                                            Teacher Earnings · {dist.teachers.length} teacher(s)
-                                                        </p>
-                                                        {dist.teachers.map((t) => (
-                                                            <div
-                                                                key={t.uid}
-                                                                className="px-5 py-4 flex justify-between items-center bg-white/[0.03] hover:bg-white/[0.08] transition-colors rounded-2xl border border-white/[0.05]"
-                                                            >
-                                                                <div className="flex items-center gap-4">
-                                                                    <InitialAvatar name={t.name} size={36} />
-                                                                    <span className="text-sm font-semibold text-[#f0f0fd]">{t.name}</span>
-                                                                    {t.uid === user?.uid && (
-                                                                        <span className="text-[9px] font-bold uppercase tracking-wider text-[#c799ff] bg-[#c799ff]/10 px-2 py-0.5 rounded-full border border-[#c799ff]/20">
-                                                                            You
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <span className="text-sm font-bold text-[#f0f0fd]">
-                                                                    ₹{(t.amount || 0).toLocaleString()}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-
-                                                        {/* Student payments breakdown */}
-                                                        {dist.payments && dist.payments.length > 0 && (
-                                                            <>
-                                                                <p className="text-[10px] text-[#aaaab7] uppercase tracking-widest font-bold px-2 mt-4 mb-2">
-                                                                    Student Payments · {dist.payments_count} payment(s)
-                                                                </p>
-                                                                {dist.payments.map((p, idx) => (
-                                                                    <div
-                                                                        key={p.id || idx}
-                                                                        className="px-5 py-3 flex justify-between items-center bg-white/[0.02] hover:bg-white/[0.06] transition-colors rounded-2xl border border-white/[0.03]"
-                                                                    >
-                                                                        <div className="flex items-center gap-3">
-                                                                            <div className="w-6 h-6 rounded-full bg-[#c799ff]/15 flex items-center justify-center text-[10px] font-bold text-[#c799ff] border border-[#c799ff]/20">
-                                                                                {idx + 1}
-                                                                            </div>
-                                                                            <span className="text-sm text-[#f0f0fd]">{p.student_name}</span>
-                                                                        </div>
-                                                                        <span className="text-sm font-bold text-[#4af8e3]">
-                                                                            ₹{(p.amount || 0).toLocaleString()}
-                                                                        </span>
-                                                                    </div>
-                                                                ))}
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </GlassCard>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <GlassCard className="p-10 text-center rounded-[32px]">
-                                    <span className="material-symbols-outlined text-5xl text-[#737580] mb-3 block">payments</span>
-                                    <p className="text-[#aaaab7] text-base font-medium mb-1">
-                                        No earnings in {MONTHS[month - 1]} {year}
-                                    </p>
-                                    <p className="text-[#737580] text-sm">
-                                        Earnings will appear here once payments are approved.
-                                    </p>
-                                </GlassCard>
-                            )}
-                        </section>
-                    )}
-
-                    {/* ═══ Tab 2: Teacher Earnings Ledger ═══ */}
-                    {activeTab === "earnings" && (
-                        <section className="animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
-                            <div className="flex justify-between items-end mb-4">
-                                <h2 className="font-bold text-xl text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                                    Monthly Earnings Breakdown
-                                </h2>
-                            </div>
-
-                            {data.dates && data.dates.length > 0 && allTeachers.length > 0 ? (
-                                <GlassCard className="overflow-hidden rounded-[32px] shadow-2xl">
-                                    {/* Header Labels */}
-                                    <div className="bg-white/5 border-b border-white/5">
-                                        {/* Total row */}
-                                        <div className="grid px-6 py-4" style={{ gridTemplateColumns: `1fr ${allTeachers.map(() => "1fr").join(" ")} 1fr` }}>
-                                            <span className="text-[10px] font-bold text-[#4af8e3] uppercase tracking-widest">Date</span>
-                                            {allTeachers.map((t) => {
-                                                const teacherTotal = data.dates.reduce((s, d) => {
-                                                    const found = d.teachers.find((x) => x.uid === t.uid);
-                                                    return s + (found ? found.amount : 0);
-                                                }, 0);
-                                                return (
-                                                    <span key={t.uid} className="text-[10px] font-bold text-[#f0f0fd] uppercase tracking-widest text-center">
-                                                        {t.name.split(" ")[0]}
-                                                        <br />
-                                                        <span className="text-[#4af8e3] text-sm font-extrabold" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                                                            ₹{teacherTotal.toLocaleString()}
-                                                        </span>
-                                                    </span>
-                                                );
-                                            })}
-                                            <span className="text-[10px] font-bold text-[#aaaab7] uppercase tracking-widest text-right">Status</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Date Rows */}
-                                    {data.dates.map((dist, idx) => {
-                                        const formattedDate = formatDateStr(dist.date);
-                                        const teacherMap = {};
-                                        for (const t of dist.teachers) teacherMap[t.uid] = t.amount;
-
-                                        return (
-                                            <div key={dist.date}>
-                                                <div
-                                                    className="grid px-6 py-5 items-center hover:bg-white/5 transition-colors"
-                                                    style={{ gridTemplateColumns: `1fr ${allTeachers.map(() => "1fr").join(" ")} 1fr` }}
-                                                >
-                                                    <div>
-                                                        <p className="text-sm font-bold text-[#f0f0fd]">
-                                                            {formattedDate.split(" ").slice(0, 2).join(" ")}
-                                                        </p>
-                                                        <p className="text-[10px] text-[#aaaab7]">
-                                                            {formattedDate.split(" ").slice(2).join(" ")}
-                                                        </p>
-                                                    </div>
-                                                    {allTeachers.map((t) => (
-                                                        <div key={t.uid} className="text-center">
-                                                            <span className={`text-sm font-semibold ${t.uid === user?.uid ? "text-[#c799ff]" : "text-[#4af8e3]"}`}>
-                                                                ₹{(teacherMap[t.uid] || 0).toLocaleString()}
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between p-4 sm:p-6 pr-14 gap-3 md:gap-4">
+                                                    <button
+                                                        onClick={() => setExpandedDate(isExpanded ? null : dist.date)}
+                                                        className="flex items-center gap-3 md:gap-4 cursor-pointer flex-1 min-w-0 group"
+                                                    >
+                                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${dist.settled
+                                                            ? "bg-[#4af8e3]/10 text-[#4af8e3]"
+                                                            : "bg-[#c799ff]/10 text-[#c799ff]"
+                                                            }`}>
+                                                            <span className="material-symbols-outlined text-[24px]">
+                                                                {dist.settled ? "task_alt" : "event"}
                                                             </span>
                                                         </div>
-                                                    ))}
-                                                    <div className="flex justify-end">
+                                                        <div className="text-left flex-1 min-w-0">
+                                                            <p className="text-[#f0f0fd] font-bold text-sm md:text-lg tracking-wide truncate" style={{ fontFamily: "'Manrope', sans-serif" }}>{formattedDate}</p>
+                                                            <p className="text-[#aaaab7] text-[11px] md:text-xs font-medium tracking-wide mt-0.5 md:mt-1 flex items-center gap-1.5 md:gap-2 flex-wrap">
+                                                                <span>{dist.payments_count} payment(s)</span>
+                                                            </p>
+                                                        </div>
+                                                    </button>
+                                                    <div className="flex items-center gap-2 border-t border-[#464752]/30 md:border-t-0 pt-3 md:pt-0">
+                                                        <span className="px-3 md:px-4 py-1.5 rounded-full bg-[#4af8e3]/10 border border-[#4af8e3]/30 text-[#4af8e3] text-xs md:text-sm font-bold tracking-widest drop-shadow-md" style={{ boxShadow: "0 0 8px rgba(74,248,227,0.2)"}}>
+                                                            ₹{dist.total.toLocaleString()}
+                                                        </span>
                                                         {dist.settled ? (
-                                                            <span className="bg-[#4af8e3]/10 text-[#4af8e3] text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-tight ring-1 ring-[#4af8e3]/30">
-                                                                Settled
+                                                            <span className="px-3 md:px-4 py-1.5 md:py-2 rounded-xl bg-[#4af8e3]/5 border border-[#4af8e3]/20 text-[#4af8e3]/60 text-[10px] md:text-xs font-bold tracking-widest uppercase flex items-center gap-1 md:gap-1.5 opacity-80">
+                                                                <span className="material-symbols-outlined text-[14px] md:text-[16px]">lock</span> Settled
                                                             </span>
                                                         ) : (
-                                                            <span className="bg-[#ff6e84]/10 text-[#ff6e84] text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-tight ring-1 ring-[#ff6e84]/30">
-                                                                Pending
+                                                            <span className="px-3 md:px-4 py-1.5 md:py-2 rounded-xl bg-amber-400/5 border border-amber-400/20 text-amber-400/60 text-[10px] md:text-xs font-bold tracking-widest uppercase flex items-center gap-1 md:gap-1.5 opacity-80">
+                                                                <span className="material-symbols-outlined text-[14px] md:text-[16px]">hourglass_empty</span> Pending
                                                             </span>
                                                         )}
                                                     </div>
                                                 </div>
-                                                {idx < data.dates.length - 1 && (
-                                                    <div className="mx-6 h-px bg-white/5" />
-                                                )}
+
+                                                {/* Expanded Content */}
+                                                <div className={`transition-all overflow-hidden ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}>
+                                                    <div className="px-5 pb-5 sm:px-6 sm:pb-6 border-t border-[#464752]/30 pt-4 bg-black/10">
+                                                        <p className="text-[#c799ff] text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                            <span className="material-symbols-outlined text-sm">group</span> Student Payments
+                                                        </p>
+                                                        <div className="space-y-4">
+                                                            {/* Payments */}
+                                                            <div className="bg-black/20 rounded-2xl overflow-hidden border border-white/5">
+                                                                <table className="w-full text-left text-sm">
+                                                                    <thead className="bg-white/5">
+                                                                        <tr>
+                                                                            <th className="px-4 py-2 text-[11px] font-bold text-[#aaaab7] uppercase tracking-widest">Student</th>
+                                                                            <th className="px-4 py-2 text-[11px] font-bold text-[#aaaab7] uppercase tracking-widest text-right">Amount</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody className="divide-y divide-white/5">
+                                                                        {dist.payments.map((p, idx) => (
+                                                                            <tr key={idx} className="hover:bg-white/5 transition-colors">
+                                                                                <td className="px-4 py-3 text-[#f0f0fd]">{p.student_name}</td>
+                                                                                <td className="px-4 py-3 text-[#4af8e3] font-bold text-right">₹{(p.amount || 0).toLocaleString()}</td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         );
                                     })}
-                                </GlassCard>
+                                </div>
                             ) : (
-                                <GlassCard className="p-10 text-center rounded-[32px]">
-                                    <span className="material-symbols-outlined text-5xl text-[#737580] mb-3 block">group</span>
-                                    <p className="text-[#aaaab7] text-base font-medium mb-1">
-                                        No teacher earnings in {MONTHS[month - 1]} {year}
-                                    </p>
-                                    <p className="text-[#737580] text-sm">
-                                        Earnings will appear once payments are confirmed.
-                                    </p>
+                                <GlassCard className="p-12 text-center flex flex-col items-center">
+                                    <span className="material-symbols-outlined text-[64px] text-[#464752] mb-4">payments</span>
+                                    <p className="text-[#f0f0fd] font-bold text-xl mb-1">No earnings in {MONTHS[month - 1]} {year}</p>
+                                    <p className="text-[#aaaab7] text-sm">Earnings will appear once payments are approved.</p>
                                 </GlassCard>
                             )}
-                        </section>
+                        </div>
+                    )}
+
+                    {/* ═══ Tab 2: Teacher Earnings Ledger ═══ */}
+                    {activeTab === "earnings" && (
+                        <div className="animate-fade-in-up">
+                            {data.dates && data.dates.length > 0 && allTeachers.length > 0 ? (
+                                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden shadow-xl" style={{ maxHeight: "calc(100vh - 380px)", display: "flex", flexDirection: "column" }}>
+                                    <div className="overflow-auto flex-1 custom-scrollbar">
+                                        <table className="w-full border-collapse min-w-[600px]">
+                                            <thead className="bg-[#0c0e17]/80 backdrop-blur-xl sticky top-0 z-20">
+                                                <tr className="border-b border-[#464752]/40">
+                                                    <th className="px-5 py-4 text-left text-xs font-bold text-[#4af8e3] uppercase tracking-wider whitespace-nowrap border-r border-[#464752]/40 min-w-[140px] sticky left-0 bg-[#0c0e17]/80 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                                                        Monthly Total
+                                                    </th>
+                                                    {allTeachers.map((t) => {
+                                                        const teacherTotal = data.dates.reduce((s, d) => {
+                                                            const found = d.teachers.find((x) => x.uid === t.uid);
+                                                            return s + (found ? found.amount : 0);
+                                                        }, 0);
+                                                        return (
+                                                            <th key={t.uid} className="px-5 py-4 text-center text-sm font-bold text-[#4af8e3] tracking-widest border-r border-[#464752]/40 min-w-[130px]">
+                                                                ₹{teacherTotal.toLocaleString()}
+                                                            </th>
+                                                        );
+                                                    })}
+                                                    <th className="px-5 py-4 min-w-[110px]"></th>
+                                                </tr>
+                                                <tr className="border-b border-[#464752]/40 bg-black/20">
+                                                    <th className="px-5 py-3 text-left text-[10px] font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/80 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                                                        Date
+                                                    </th>
+                                                    {allTeachers.map((t) => (
+                                                        <th key={t.uid} className="px-5 py-3 text-center text-[10px] font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40">
+                                                            {t.name}
+                                                        </th>
+                                                    ))}
+                                                    <th className="px-5 py-3 text-center text-[10px] font-bold text-[#aaaab7] uppercase tracking-widest">
+                                                        Status
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {data.dates.map((dist) => {
+                                                    const formattedDate = formatDateStr(dist.date);
+                                                    const teacherMap = {};
+                                                    for (const t of dist.teachers) teacherMap[t.uid] = t.amount;
+                                                    return (
+                                                        <tr key={dist.date} className="border-b border-[#464752]/20 hover:bg-white/5 transition-colors group">
+                                                            <td className="px-5 py-4 text-sm text-[#f0f0fd] font-bold whitespace-nowrap border-r border-[#464752]/40 sticky left-0 bg-[#171924]/80 backdrop-blur-xl group-hover:bg-[#1f2231]/80 transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>{formattedDate}</td>
+                                                            {allTeachers.map((t) => (
+                                                                <td key={t.uid} className="px-5 py-4 border-r border-[#464752]/40 text-center bg-black/10 text-sm font-semibold text-[#c799ff] tracking-wide">
+                                                                    {(teacherMap[t.uid] || 0) > 0 ? `₹${teacherMap[t.uid].toLocaleString()}` : <span className="text-[#aaaab7]/50 text-xs">—</span>}
+                                                                </td>
+                                                            ))}
+                                                            <td className="px-5 py-4 text-center bg-black/10">
+                                                                {dist.settled ? (
+                                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#4af8e3]/10 border border-[#4af8e3]/30 text-[#4af8e3] text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">
+                                                                        <span className="material-symbols-outlined text-[14px]">lock</span> Settled
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">
+                                                                        <span className="material-symbols-outlined text-[14px]">hourglass_empty</span> Pending
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            ) : (
+                                <GlassCard className="p-12 text-center flex flex-col items-center">
+                                    <span className="material-symbols-outlined text-[64px] text-[#464752] mb-4">account_balance_wallet</span>
+                                    <p className="text-[#f0f0fd] font-bold text-xl mb-1">No teacher earnings in {MONTHS[month - 1]} {year}</p>
+                                    <p className="text-[#aaaab7] text-sm">Earnings will appear once payments are approved.</p>
+                                </GlassCard>
+                            )}
+                        </div>
                     )}
                 </>
             ) : null}
@@ -465,6 +427,22 @@ export default function TeacherDistribution() {
     return (
         <ProtectedRoute allowedRoles={["teacher"]}>
             <TeacherLayout>
+                <style dangerouslySetInnerHTML={{__html: `
+                    .custom-scrollbar::-webkit-scrollbar {
+                        height: 8px;
+                        width: 8px;
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-track {
+                        background: rgba(12, 14, 23, 0.5);
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-thumb {
+                        background: rgba(70, 71, 82, 0.8);
+                        border-radius: 4px;
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                        background: rgba(199, 153, 255, 0.8);
+                    }
+                `}} />
                 <TeacherDistributionContent />
             </TeacherLayout>
         </ProtectedRoute>

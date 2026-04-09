@@ -91,7 +91,7 @@ function PaymentsContent() {
             {/* Header */}
             <div>
                 <h1 className="text-2xl md:text-3xl font-extrabold text-[#f0f0fd] flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                    Student Payments <span className="text-2xl drop-shadow-md">💰</span>
+                    All Payments
                 </h1>
             </div>
 
@@ -105,53 +105,53 @@ function PaymentsContent() {
 
             {/* Filters */}
             <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 animate-fade-in-up transition-colors">
-                <div className="flex flex-wrap gap-4">
+                <div className="grid grid-cols-2 gap-4">
                     <ModernSelect
-                        icon="school"
                         value={filterBatch}
                         options={batches}
                         onChange={(e) => setFilterBatch(e.target.value)}
                         placeholder="Select Batch"
+                        className="w-full"
                     />
                     <ModernSelect
-                        icon="event"
                         value={filterYear}
                         options={yearOptions}
                         onChange={(e) => setFilterYear(Number(e.target.value))}
+                        className="w-full"
                     />
                 </div>
             </div>
 
             {/* Pivot Table */}
-            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden animate-fade-in-up transition-colors shadow-xl h-[calc(100vh-240px)] flex flex-col">
+            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden animate-fade-in-up transition-colors shadow-xl">
                 {loading ? (
-                    <div className="flex-1 flex items-center justify-center p-12">
+                    <div className="flex items-center justify-center p-12">
                         <div className="w-8 h-8 border-4 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin" />
                     </div>
                 ) : !filterBatch ? (
-                    <div className="flex-1 flex items-center justify-center p-12 text-[#aaaab7]" style={{ fontFamily: "'Inter', sans-serif" }}>Select a batch to view payments.</div>
+                    <div className="flex items-center justify-center p-12 text-[#aaaab7]" style={{ fontFamily: "'Inter', sans-serif" }}>Select a batch to view payments.</div>
                 ) : students.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center p-12 text-[#aaaab7]" style={{ fontFamily: "'Inter', sans-serif" }}>No payment records found.</div>
+                    <div className="flex items-center justify-center p-12 text-[#aaaab7]" style={{ fontFamily: "'Inter', sans-serif" }}>No payment records found.</div>
                 ) : (
-                    <div className="overflow-auto flex-1 custom-scrollbar">
-                        <table className="w-full border-collapse min-w-[1200px]">
+                    <div className="overflow-x-auto custom-scrollbar">
+                        <table className="w-full border-collapse min-w-[1000px]">
                             <thead className="bg-[#0c0e17]/80 backdrop-blur-xl sticky top-0 z-20">
                                 <tr className="border-b border-white/5">
-                                    <th className="px-4 py-4 text-left text-sm font-bold text-[#3b82f6] uppercase tracking-wider whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                                    <th className="px-4 py-4 text-left text-sm font-bold text-[#3b82f6] uppercase tracking-wider whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/40 backdrop-blur-md z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
                                         Monthly Totals
                                     </th>
                                     {MONTHS_SHORT.map((_, i) => (
-                                        <th key={i} className="px-3 py-3 text-center text-sm font-bold text-[#3b82f6] tracking-widest border-r border-[#464752]/40 min-w-[140px]">
+                                        <th key={i} className="px-2 py-3 text-center text-sm font-bold text-[#3b82f6] tracking-widest border-r border-[#464752]/40 min-w-[120px]">
                                             ₹{monthTotals[i].toLocaleString()}
                                         </th>
                                     ))}
                                 </tr>
                                 <tr className="border-b border-[#464752]/40">
-                                    <th className="px-4 py-3 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/95 backdrop-blur-xl z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/40 backdrop-blur-md z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
                                         Student Name
                                     </th>
                                     {MONTHS_SHORT.map((m, i) => (
-                                        <th key={i} className="px-4 py-3 text-center text-xs font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40 min-w-[170px]">
+                                        <th key={i} className="px-2 py-3 text-center text-xs font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40 min-w-[140px]">
                                             {m}
                                         </th>
                                     ))}
@@ -160,7 +160,7 @@ function PaymentsContent() {
                             <tbody>
                                 {students.map((student) => (
                                     <tr key={student.id} className="border-b border-[#464752]/20 hover:bg-white/5 transition-colors group">
-                                        <td className="px-4 py-5 text-base text-[#f0f0fd] font-bold whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#171924] group-hover:bg-[#1f2231] transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                        <td className="px-4 py-5 text-base text-[#f0f0fd] font-bold whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#171924]/40 backdrop-blur-md group-hover:bg-[#1f2231]/60 transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                             {student.name}
                                         </td>
                                         {MONTHS_SHORT.map((_, mi) => {
@@ -184,8 +184,8 @@ function PaymentsContent() {
                                                     ? "0 0 8px rgba(59,130,246,0.4), 0 0 2px rgba(59,130,246,0.2)"
                                                     : "0 0 8px rgba(255,110,132,0.4), 0 0 2px rgba(255,110,132,0.2)";
                                             return (
-                                                <td key={mi} className="px-4 py-5 border-r border-[#464752]/40 bg-black/10">
-                                                    <div className="flex flex-col gap-2 w-[160px] mx-auto">
+                                                <td key={mi} className="px-2 py-5 border-r border-[#464752]/40 bg-black/10">
+                                                    <div className="flex flex-col gap-2 w-[130px] mx-auto">
                                                         {/* Top Row: Amount & Status */}
                                                         <div className="grid grid-cols-2 gap-2 w-full">
                                                             <span className="flex items-center justify-center px-2 py-1.5 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] text-[10px] font-bold tracking-widest whitespace-nowrap shadow-[0_0_10px_rgba(59,130,246,0.2)]">

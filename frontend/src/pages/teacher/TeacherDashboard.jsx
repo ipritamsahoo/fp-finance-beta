@@ -255,28 +255,33 @@ function TeacherDashboardContent() {
 
             {/* ── Current Filter ── */}
             <section className="animate-fade-in-scale" style={{ animationDelay: "120ms" }}>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col gap-3">
                     {/* Batch Pill */}
                     <ModernSelect
                         icon="school"
                         value={selectedBatch}
                         options={batches}
                         onChange={(e) => setSelectedBatch(e.target.value)}
+                        className="w-full"
                     />
 
-                    <ModernSelect
-                        icon="calendar_month"
-                        value={filterMonth}
-                        options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
-                        onChange={(e) => setFilterMonth(e.target.value)}
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                        <ModernSelect
+                            icon="calendar_month"
+                            value={filterMonth}
+                            options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
+                            onChange={(e) => setFilterMonth(e.target.value)}
+                            className="w-full"
+                        />
 
-                    <ModernSelect
-                        icon="event"
-                        value={filterYear}
-                        options={getYearOptions()}
-                        onChange={(e) => setFilterYear(parseInt(e.target.value))}
-                    />
+                        <ModernSelect
+                            icon="event"
+                            value={filterYear}
+                            options={getYearOptions()}
+                            onChange={(e) => setFilterYear(parseInt(e.target.value))}
+                            className="w-full"
+                        />
+                    </div>
                 </div>
             </section>
 

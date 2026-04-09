@@ -176,7 +176,7 @@ export default function ModernSelect({ icon, value, onChange, options, placehold
                 ref={buttonRef}
                 type="button"
                 onClick={handleToggle}
-                className={className || "flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#f0f0fd] cursor-pointer hover:bg-white/10 transition-all min-w-[120px]"}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-[#f0f0fd] cursor-pointer hover:bg-white/10 transition-all min-w-[120px] ${className}`}
             >
                 {icon && <span className="material-symbols-outlined text-[#aaaab7] text-base">{icon}</span>}
                 <span className="flex-1 text-left truncate pr-2 font-semibold">{displayLabel}</span>
