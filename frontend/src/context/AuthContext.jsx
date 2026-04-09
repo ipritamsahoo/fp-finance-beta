@@ -70,6 +70,7 @@ export function AuthProvider({ children }) {
             role: profile.role || "student",
             batchId: profile.batch_id || null,
             currentBadge: profile.current_badge || null,
+            badgeAnimationPending: profile.badge_animation_pending || false,
             profilePicUrl: picUrl,
             picVersion: picVersion,
             profilePicDataUrl: cachedPicDataUrl,

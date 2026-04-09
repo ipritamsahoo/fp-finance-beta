@@ -252,3 +252,18 @@ def student_get_leaderboard(
         raise HTTPException(status_code=500, detail=f"Failed to fetch leaderboard: {str(e)}")
 
 
+
+# ──────────────────────────────────────────────
+# PATCH /api/student/badge-celebrated
+# ──────────────────────────────────────────────
+@router.patch("/badge-celebrated")
+def student_badge_celebrated(user=Depends(require_role("student"))):
+    """Mark badge celebration animation as seen, so it won't replay."""
+    try:
+        db.collection("users").document(user["uid"]).update({
+            "badge_animation_pending": False,
+        })
+        return {"message": "Badge celebration acknowledged"}
+    except Exception as e:
+        print(f"Error clearing badge animation flag: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

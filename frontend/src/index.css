@@ -439,3 +439,56 @@ select option {
     pointer-events: none;
     z-index: 20;
 }
+
+/* ── Badge Celebration Overlay ── */
+@keyframes badgeCelebPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+}
+
+/* Ambient floating particles behind the profile */
+.badge-celebration-particles {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+.badge-celebration-particles::before,
+.badge-celebration-particles::after {
+    content: "";
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    animation: badgeFloatParticle 6s ease-in-out infinite;
+}
+.badge-celebration-particles::before {
+    top: 20%;
+    left: 15%;
+    animation-delay: 0s;
+    box-shadow:
+        40vw 10vh 0 rgba(255,255,255,0.1),
+        70vw 30vh 0 rgba(255,255,255,0.08),
+        20vw 60vh 0 rgba(255,255,255,0.12),
+        80vw 70vh 0 rgba(255,255,255,0.06),
+        50vw 80vh 0 rgba(255,255,255,0.1),
+        10vw 40vh 0 rgba(255,255,255,0.07),
+        90vw 20vh 0 rgba(255,255,255,0.09);
+}
+.badge-celebration-particles::after {
+    top: 55%;
+    left: 75%;
+    animation-delay: 3s;
+    box-shadow:
+        -30vw -20vh 0 rgba(255,255,255,0.08),
+        -60vw 15vh 0 rgba(255,255,255,0.1),
+        -10vw -40vh 0 rgba(255,255,255,0.06),
+        -50vw -10vh 0 rgba(255,255,255,0.12),
+        -70vw 35vh 0 rgba(255,255,255,0.07);
+}
+
+@keyframes badgeFloatParticle {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
+    50% { transform: translateY(-20px) scale(1.5); opacity: 1; }
+}

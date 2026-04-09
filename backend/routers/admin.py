@@ -159,6 +159,10 @@ def admin_approve(payment_id: str, user=Depends(require_role("admin"))):
             traceback.print_exc()
     else:
         print(f"[BADGE DEBUG] SKIPPED — missing created_at or requested_at")
+    # Fallback: if badge calculation failed for any reason, award silver
+    if not badge_tier:
+        badge_tier = "silver"
+        print(f"[BADGE DEBUG] Fallback: badge_tier set to 'silver'")
 
     payment_ref.update({
         "status": "Paid",
@@ -171,13 +175,15 @@ def admin_approve(payment_id: str, user=Depends(require_role("admin"))):
 
     # Save badge on the student's user doc (AuthContext picks this up real-time)
     student_id = payment.get("student_id")
-    if student_id and badge_tier:
+    if student_id:
         try:
             db.collection("users").document(student_id).update({
                 "current_badge": badge_tier,
                 "badge_month": payment.get("month"),
                 "badge_year": payment.get("year"),
+                "badge_animation_pending": True,
             })
+            print(f"[BADGE DEBUG] ✅ Set badge_animation_pending=True for student {student_id}")
         except Exception as e:
             print(f"Badge save to user doc failed: {e}")
 

@@ -4,6 +4,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import StudentLayout from "@/components/StudentLayout";
 import AnimatedGreeting from "@/components/AnimatedGreeting";
 import PaymentProgressTracker from "@/components/PaymentProgressTracker";
+import BadgeCelebrationOverlay from "@/components/BadgeCelebrationOverlay";
 import { api, apiFetch } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
@@ -225,11 +226,12 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
 
 // ── Main Dashboard Content ──
 function StudentDashboardContent() {
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth();
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [success, setSuccess] = useState("");
     const [previewImg, setPreviewImg] = useState(null);
+    const [showBadgeCelebration, setShowBadgeCelebration] = useState(false);
 
     // Persist seen approvals across sessions to guarantee the student sees the animation
     const [seenApprovals, setSeenApprovals] = useState(() => {
@@ -366,6 +368,15 @@ function StudentDashboardContent() {
     );
     const paidProgress = totalPaid > 0 && (totalPaid + totalDue) > 0 ? (totalPaid / (totalPaid + totalDue)) * 100 : (totalDue === 0 && totalPaid > 0 ? 100 : 0);
 
+    // Badge celebration trigger (must be before any early returns — Rules of Hooks)
+    useEffect(() => {
+        console.log("[BADGE_CELEB] user.badgeAnimationPending =", user?.badgeAnimationPending, "| user.currentBadge =", user?.currentBadge, "| showBadgeCelebration =", showBadgeCelebration);
+        if (user?.badgeAnimationPending && user?.currentBadge) {
+            console.log("[BADGE_CELEB] ✅ Triggering celebration!");
+            setShowBadgeCelebration(true);
+        }
+    }, [user?.badgeAnimationPending, user?.currentBadge]);
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
@@ -376,6 +387,17 @@ function StudentDashboardContent() {
 
     return (
         <div className="space-y-8">
+            {/* Badge Celebration Overlay */}
+            {showBadgeCelebration && user?.currentBadge && (
+                <BadgeCelebrationOverlay
+                    badgeTier={user.currentBadge}
+                    user={user}
+                    onComplete={() => {
+                        setShowBadgeCelebration(false);
+                        refreshUser();
+                    }}
+                />
+            )}
             {/* ── Welcome Section ── */}
             <section className="space-y-1 animate-fade-in-scale">
                 <h1

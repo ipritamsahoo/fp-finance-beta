@@ -79,6 +79,8 @@ export const api = {
         apiFetch(url, { method: "POST", body: JSON.stringify(data) }),
     put: (url, data) =>
         apiFetch(url, { method: "PUT", body: JSON.stringify(data) }),
+    patch: (url, data) =>
+        apiFetch(url, { method: "PATCH", ...(data ? { body: JSON.stringify(data) } : {}) }),
     delete: (url, data) =>
         apiFetch(url, { method: "DELETE", ...(data ? { body: JSON.stringify(data) } : {}) }),
     upload: (url, formData) =>
