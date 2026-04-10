@@ -39,23 +39,29 @@ function PaymentsContent() {
         if (!filterBatch) { setPayments([]); setLoading(false); return; }
         
         const currentCacheKey = `admin_all_payments_${filterBatch}_${filterYear}`;
-        if (!getCache(currentCacheKey) && !loading) {
+        const cached = getCache(currentCacheKey);
+        
+        if (cached) {
+            setPayments(prev => JSON.stringify(prev) !== JSON.stringify(cached) ? cached : prev);
+            setLoading(false);
+        } else {
+            setPayments([]);
             setLoading(true);
         }
         
         setError("");
         try {
             const res = await api.get(`/api/admin/payments?batch_id=${filterBatch}&year=${filterYear}`);
-            if (JSON.stringify(getCache(currentCacheKey)) !== JSON.stringify(res)) {
-                setPayments(res);
+            if (JSON.stringify(cached) !== JSON.stringify(res)) {
                 setCache(currentCacheKey, res);
+                setPayments(prev => JSON.stringify(prev) !== JSON.stringify(res) ? res : prev);
             }
         } catch (err) {
             setError(err.message);
         } finally {
-            if (loading) setLoading(false);
+            setLoading(false);
         }
-    }, [filterBatch, filterYear, loading]);
+    }, [filterBatch, filterYear]);
 
     useEffect(() => {
         fetchPayments();

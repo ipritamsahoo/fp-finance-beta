@@ -85,7 +85,12 @@ function DistributionContent() {
         
         const fetchCacheKey = `admin_distribution_${month}_${year}_${batchFilter}`;
         const currentCache = getCache(fetchCacheKey);
-        if (!currentCache && !loading) {
+        
+        if (currentCache) {
+            setData(prev => JSON.stringify(prev) !== JSON.stringify(currentCache) ? currentCache : prev);
+            setLoading(false);
+        } else {
+            setData(null);
             setLoading(true);
         }
         
@@ -94,15 +99,15 @@ function DistributionContent() {
             let url = `/api/admin/distribution?month=${month}&year=${year}&batch_id=${batchFilter}`;
             const res = await api.get(url);
             if (JSON.stringify(currentCache) !== JSON.stringify(res)) {
-                setData(res);
                 setCache(fetchCacheKey, res);
+                setData(prev => JSON.stringify(prev) !== JSON.stringify(res) ? res : prev);
             }
         } catch (err) {
             setError(err.message);
         } finally {
-            if (loading) setLoading(false);
+            setLoading(false);
         }
-    }, [month, year, batchFilter, loading]);
+    }, [month, year, batchFilter]);
 
     useEffect(() => {
         fetchDistribution();
