@@ -285,22 +285,27 @@ def admin_delete_user_session(uid: str, session_id: str, user=Depends(require_ro
 @router.get("/batches")
 def admin_list_batches(user=Depends(require_role("admin"))):
     """List all batches."""
+    # Pre-fetch all teacher names into a dictionary to avoid N+1 reads
+    teachers = db.collection("users").where("role", "==", "teacher").stream()
+    teacher_map = {t.id: t.to_dict().get("name", t.id) for t in teachers}
+
     batches = db.collection("batches").stream()
     results = []
     for b in batches:
         data = serialize_doc(b)
-        # Count students
-        students = db.collection("users") \
+        
+        # Count students efficiently using native .count()
+        students_query = db.collection("users") \
             .where("batch_id", "==", b.id) \
             .where("role", "==", "student") \
-            .stream()
-        data["student_count"] = sum(1 for _ in students)
-        # Get teacher names
+            .count()
+        data["student_count"] = students_query.get()[0][0].value
+        
+        # Get teacher names directly from local map
         teacher_names = []
         for tid in data.get("teacher_ids", []):
-            tdoc = db.collection("users").document(tid).get()
-            if tdoc.exists:
-                teacher_names.append(tdoc.to_dict().get("name", tid))
+            teacher_names.append(teacher_map.get(tid, tid))
+            
         data["teacher_names"] = teacher_names
         results.append(data)
     return results
@@ -485,6 +490,12 @@ def admin_list_students(
     user=Depends(require_role("admin")),
 ):
     """List all students, optionally filtered by batch."""
+    # 1. Pre-fetch batches and create a map
+    batch_map = {}
+    for batch in db.collection("batches").stream():
+        batch_map[batch.id] = batch.to_dict().get("batch_name", "")
+
+    # 2. Query students
     query = db.collection("users").where("role", "==", "student")
     if batch_id:
         query = query.where("batch_id", "==", batch_id)
@@ -494,11 +505,11 @@ def admin_list_students(
     for s in students:
         data = serialize_doc(s)
         data["uid"] = s.id
-        # Get batch name
-        if data.get("batch_id"):
-            batch_doc = db.collection("batches").document(data["batch_id"]).get()
-            if batch_doc.exists:
-                data["batch_name"] = batch_doc.to_dict().get("batch_name", "")
+        
+        # Fast lookup from the pre-fetched dictionary
+        b_id = data.get("batch_id")
+        data["batch_name"] = batch_map.get(b_id, "")
+        
         results.append(data)
 
     # Sort students alphabetically by name
@@ -660,19 +671,26 @@ def admin_update_student_status(uid: str, req: StudentStatusUpdate, user=Depends
 @router.get("/teachers")
 def admin_list_teachers(user=Depends(require_role("admin"))):
     """List all teachers with their assigned batches."""
+    # Pre-fetch all batches into memory
+    all_batches = []
+    for b in db.collection("batches").stream():
+        b_data = b.to_dict()
+        b_data["id"] = b.id
+        all_batches.append(b_data)
+
     teachers = db.collection("users").where("role", "==", "teacher").stream()
     results = []
     for t in teachers:
         data = serialize_doc(t)
         data["uid"] = t.id
-        # Find batches assigned to this teacher
-        batches = db.collection("batches") \
-            .where("teacher_ids", "array_contains", t.id) \
-            .stream()
-        data["assigned_batches"] = [
-            {"id": b.id, "batch_name": b.to_dict().get("batch_name", "")}
-            for b in batches
-        ]
+        
+        # Find batches assigned to this teacher using local data
+        assigned_batches = []
+        for b in all_batches:
+            if t.id in b.get("teacher_ids", []):
+                assigned_batches.append({"id": b["id"], "batch_name": b.get("batch_name", "")})
+                
+        data["assigned_batches"] = assigned_batches
         results.append(data)
     return results
 

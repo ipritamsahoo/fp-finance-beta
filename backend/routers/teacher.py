@@ -32,11 +32,11 @@ def teacher_get_batches(user=Depends(require_role("teacher"))):
     for batch in batches:
         b = serialize_doc(batch)
         # Count students in this batch
-        students = db.collection("users") \
+        students_query = db.collection("users") \
             .where("batch_id", "==", batch.id) \
             .where("role", "==", "student") \
-            .stream()
-        b["student_count"] = sum(1 for _ in students)
+            .count()
+        b["student_count"] = students_query.get()[0][0].value
         result.append(b)
 
     return result
@@ -98,6 +98,35 @@ def teacher_get_payments(
 
     return results
 
+
+# ──────────────────────────────────────────────
+# GET /api/teacher/student-dues/{student_id}
+# ──────────────────────────────────────────────
+@router.get("/student-dues/{student_id}")
+def teacher_student_dues(
+    student_id: str,
+    before_month: int,
+    before_year: int,
+    user=Depends(require_role("teacher")),
+):
+    """Get unpaid previous dues for a single student to check before offline approval."""
+    query = db.collection("payments") \
+        .where("student_id", "==", student_id) \
+        .where("status", "==", "Unpaid")
+
+    dues = query.stream()
+    result = []
+    
+    for d in dues:
+        p = serialize_doc(d)
+        py = p.get("year", 0)
+        pm = p.get("month", 0)
+        
+        if py < before_year or (py == before_year and pm < before_month):
+            result.append(p)
+            
+    result.sort(key=lambda x: (x.get("year", 0), x.get("month", 0)))
+    return result
 
 # ──────────────────────────────────────────────
 # POST /api/teacher/offline-request
@@ -223,18 +252,23 @@ def teacher_distribution(
             raise HTTPException(status_code=403, detail="Not assigned to this batch")
         batch_map = {batch_id: batch_map[batch_id]}
 
-    # 2. Query paid payments for each batch (to build the date list)
+    # 2. Query paid payments for assigned batches (to build the date list)
     all_payments = []
-    for bid in batch_map:
+    batch_ids = list(batch_map.keys())
+    
+    # Firestore 'in' queries are limited to 10 items, so chunk the batch_ids
+    for i in range(0, len(batch_ids), 10):
+        chunk = batch_ids[i:i+10]
         payments = db.collection("payments") \
             .where("status", "==", "Paid") \
             .where("month", "==", month) \
             .where("year", "==", year) \
-            .where("batch_id", "==", bid) \
+            .where("batch_id", "in", chunk) \
             .stream()
+            
         for p in payments:
             data = serialize_doc(p)
-            data["_batch_id"] = bid
+            data["_batch_id"] = data.get("batch_id", "unknown")
             all_payments.append(data)
 
     # 3. Fetch settlement snapshots

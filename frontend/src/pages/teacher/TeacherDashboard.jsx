@@ -152,15 +152,28 @@ function TeacherDashboardContent() {
         if (selectedBatch) fetchPayments();
     }, [selectedBatch, fetchPayments]);
 
-    // Real-time listener
+    // Targeted Real-time listener (Drastically lowers reads compared to full batch listener)
     useEffect(() => {
         if (!selectedBatch) return;
+        
+        // Only track Unpaid & Pending records. Ignore Paid ones which are stable.
         const q = query(
             collection(db, "payments"),
-            where("batch_id", "==", selectedBatch)
+            where("batch_id", "==", selectedBatch),
+            where("status", "in", ["Unpaid", "Pending_Verification", "Rejected"])
         );
-        const unsubscribe = onSnapshot(q, () => {
-            fetchPayments();
+        
+        let isFirstRun = true;
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (isFirstRun) {
+                isFirstRun = false; 
+                return; // fetchPayments handles the initial load
+            }
+            
+            // Only trigger a re-fetch if there was an actual change
+            if (snapshot.docChanges().length > 0) {
+                fetchPayments();
+            }
         });
         return () => unsubscribe();
     }, [selectedBatch, fetchPayments]);
@@ -173,21 +186,9 @@ function TeacherDashboardContent() {
             // Pre-check for previous dues
             const targetMonth = payment.month || filterMonth;
             const targetYear = payment.year || filterYear;
-            const sBatch = payment.batch_id || selectedBatch;
             
-            const allBatchData = await api.get(`/api/teacher/payments?batch_id=${sBatch}`);
-            
-            // Sort by year, then month so they display nicely
-            const dueRecords = allBatchData
-                .filter(p => 
-                    p.student_id === payment.student_id && 
-                    p.status === "Unpaid" &&
-                    (p.year < targetYear || (p.year === targetYear && p.month < targetMonth))
-                )
-                .sort((a, b) => {
-                    if (a.year !== b.year) return a.year - b.year;
-                    return a.month - b.month;
-                });
+            const dueRecords = await api.get(`/api/teacher/student-dues/${payment.student_id}?before_month=${targetMonth}&before_year=${targetYear}`);
+
             
             if (dueRecords.length > 0) {
                 setOfflineLoading(null);
