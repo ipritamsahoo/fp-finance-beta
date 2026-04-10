@@ -67,6 +67,10 @@ class StudentUpdate(BaseModel):
     clear_custom_fee: bool = False
 
 
+class StudentStatusUpdate(BaseModel):
+    is_disabled: bool
+
+
 class TeacherUpdate(BaseModel):
     name: Optional[str] = None
     username: Optional[str] = None

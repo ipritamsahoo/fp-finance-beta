@@ -27,7 +27,8 @@ function StudentsContent() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [showForm, setShowForm] = useState(false);
-    const [deleting, setDeleting] = useState(null);
+    const [togglingStatus, setTogglingStatus] = useState(null);
+
     const [form, setForm] = useState({ name: "", username: "", password: "", batch_id: "" });
     const [formLoading, setFormLoading] = useState(false);
 
@@ -73,6 +74,24 @@ function StudentsContent() {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
+    const handleToggleStatus = async (student) => {
+        const uid = student.uid || student.id;
+        const newStatus = !student.is_disabled;
+        const actionText = newStatus ? "disable" : "enable";
+        if (!confirm(`Are you sure you want to ${actionText} this student?`)) return;
+
+        setTogglingStatus(uid);
+        try {
+            await api.put(`/api/admin/students/${uid}/status`, { is_disabled: newStatus });
+            setSuccess(`Student ${newStatus ? "disabled" : "enabled"} successfully.`);
+            fetchData();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setTogglingStatus(null);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setFormLoading(true);
@@ -90,19 +109,7 @@ function StudentsContent() {
         }
     };
 
-    const handleDelete = async (uid) => {
-        if (!confirm("Delete this student? This is irreversible.")) return;
-        setDeleting(uid);
-        try {
-            await api.delete(`/api/admin/students/${uid}`);
-            setSuccess("Student deleted.");
-            fetchData();
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setDeleting(null);
-        }
-    };
+
 
 
 
@@ -433,10 +440,15 @@ function StudentsContent() {
                 {/* Mobile: Card layout */}
                 <div className="space-y-4 md:hidden">
                     {filtered.map((s, idx) => (
-                        <div key={s.uid || s.id} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-2xl p-5 animate-fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
+                        <div key={s.uid || s.id} className={`bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-2xl p-5 animate-fade-in-up transition-all ${s.is_disabled ? "opacity-60 grayscale-[0.3]" : ""}`} style={{ animationDelay: `${idx * 50}ms` }}>
                             <div className="flex flex-col gap-4">
-                                <div>
+                                <div className="flex items-center justify-between">
                                     <p className="text-[#f0f0fd] font-bold text-lg truncate tracking-wide" style={{ fontFamily: "'Manrope', sans-serif" }}>{s.name}</p>
+                                    {s.is_disabled && (
+                                        <span className="px-2 py-0.5 rounded-lg bg-[#ff6e84]/10 text-[#ff6e84] text-[10px] font-black uppercase tracking-tighter border border-[#ff6e84]/30 shadow-[0_0_10px_rgba(255,110,132,0.2)]">
+                                            Disabled
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex flex-wrap gap-2 -mt-1">
                                     <span className="px-3 py-1 rounded-full bg-[#c799ff]/10 text-[#c799ff] text-[11px] border border-[#c799ff]/30 font-bold uppercase tracking-widest whitespace-nowrap">
@@ -461,12 +473,15 @@ function StudentsContent() {
                                         className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:bg-[#c799ff]/10 hover:border-[#c799ff]/30 hover:text-[#c799ff] transition-all cursor-pointer flex-1 flex justify-center">
                                         <span className="material-symbols-outlined text-[20px]">edit</span>
                                     </button>
-                                    <button onClick={() => handleDelete(s.uid || s.id)} disabled={deleting === (s.uid || s.id)}
-                                        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:bg-[#ff6e84]/10 hover:border-[#ff6e84]/30 hover:text-[#ff6e84] transition-all disabled:opacity-50 cursor-pointer flex-1 flex justify-center">
-                                        {deleting === (s.uid || s.id) ? (
-                                            <span className="w-5 h-5 rounded-full border-2 border-[#ff6e84]/30 border-t-[#ff6e84] animate-spin" />
+                                    <button onClick={() => handleToggleStatus(s)} disabled={togglingStatus === (s.uid || s.id)}
+                                        className={`p-2.5 rounded-xl border transition-all disabled:opacity-50 cursor-pointer flex-1 flex justify-center 
+                                        ${s.is_disabled 
+                                            ? "bg-[#4af8e3]/5 border-[#4af8e3]/10 text-[#4af8e3]/60 hover:bg-[#4af8e3]/10 hover:border-[#4af8e3]/30 hover:text-[#4af8e3]" 
+                                            : "bg-white/5 border-white/10 text-[#aaaab7] hover:bg-[#ff6e84]/10 hover:border-[#ff6e84]/30 hover:text-[#ff6e84]"}`}>
+                                        {togglingStatus === (s.uid || s.id) ? (
+                                            <span className="w-5 h-5 rounded-full border-2 border-current border-t-transparent animate-spin" />
                                         ) : (
-                                            <span className="material-symbols-outlined text-[20px]">delete</span>
+                                            <span className="material-symbols-outlined text-[20px]">{s.is_disabled ? "person_check" : "person_off"}</span>
                                         )}
                                     </button>
                                 </div>
@@ -495,11 +510,20 @@ function StudentsContent() {
                             </thead>
                             <tbody className="divide-y divide-[#464752]/30">
                                 {filtered.map((s) => (
-                                    <tr key={s.uid || s.id} className="hover:bg-[#222532]/30 transition-colors group">
+                                    <tr key={s.uid || s.id} className={`hover:bg-[#222532]/30 transition-colors group ${s.is_disabled ? "opacity-50 grayscale-[0.5]" : ""}`}>
                                         <td className="px-6 py-5 whitespace-nowrap">
-                                            <div>
-                                                <p className="text-[#f0f0fd] font-bold tracking-wide">{s.name}</p>
-                                                <p className="text-[#aaaab7] text-xs mt-0.5">{s.username || "—"}</p>
+                                            <div className="flex items-center gap-3">
+                                                <div>
+                                                    <p className="text-[#f0f0fd] font-bold tracking-wide flex items-center gap-2">
+                                                        {s.name}
+                                                        {s.is_disabled && (
+                                                            <span className="px-1.5 py-0.5 rounded bg-[#ff6e84]/10 text-[#ff6e84] text-[9px] font-black uppercase tracking-tighter border border-[#ff6e84]/20 shadow-[0_0_8px_rgba(255,110,132,0.1)]">
+                                                                OFF
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                    <p className="text-[#aaaab7] text-xs mt-0.5">{s.username || "—"}</p>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-5">
@@ -533,14 +557,17 @@ function StudentsContent() {
                                                     <span className="material-symbols-outlined text-[16px]">edit</span>
                                                     <span className="text-xs font-bold tracking-wide uppercase">Edit</span>
                                                 </button>
-                                                <button onClick={() => handleDelete(s.uid || s.id)} disabled={deleting === (s.uid || s.id)}
-                                                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[#aaaab7] hover:text-[#ff6e84] hover:bg-[#ff6e84]/10 hover:border-[#ff6e84]/30 transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2">
-                                                    {deleting === (s.uid || s.id) ? (
-                                                        <span className="w-4 h-4 rounded-full border-2 border-[#ff6e84]/30 border-t-[#ff6e84] animate-spin" />
+                                                <button onClick={() => handleToggleStatus(s)} disabled={togglingStatus === (s.uid || s.id)}
+                                                    className={`px-3 py-1.5 rounded-lg border transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2 
+                                                    ${s.is_disabled 
+                                                        ? "bg-[#4af8e3]/5 border-[#4af8e3]/10 text-[#4af8e3]/60 hover:text-[#4af8e3] hover:bg-[#4af8e3]/10 hover:border-[#4af8e3]/30" 
+                                                        : "bg-white/5 border-white/10 text-[#aaaab7] hover:text-[#ff6e84] hover:bg-[#ff6e84]/10 hover:border-[#ff6e84]/30"}`}>
+                                                    {togglingStatus === (s.uid || s.id) ? (
+                                                        <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
                                                     ) : (
-                                                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                                                        <span className="material-symbols-outlined text-[16px]">{s.is_disabled ? "person_check" : "person_off"}</span>
                                                     )}
-                                                    <span className="text-xs font-bold tracking-wide uppercase">Remove</span>
+                                                    <span className="text-xs font-bold tracking-wide uppercase">{s.is_disabled ? "Enable" : "Disable"}</span>
                                                 </button>
                                             </div>
                                         </td>

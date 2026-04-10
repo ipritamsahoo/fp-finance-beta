@@ -20,7 +20,7 @@ from firebase_admin import firestore
 from schemas import (
     RegisterRequest, BatchCreate, StudentCreate, TeacherCreate,
     StudentUpdate, TeacherUpdate, GenerateMonthly, UndoMonthly, FeeOverride,
-    SettleDistribution, AdminSeed, to_firebase_email,
+    SettleDistribution, AdminSeed, to_firebase_email, StudentStatusUpdate,
 )
 from dependencies import require_role
 from utils import ts_now, serialize_doc
@@ -341,13 +341,61 @@ def admin_update_batch(batch_id: str, req: BatchCreate, user=Depends(require_rol
 
 @router.delete("/batches/{batch_id}")
 def admin_delete_batch(batch_id: str, user=Depends(require_role("admin"))):
-    """Delete a batch."""
+    """Delete a batch and all associated students, payments, and images."""
     batch_ref = db.collection("batches").document(batch_id)
-    if not batch_ref.get().exists:
+    batch_doc = batch_ref.get()
+    if not batch_doc.exists:
         raise HTTPException(status_code=404, detail="Batch not found")
 
+    # 1. CLEANUP STUDENTS
+    # Find all students in this batch
+    students = db.collection("users") \
+        .where("batch_id", "==", batch_id) \
+        .where("role", "==", "student") \
+        .stream()
+    
+    for s in students:
+        uid = s.id
+        # Delete profile picture from Cloudinary
+        try:
+            cloudinary.uploader.destroy(f"fpfinance/profile_pics/{uid}")
+        except Exception as e:
+            print(f"Cloudinary profile pic delete failed for {uid}: {e}")
+        
+        # Delete from Firebase Auth
+        try:
+            firebase_auth.delete_user(uid)
+        except Exception as e:
+            print(f"Firebase Auth delete failed for {uid}: {e}")
+        
+        # Delete Student document
+        db.collection("users").document(uid).delete()
+
+    # 2. CLEANUP PAYMENTS
+    # Find all payments in this batch
+    payments = db.collection("payments").where("batch_id", "==", batch_id).stream()
+    for p in payments:
+        pd = p.to_dict()
+        # Delete screenshot from Cloudinary if exists
+        pub_id = pd.get("screenshot_public_id")
+        if pub_id:
+            try:
+                cloudinary.uploader.destroy(pub_id)
+            except Exception as e:
+                print(f"Cloudinary payment screenshot delete failed: {e}")
+        
+        # Delete payment document
+        db.collection("payments").document(p.id).delete()
+
+    # 3. CLEANUP DISTRIBUTION SNAPSHOTS
+    snapshots = db.collection("distribution_snapshots").where("batch_id", "==", batch_id).stream()
+    for snap in snapshots:
+        db.collection("distribution_snapshots").document(snap.id).delete()
+
+    # 4. FINALIZE: Delete the batch itself
     batch_ref.delete()
-    return {"message": "Batch deleted"}
+
+    return {"message": "Batch and all associated data deleted successfully"}
 
 
 # ══════════════════════════════════════════════
@@ -382,9 +430,13 @@ def _auto_generate_for_student(student_id: str, student_name: str, batch_id: str
     if not existing_months:
         return 0
 
-    # Determine the fee for this student
+    # Determine the fee and check if disabled
     student_doc = db.collection("users").document(student_id).get()
     student_data = student_doc.to_dict() if student_doc.exists else {}
+
+    if student_data.get("is_disabled"):
+        return 0
+
     student_custom_fee = student_data.get("custom_fee")
 
     if student_custom_fee is not None:
@@ -571,24 +623,34 @@ def admin_update_student(uid: str, req: StudentUpdate, user=Depends(require_role
     return {"message": msg}
 
 
-@router.delete("/students/{uid}")
-def admin_remove_student(uid: str, user=Depends(require_role("admin"))):
-    """Remove a student (Firestore doc + Firebase Auth)."""
-    # Delete Firestore doc
-    db.collection("users").document(uid).delete()
+@router.put("/students/{uid}/status")
+def admin_update_student_status(uid: str, req: StudentStatusUpdate, user=Depends(require_role("admin"))):
+    """Enable or disable a student account.
+    Disabling also logs them out by clearing active_sessions."""
+    user_ref = db.collection("users").document(uid)
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Student not found")
 
-    # Delete all their payments
-    payments = db.collection("payments").where("student_id", "==", uid).stream()
-    for p in payments:
-        db.collection("payments").document(p.id).delete()
+    # Update Firestore
+    update_data = {"is_disabled": req.is_disabled}
 
-    # Delete from Firebase Auth
+    # If disabling, terminate all sessions
+    if req.is_disabled:
+        update_data["active_sessions"] = []
+
+    user_ref.update(update_data)
+
+    # Update Firebase Auth status
     try:
-        firebase_auth.delete_user(uid)
-    except Exception:
-        pass
+        firebase_auth.update_user(uid, disabled=req.is_disabled)
+    except Exception as e:
+        print(f"Firebase Auth status update failed: {e}")
 
-    return {"message": "Student removed"}
+    status_txt = "disabled" if req.is_disabled else "enabled"
+    return {"message": f"Student account {status_txt}"}
+
+
+
 
 
 # ══════════════════════════════════════════════
@@ -787,12 +849,22 @@ def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role("admi
     fallback_amount = req.amount or DEFAULT_FEE_AMOUNT
 
     # ── Reset all student badges for the target scope ──
-    reset_query = db.collection("users").where("role", "==", "student")
+    # Only target ACTIVE students
+    reset_query = db.collection("users") \
+        .where("role", "==", "student")
+
     if req.batch_id:
         reset_query = reset_query.where("batch_id", "==", req.batch_id)
+
+    # Note: We reset badges ONLY for active students to avoid unnecessary writes
+    # and because disabled students shouldn't be in the badge calculation loop.
     badges_reset = 0
     for s in reset_query.stream():
-        if s.to_dict().get("current_badge"):
+        data = s.to_dict()
+        if data.get("is_disabled"):
+            continue
+
+        if data.get("current_badge"):
             db.collection("users").document(s.id).update({
                 "current_badge": None,
                 "badge_month": None,
@@ -816,6 +888,10 @@ def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role("admi
     for s in student_list:
         student = s.to_dict()
         student_id = s.id
+
+        if student.get("is_disabled"):
+            skipped += 1
+            continue
 
         # Check if payment already exists
         existing = db.collection("payments") \

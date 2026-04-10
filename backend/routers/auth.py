@@ -86,6 +86,9 @@ def login(req: LoginRequest):
 
     profile = user_doc.to_dict()
 
+    if profile.get("is_disabled"):
+        raise HTTPException(status_code=403, detail="Your account has been disabled. Please contact the administrator.")
+
     return {
         "idToken": data["idToken"],
         "refreshToken": data["refreshToken"],

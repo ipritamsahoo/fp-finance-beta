@@ -29,6 +29,11 @@ def get_current_user(creds: HTTPAuthorizationCredentials = Depends(security)):
         raise HTTPException(status_code=404, detail="User profile not found")
 
     user_data = user_doc.to_dict()
+
+    # Block access if user is disabled
+    if user_data.get("is_disabled"):
+        raise HTTPException(status_code=403, detail="Your account has been disabled. Please contact the administrator.")
+
     user_data["uid"] = uid
     return user_data
 
