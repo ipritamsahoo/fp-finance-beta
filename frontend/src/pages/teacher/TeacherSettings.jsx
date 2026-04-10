@@ -75,7 +75,7 @@ function TeacherSettingsContent() {
     return (
         <div className="space-y-8" style={{ isolation: "isolate" }}>
             {/* ── Profile Header Card ── */}
-            <section className="relative animate-fade-in-scale" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden" }}>
+            <section className="relative" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden" }}>
                 <div className="bg-[#3b82f6]/10 backdrop-blur-2xl p-8 rounded-[32px] ring-1 ring-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex flex-col items-center text-center" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", outline: "1px solid transparent" }}>
                     <div className="mb-4 flex items-center justify-center">
                         <ProfilePicture size={96} className="border-2 border-white/20" />
@@ -90,7 +90,7 @@ function TeacherSettingsContent() {
             </section>
 
             {/* ── Settings List ── */}
-            <section className="space-y-3 animate-fade-in-scale" style={{ animationDelay: "100ms", transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+            <section className="space-y-3" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
                 {/* Change Profile Photo */}
                 <button
                     onClick={() => setPicModalOpen(true)}
@@ -149,21 +149,6 @@ function TeacherSettingsContent() {
                     </span>
                 </button>
 
-                {/* Notifications */}
-                <div className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl">
-                            <span className="material-symbols-outlined text-[#3b82f6]">notifications</span>
-                        </div>
-                        <span className="font-medium text-[#f0f0fd]">Notifications</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold text-[#4af8e3] uppercase tracking-widest">ON</span>
-                        <div className="w-10 h-5 bg-[#006a60] rounded-full relative flex items-center px-1">
-                            <div className="w-3 h-3 bg-[#4af8e3] rounded-full ml-auto shadow-sm" />
-                        </div>
-                    </div>
-                </div>
 
                 {/* Theme */}
                 <div className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl">
@@ -194,7 +179,7 @@ function TeacherSettingsContent() {
             </section>
 
             {/* ── Footer ── */}
-            <footer className="mt-12 flex flex-col items-center gap-6 animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
+            <footer className="mt-12 flex flex-col items-center gap-6">
                 <button
                     onClick={logout}
                     className="group flex items-center gap-3 px-8 py-3 bg-[#a70138]/20 hover:bg-[#a70138]/30 transition-all rounded-full ring-1 ring-[#ff6e84]/20 active:scale-95 cursor-pointer"

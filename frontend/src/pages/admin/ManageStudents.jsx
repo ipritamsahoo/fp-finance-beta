@@ -28,6 +28,8 @@ function StudentsContent() {
     const [success, setSuccess] = useState("");
     const [showForm, setShowForm] = useState(false);
     const [togglingStatus, setTogglingStatus] = useState(null);
+    const [statusModalStudent, setStatusModalStudent] = useState(null);
+    const [statusConfirmText, setStatusConfirmText] = useState("");
 
     const [form, setForm] = useState({ name: "", username: "", password: "", batch_id: "" });
     const [formLoading, setFormLoading] = useState(false);
@@ -74,12 +76,17 @@ function StudentsContent() {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    const handleToggleStatus = async (student) => {
-        const uid = student.uid || student.id;
-        const newStatus = !student.is_disabled;
-        const actionText = newStatus ? "disable" : "enable";
-        if (!confirm(`Are you sure you want to ${actionText} this student?`)) return;
+    const handleToggleStatus = (student) => {
+        setStatusModalStudent(student);
+        setStatusConfirmText("");
+    };
 
+    const confirmStatusToggle = async () => {
+        if (!statusModalStudent) return;
+        const uid = statusModalStudent.uid || statusModalStudent.id;
+        const newStatus = !statusModalStudent.is_disabled;
+        
+        setStatusModalStudent(null);
         setTogglingStatus(uid);
         try {
             await api.put(`/api/admin/students/${uid}/status`, { is_disabled: newStatus });
@@ -209,7 +216,7 @@ function StudentsContent() {
 
     if (loading) {
         return (
-            <div className="animate-fade-in p-6">
+            <div className="p-6">
                 <GenericListSkeleton />
             </div>
         );
@@ -222,7 +229,7 @@ function StudentsContent() {
                     {/* Hide title on mobile as it's in the Sub-Page Header */}
                     <div className="hidden md:block">
                         <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#f0f0fd] tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                            Manage Students <span className="text-2xl drop-shadow-md">🎓</span>
+                            Manage Students
                         </h1>
                         <p className="text-[#aaaab7] text-sm mt-1 font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
                             {filtered.length} of {students.length} student(s)
@@ -266,7 +273,7 @@ function StudentsContent() {
 
                 {/* Add Form */}
                 {showForm && (
-                    <form onSubmit={handleSubmit} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 sm:p-8 mb-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80">
+                    <form onSubmit={handleSubmit} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 sm:p-8 mb-6 transition-colors hover:bg-[#171924]/80">
                         <h3 className="text-[#f0f0fd] font-bold mb-6 text-lg flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
                             <span className="w-8 h-8 rounded-xl bg-[#c799ff]/10 border border-[#c799ff]/30 flex items-center justify-center text-sm font-extrabold text-[#c799ff] shadow-[0_0_10px_rgba(199,153,255,0.2)]">
                                 <span className="material-symbols-outlined text-[16px]">person_add</span>
@@ -440,7 +447,7 @@ function StudentsContent() {
                 {/* Mobile: Card layout */}
                 <div className="space-y-4 md:hidden">
                     {filtered.map((s, idx) => (
-                        <div key={s.uid || s.id} className={`bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-2xl p-5 animate-fade-in-up transition-all ${s.is_disabled ? "opacity-60 grayscale-[0.3]" : ""}`} style={{ animationDelay: `${idx * 50}ms` }}>
+                        <div key={s.uid || s.id} className={`bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-2xl p-5 transition-all ${s.is_disabled ? "opacity-60 grayscale-[0.3]" : ""}`}>
                             <div className="flex flex-col gap-4">
                                 <div className="flex items-center justify-between">
                                     <p className="text-[#f0f0fd] font-bold text-lg truncate tracking-wide" style={{ fontFamily: "'Manrope', sans-serif" }}>{s.name}</p>
@@ -497,7 +504,7 @@ function StudentsContent() {
                 </div>
 
                 {/* Desktop: Table */}
-                <div className="hidden md:block bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] overflow-hidden shadow-lg animate-fade-in-up">
+                <div className="hidden md:block bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] overflow-hidden shadow-lg">
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full">
                             <thead className="bg-[#222532]/50 border-b border-[#464752]/50">
@@ -522,7 +529,6 @@ function StudentsContent() {
                                                             </span>
                                                         )}
                                                     </p>
-                                                    <p className="text-[#aaaab7] text-xs mt-0.5">{s.username || "—"}</p>
                                                 </div>
                                             </div>
                                         </td>
@@ -588,6 +594,81 @@ function StudentsContent() {
                     </div>
                 </div>
             </div>
+
+            {/* Status Confirmation Modal */}
+            {statusModalStudent && (() => {
+                const isDisabling = !statusModalStudent.is_disabled;
+                const actionText = isDisabling ? "disable" : "enable";
+                const targetText = `I confirm to ${actionText} ${statusModalStudent.name}`;
+                
+                return (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto">
+                        <div className={`bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2rem] p-6 sm:p-8 w-full max-w-lg border ${isDisabling ? "border-[#ff6e84]/30 shadow-[0_0_40px_rgba(255,110,132,0.15)]" : "border-[#4af8e3]/30 shadow-[0_0_40px_rgba(74,248,227,0.15)]"} relative animate-fade-in-up m-auto`}>
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className={`${isDisabling ? "text-[#ff6e84]" : "text-[#4af8e3]"} font-bold text-xl flex items-center gap-2`} style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                    <span className="material-symbols-outlined">{isDisabling ? "person_off" : "person_check"}</span>
+                                    {isDisabling ? "Disable Student" : "Enable Student"}
+                                </h3>
+                                <button onClick={() => setStatusModalStudent(null)} className="text-[#aaaab7] hover:text-white transition-colors cursor-pointer p-2 rounded-full hover:bg-white/5 flex items-center justify-center">
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            
+                            <div className="space-y-4 mb-6 text-[#aaaab7]">
+                                <p className="text-base text-[#f0f0fd] font-medium">Are you sure you want to {actionText} <span className="font-bold text-white">{statusModalStudent.name}</span>?</p>
+                                
+                                {isDisabling ? (
+                                    <div className="bg-[#ff6e84]/10 border border-[#ff6e84]/20 p-4 rounded-xl text-sm leading-relaxed text-[#ff9dac]">
+                                        <p className="font-bold mb-1">If you disable this student:</p>
+                                        <ul className="list-disc list-inside space-y-1 ml-1 font-medium">
+                                            <li>They will be logged out of all devices immediately.</li>
+                                            <li>They will not be able to log in to their account.</li>
+                                            <li>Auto-generation of new monthly payments will be paused for them.</li>
+                                        </ul>
+                                    </div>
+                                ) : (
+                                    <div className="bg-[#4af8e3]/10 border border-[#4af8e3]/20 p-4 rounded-xl text-sm leading-relaxed text-[#dcfff8]">
+                                        <p className="font-bold mb-1">If you enable this student:</p>
+                                        <ul className="list-disc list-inside space-y-1 ml-1 font-medium">
+                                            <li>They will be able to log in to their account again.</li>
+                                            <li>Auto-generation of new monthly payments will resume.</li>
+                                            <li>Their previous records remain intact.</li>
+                                        </ul>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-[13px] font-bold tracking-wide uppercase mb-2">
+                                        Please type <span className={`${isDisabling ? "text-[#ff6e84]" : "text-[#4af8e3]"} select-all`}>{targetText}</span> to verify
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={statusConfirmText}
+                                        onChange={(e) => setStatusConfirmText(e.target.value)}
+                                        className={`w-full px-4 py-3.5 rounded-xl bg-[#222532]/50 border border-[#464752]/50 ${isDisabling ? "hover:border-[#ff6e84]/50 focus:border-[#ff6e84] focus:ring-[#ff6e84]" : "hover:border-[#4af8e3]/50 focus:border-[#4af8e3] focus:ring-[#4af8e3]"} text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-1 transition-colors`}
+                                        placeholder={targetText}
+                                        autoComplete="off"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-4 pt-6 border-t border-[#464752]/30">
+                                <button onClick={() => setStatusModalStudent(null)} className="px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-widest text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 transition-all cursor-pointer">
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmStatusToggle}
+                                    disabled={statusConfirmText !== targetText}
+                                    className={`px-6 py-3 rounded-xl ${isDisabling ? "bg-[#ff6e84]/10 text-[#ff6e84] border-[#ff6e84]/30 hover:bg-[#ff6e84]/20 hover:border-[#ff6e84]/50 shadow-[0_4px_15px_rgba(255,110,132,0.15)]" : "bg-[#4af8e3]/10 text-[#4af8e3] border-[#4af8e3]/30 hover:bg-[#4af8e3]/20 hover:border-[#4af8e3]/50 shadow-[0_4px_15px_rgba(74,248,227,0.15)]"} border text-sm font-bold uppercase tracking-widest transition-all duration-300 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2`}
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">{isDisabling ? "person_off" : "person_check"}</span>
+                                    {isDisabling ? "Disable" : "Enable"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Devices Modal */}
             {

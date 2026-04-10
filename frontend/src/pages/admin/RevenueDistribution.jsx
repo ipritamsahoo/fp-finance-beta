@@ -125,43 +125,42 @@ function DistributionContent() {
     return (
         <div>
             {/* Header + Selectors */}
-            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between mb-6 gap-4">
+            <div className="flex flex-col mb-8 gap-5">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-[#f0f0fd] flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                        Revenue Distribution <span className="text-2xl drop-shadow-md">💸</span>
+                    <h1 className="text-2xl md:text-4xl font-extrabold text-[#f0f0fd] tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                        Revenue Distribution
                     </h1>
-                    <p className="text-[#aaaab7] text-sm mt-1">Teacher payment split based on confirmation date</p>
                 </div>
-                <div className="flex flex-col xl:flex-row xl:items-end gap-3 w-full">
-                    <div className="flex gap-3 w-full xl:w-auto">
-                        <div className="relative flex-1 xl:flex-none z-30">
+                <div className="flex flex-col md:flex-row md:items-center gap-3 w-full">
+                    <div className="flex gap-3 w-full md:w-auto">
+                        <div className="relative flex-1 md:flex-none z-30">
                             <ModernSelect
                                 value={month}
                                 onChange={(e) => setMonth(Number(e.target.value))}
                                 options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
-                                className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm xl:min-w-[140px]"
+                                className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm md:min-w-[140px]"
                             />
                         </div>
-                        <div className="relative flex-1 xl:flex-none z-20">
+                        <div className="relative flex-1 md:flex-none z-20">
                             <ModernSelect
                                 value={year}
                                 onChange={(e) => setYear(Number(e.target.value))}
                                 options={yearOptions}
-                                className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm xl:min-w-[120px]"
+                                className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm md:min-w-[120px]"
                             />
                         </div>
                     </div>
                     {batches.length > 0 ? (
-                        <div className="relative w-full xl:w-auto z-10">
+                        <div className="relative w-full md:w-auto z-10">
                             <ModernSelect
                                 value={batchFilter}
                                 onChange={(e) => setBatchFilter(e.target.value)}
                                 options={batches}
-                                className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm xl:min-w-[180px]"
+                                className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] transition-colors rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 text-[#f0f0fd] text-sm md:min-w-[200px]"
                             />
                         </div>
                     ) : (
-                        <div className="bg-[#222532]/50 border border-[#464752]/50 rounded-2xl w-full xl:w-[180px] h-[46px] animate-pulse" />
+                        <div className="bg-[#222532]/50 border border-[#464752]/50 rounded-2xl w-full md:w-[200px] h-[46px] animate-pulse" />
                     )}
                 </div>
             </div>
@@ -175,25 +174,25 @@ function DistributionContent() {
             )}
 
             {loading ? (
-                <div className="animate-fade-in p-6">
+                <div className="p-6">
                     <GenericListSkeleton />
                 </div>
             ) : data ? (
                 <>
                     {/* Summary Cards */}
                     <div className="grid grid-cols-2 gap-3 mb-6">
-                        <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl p-5 animate-fade-in-up transition-colors hover:bg-[#171924]/80">
+                        <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl p-5 transition-colors hover:bg-[#171924]/80">
                             <p className="text-[#aaaab7] text-xs font-bold uppercase tracking-widest mb-1 pointer-events-none text-opacity-80">Total Distributed</p>
                             <p className="text-3xl sm:text-4xl font-extrabold text-[#4af8e3] mt-2 drop-shadow-md">₹{data.total_collected.toLocaleString()}</p>
                         </div>
-                        <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl p-5 animate-fade-in-up transition-colors hover:bg-[#171924]/80" style={{ animationDelay: "50ms" }}>
+                        <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl p-5 transition-colors hover:bg-[#171924]/80">
                             <p className="text-[#aaaab7] text-xs font-bold uppercase tracking-widest mb-1 pointer-events-none text-opacity-80">Teachers Shared</p>
                             <p className="text-3xl sm:text-4xl font-extrabold text-[#c799ff] mt-2 drop-shadow-md">{data.total_teachers_shared || 0}</p>
                         </div>
                     </div>
 
                     {/* ═══ Tab Bar ═══ */}
-                    <div className="flex flex-col sm:flex-row gap-2 mb-6 p-1.5 rounded-[1.25rem] bg-[#171924]/60 backdrop-blur-[20px] border border-[#464752]/40 animate-fade-in-up" style={{ animationDelay: "100ms", transform: "translateZ(0)", isolation: "isolate", willChange: "transform", backfaceVisibility: "hidden" }}>
+                    <div className="flex flex-col sm:flex-row gap-2 mb-6 p-1.5 rounded-[1.25rem] bg-[#171924]/60 backdrop-blur-[20px] border border-[#464752]/40" style={{ transform: "translateZ(0)", isolation: "isolate", willChange: "transform", backfaceVisibility: "hidden" }}>
                         <button
                             onClick={() => setActiveTab("datewise")}
                             className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 cursor-pointer flex items-center justify-center gap-2
@@ -220,7 +219,7 @@ function DistributionContent() {
                     {activeTab === "datewise" && (
                         <>
                             {data.dates && data.dates.length > 0 ? (
-                                <div className="animate-fade-in-up">
+                                <div>
                                     <div className="space-y-4">
                                         {data.dates.map((dist) => {
                                             const isExpanded = expandedDate === dist.date;
@@ -353,7 +352,7 @@ function DistributionContent() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-12 text-center animate-fade-in-up flex flex-col items-center shadow-lg">
+                                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-12 text-center flex flex-col items-center shadow-lg">
                                     <span className="material-symbols-outlined text-[64px] text-[#464752] mb-4">date_range</span>
                                     <p className="text-[#f0f0fd] font-bold text-xl mb-1" style={{ fontFamily: "'Manrope', sans-serif" }}>No payments confirmed in {MONTHS[month - 1]} {year}</p>
                                     <p className="text-[#aaaab7] text-sm">Payments will appear here once approved by admin.</p>
@@ -364,7 +363,7 @@ function DistributionContent() {
 
                     {/* ═══ Tab 2: Teacher Earnings Ledger ═══ */}
                     {activeTab === "earnings" && (
-                        <div className="animate-fade-in-up">
+                        <div>
                             {data.dates && data.dates.length > 0 && allTeachers.length > 0 ? (
                                 <>
                                     {/* Ledger table (scrollable on mobile) */}
@@ -446,7 +445,7 @@ function DistributionContent() {
                                     </div>
                                 </>
                             ) : (
-                                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-12 text-center animate-fade-in-up flex flex-col items-center shadow-lg">
+                                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-12 text-center flex flex-col items-center shadow-lg">
                                     <span className="material-symbols-outlined text-[64px] text-[#464752] mb-4">account_balance_wallet</span>
                                     <p className="text-[#f0f0fd] font-bold text-xl mb-1" style={{ fontFamily: "'Manrope', sans-serif" }}>No teacher earnings in {MONTHS[month - 1]} {year}</p>
                                     <p className="text-[#aaaab7] text-sm">Earnings will appear once payments are confirmed.</p>

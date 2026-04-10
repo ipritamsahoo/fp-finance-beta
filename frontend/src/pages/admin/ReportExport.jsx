@@ -126,7 +126,7 @@ function ReportExportContent() {
 
     if (loading) {
         return (
-            <div className="animate-fade-in p-6">
+            <div className="p-6">
                 <GenericListSkeleton />
             </div>
         );
@@ -139,7 +139,7 @@ function ReportExportContent() {
             {/* Header - Hidden on mobile as it's in the Sub-Page Header */}
             <div className="mb-6 hidden md:block">
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#f0f0fd] tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                    Report Export <span className="text-2xl drop-shadow-md">📊</span>
+                    Report Export
                 </h1>
                 <p className="text-[#aaaab7] text-sm mt-1 font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
                     Export Collection & Distribution report as PDF
@@ -166,7 +166,7 @@ function ReportExportContent() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                 {/* Step 1: Select Batch */}
-                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80">
+                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 transition-colors hover:bg-[#171924]/80">
                     <h3 className="text-[#f0f0fd] font-bold mb-4 flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
                         Select Batch
                     </h3>
@@ -182,7 +182,7 @@ function ReportExportContent() {
                 </div>
 
                 {/* Step 2: Select Year */}
-                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80" style={{ animationDelay: "80ms" }}>
+                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 transition-colors hover:bg-[#171924]/80">
                     <h3 className="text-[#f0f0fd] font-bold mb-4 flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
                         Select Year
                     </h3>
@@ -198,7 +198,7 @@ function ReportExportContent() {
             </div>
 
             {/* Step 3: Select Month(s) */}
-            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 mb-8 animate-fade-in-up transition-colors hover:bg-[#171924]/80" style={{ animationDelay: "160ms" }}>
+            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 mb-8 transition-colors hover:bg-[#171924]/80">
                 <div className="flex justify-between items-start mb-2">
                     <h3 className="text-[#f0f0fd] font-bold flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
                         Select Month(s)
@@ -248,7 +248,7 @@ function ReportExportContent() {
             </div>
 
             {/* Export Button */}
-            <div className="animate-fade-in-up" style={{ animationDelay: "240ms" }}>
+            <div>
                 <button
                     onClick={handleExport}
                     disabled={exporting || !batchId || selectedMonths.length === 0}

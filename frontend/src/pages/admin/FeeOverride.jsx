@@ -120,7 +120,7 @@ function FeeOverrideContent() {
 
     if (loading) {
         return (
-            <div className="animate-fade-in p-6">
+            <div className="p-6">
                 <GenericListSkeleton />
             </div>
         );
@@ -160,7 +160,7 @@ function FeeOverrideContent() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Step 1: Select Student */}
-                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80">
+                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 transition-colors hover:bg-[#171924]/80">
                     <h3 className="text-[#f0f0fd] font-bold mb-5 flex items-center gap-3 text-lg" style={{ fontFamily: "'Manrope', sans-serif" }}>
                         <span className="w-8 h-8 rounded-xl bg-[#c799ff]/10 border border-[#c799ff]/30 flex items-center justify-center text-sm font-extrabold text-[#c799ff] shadow-[0_0_10px_rgba(199,153,255,0.2)]">1</span>
                         Select Student
@@ -217,7 +217,7 @@ function FeeOverrideContent() {
                 </div>
 
                 {/* Step 2: Choose Mode */}
-                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80" style={{ animationDelay: "100ms" }}>
+                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 transition-colors hover:bg-[#171924]/80">
                     <h3 className="text-[#f0f0fd] font-bold mb-5 flex items-center gap-3 text-lg" style={{ fontFamily: "'Manrope', sans-serif" }}>
                         <span className="w-8 h-8 rounded-xl bg-[#c799ff]/10 border border-[#c799ff]/30 flex items-center justify-center text-sm font-extrabold text-[#c799ff] shadow-[0_0_10px_rgba(199,153,255,0.2)]">2</span>
                         Override Mode
@@ -257,7 +257,7 @@ function FeeOverrideContent() {
                 </div>
 
                 {/* Step 3: Amount + Month/Year (conditional) */}
-                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80" style={{ animationDelay: "200ms" }}>
+                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 transition-colors hover:bg-[#171924]/80">
                     <h3 className="text-[#f0f0fd] font-bold mb-5 flex items-center gap-3 text-lg" style={{ fontFamily: "'Manrope', sans-serif" }}>
                         <span className="w-8 h-8 rounded-xl bg-[#c799ff]/10 border border-[#c799ff]/30 flex items-center justify-center text-sm font-extrabold text-[#c799ff] shadow-[0_0_10px_rgba(199,153,255,0.2)]">3</span>
                         {mode === "specific-month" ? "Target & Amount" : "New Amount"}
@@ -293,7 +293,7 @@ function FeeOverrideContent() {
                 </div>
 
                 {/* Submit */}
-                <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up" style={{ animationDelay: "300ms" }}>
+                <div className="flex flex-col sm:flex-row gap-4">
                     <button type="submit" disabled={submitting}
                         className={`flex-1 sm:flex-none px-8 py-4 rounded-2xl text-[13px] font-bold uppercase tracking-widest transition-all duration-300 disabled:opacity-50 cursor-pointer shadow-lg flex items-center justify-center gap-2 group ${mode === "all-time"
                             ? "bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 shadow-[0_4px_15px_rgba(199,153,255,0.15)]"
@@ -317,7 +317,7 @@ function FeeOverrideContent() {
             </form>
 
             {/* Info Panel */}
-            <div className="mt-10 bg-[#171924]/60 backdrop-blur-[20px] border border-[#ff9dac]/10 rounded-[2rem] p-6 animate-fade-in-up" style={{ animationDelay: "400ms" }}>
+            <div className="mt-10 bg-[#171924]/60 backdrop-blur-[20px] border border-[#ff9dac]/10 rounded-[2rem] p-6">
                 <h3 className="text-[#ff9dac] font-bold mb-4 text-sm flex items-center gap-2 tracking-wide">
                     <span className="material-symbols-outlined">info</span> How Fee Override Works
                 </h3>

@@ -128,28 +128,28 @@ function PaymentsContent() {
             )}
 
             {/* Filters */}
-            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 animate-fade-in-up transition-colors" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
-                <div className="grid grid-cols-2 gap-4">
+            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 transition-colors" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+                <div className="flex flex-col md:flex-row gap-4">
                     <ModernSelect
                         value={filterBatch}
                         options={batches}
                         onChange={(e) => setFilterBatch(e.target.value)}
                         placeholder="Select Batch"
-                        className="w-full"
+                        className="w-full md:w-[220px]"
                     />
                     <ModernSelect
                         value={filterYear}
                         options={yearOptions}
                         onChange={(e) => setFilterYear(Number(e.target.value))}
-                        className="w-full"
+                        className="w-full md:w-[140px]"
                     />
                 </div>
             </div>
 
             {/* Pivot Table */}
-            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden animate-fade-in-up transition-colors shadow-xl" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden transition-colors shadow-xl" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
                 {loading ? (
-                    <div className="animate-fade-in p-6">
+                    <div className="p-6">
                         <GenericListSkeleton />
                     </div>
                 ) : !filterBatch ? (
@@ -165,7 +165,7 @@ function PaymentsContent() {
                                         Monthly Totals
                                     </th>
                                     {MONTHS_SHORT.map((_, i) => (
-                                        <th key={i} className="px-2 py-3 text-center text-sm font-bold text-[#3b82f6] tracking-widest border-r border-[#464752]/40 min-w-[120px]">
+                                        <th key={i} className="px-2 py-3 text-center text-sm font-bold text-[#3b82f6] tracking-widest border-r border-[#464752]/40 min-w-[170px]">
                                             ₹{monthTotals[i].toLocaleString()}
                                         </th>
                                     ))}
@@ -175,7 +175,7 @@ function PaymentsContent() {
                                         Student Name
                                     </th>
                                     {MONTHS_SHORT.map((m, i) => (
-                                        <th key={i} className="px-2 py-3 text-center text-xs font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40 min-w-[140px]">
+                                        <th key={i} className="px-2 py-3 text-center text-xs font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40 min-w-[170px]">
                                             {m}
                                         </th>
                                     ))}
@@ -200,16 +200,20 @@ function PaymentsContent() {
                                             const stBg = p.status === "Paid"
                                                 ? "bg-[#4af8e3]/10 border-[#4af8e3]/30 text-[#4af8e3]"
                                                 : p.status === "Pending_Verification"
-                                                    ? "bg-[#3b82f6]/10 border-[#3b82f6]/30 text-[#3b82f6]"
-                                                    : "bg-[#ff6e84]/10 border-[#ff6e84]/30 text-[#ff6e84]";
+                                                    ? "bg-[#facc15]/10 border-[#facc15]/30 text-[#facc15]"
+                                                    : p.status === "Rejected"
+                                                        ? "bg-[#ff6e84]/10 border-[#ff6e84]/30 text-[#ff6e84]"
+                                                        : "bg-[#fb923c]/10 border-[#fb923c]/30 text-[#fb923c]";
                                             const stGlow = p.status === "Paid"
                                                 ? "0 0 8px rgba(74,248,227,0.4), 0 0 2px rgba(74,248,227,0.2)"
                                                 : p.status === "Pending_Verification"
-                                                    ? "0 0 8px rgba(59,130,246,0.4), 0 0 2px rgba(59,130,246,0.2)"
-                                                    : "0 0 8px rgba(255,110,132,0.4), 0 0 2px rgba(255,110,132,0.2)";
+                                                    ? "0 0 8px rgba(250,204,21,0.4), 0 0 2px rgba(250,204,21,0.2)"
+                                                    : p.status === "Rejected"
+                                                        ? "0 0 8px rgba(255,110,132,0.4), 0 0 2px rgba(255,110,132,0.2)"
+                                                        : "0 0 8px rgba(251,146,60,0.4), 0 0 2px rgba(251,146,60,0.2)";
                                             return (
                                                 <td key={mi} className="px-2 py-5 border-r border-[#464752]/40 bg-black/10">
-                                                    <div className="flex flex-col gap-2 w-[130px] mx-auto">
+                                                    <div className="flex flex-col gap-2 w-[155px] mx-auto">
                                                         {/* Top Row: Amount & Status */}
                                                         <div className="grid grid-cols-2 gap-2 w-full">
                                                             <span className="flex items-center justify-center px-2 py-1.5 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] text-[10px] font-bold tracking-widest whitespace-nowrap shadow-[0_0_10px_rgba(59,130,246,0.2)]">

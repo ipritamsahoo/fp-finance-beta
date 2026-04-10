@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
@@ -19,6 +20,8 @@ function BatchesContent() {
     const [showForm, setShowForm] = useState(false);
     const [editId, setEditId] = useState(null);
     const [deleting, setDeleting] = useState(null);
+    const [deleteModalBatch, setDeleteModalBatch] = useState(null);
+    const [deleteConfirmText, setDeleteConfirmText] = useState("");
     const [form, setForm] = useState({ batch_name: "", teacher_ids: [], batch_fee: "" });
     const [formLoading, setFormLoading] = useState(false);
 
@@ -86,8 +89,15 @@ function BatchesContent() {
         setShowForm(true);
     };
 
-    const handleDelete = async (id) => {
-        if (!confirm("Are you sure you want to delete this batch?")) return;
+    const openDeleteModal = (batch) => {
+        setDeleteModalBatch(batch);
+        setDeleteConfirmText("");
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteModalBatch) return;
+        const id = deleteModalBatch.id;
+        setDeleteModalBatch(null);
         setDeleting(id);
         try {
             await api.delete(`/api/admin/batches/${id}`);
@@ -100,6 +110,7 @@ function BatchesContent() {
         }
     };
 
+
     const toggleTeacher = (tid) => {
         setForm((prev) => ({
             ...prev,
@@ -111,7 +122,7 @@ function BatchesContent() {
 
     if (loading) {
         return (
-            <div className="animate-fade-in p-6">
+            <div className="p-6">
                 <GenericListSkeleton />
             </div>
         );
@@ -123,11 +134,8 @@ function BatchesContent() {
                 {/* Hide title on mobile as it's in the Sub-Page Header */}
                 <div className="hidden md:block">
                     <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#f0f0fd] tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                        Manage Batches <span className="text-2xl drop-shadow-md">📋</span>
+                        Manage Batches
                     </h1>
-                    <p className="text-[#aaaab7] text-sm mt-1 font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
-                        {batches.length} batch(es)
-                    </p>
                 </div>
                 <button
                     onClick={() => { setShowForm(!showForm); setEditId(null); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }}
@@ -157,9 +165,13 @@ function BatchesContent() {
             )}
 
             {/* Form Modal */}
-            {showForm && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto">
-                    <form onSubmit={handleSubmit} className="bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2rem] p-6 sm:p-8 w-full max-w-lg border border-[#737580]/20 shadow-2xl relative animate-fade-in-up m-auto">
+            {showForm && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={() => { setShowForm(false); setEditId(null); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }}>
+                    <form 
+                        onSubmit={handleSubmit} 
+                        className="bg-[#0c0e17]/95 backdrop-blur-3xl rounded-[32px] p-6 sm:p-8 w-full max-w-lg border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative animate-modal-in m-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-[#f0f0fd] font-bold text-xl flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                 <span className={`material-symbols-outlined ${editId ? "text-[#c799ff]" : "text-[#4af8e3]"}`}>
@@ -167,23 +179,23 @@ function BatchesContent() {
                                 </span>
                                 {editId ? "Edit Batch" : "New Batch"}
                             </h3>
-                            <button type="button" onClick={() => { setShowForm(false); setEditId(null); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }} className="text-[#aaaab7] hover:text-[#ff6e84] transition-colors cursor-pointer p-2 rounded-full hover:bg-white/5 flex items-center justify-center">
+                            <button type="button" onClick={() => { setShowForm(false); setEditId(null); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }} className="text-[#aaaab7] hover:text-white transition-colors cursor-pointer p-2 rounded-full hover:bg-white/5 flex items-center justify-center">
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
                             <div>
-                                <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Batch Name</label>
+                                <label className="block text-[#aaaab7] text-[11px] font-bold tracking-widest uppercase mb-1.5 ml-1">Batch Name</label>
                                 <input
                                     placeholder="e.g. Batch A - Class 10"
                                     value={form.batch_name}
                                     onChange={(e) => setForm({ ...form, batch_name: e.target.value })}
                                     required
-                                    className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
+                                    className="w-full px-4 py-3.5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/20 text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/30 transition-all placeholder:text-[#464752]"
                                 />
                             </div>
                             <div>
-                                <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Batch Fee (optional)</label>
+                                <label className="block text-[#aaaab7] text-[11px] font-bold tracking-widest uppercase mb-1.5 ml-1">Batch Fee (optional)</label>
                                 <div className="relative">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#aaaab7] text-lg font-bold">₹</span>
                                     <input
@@ -193,15 +205,15 @@ function BatchesContent() {
                                         onChange={(e) => setForm({ ...form, batch_fee: e.target.value })}
                                         min="0"
                                         step="any"
-                                        className="w-full pl-8 pr-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors
-                                            [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                        className="w-full pl-8 pr-4 py-3.5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/20 text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/30 transition-all
+                                            [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-[#464752]"
                                     />
                                 </div>
                             </div>
                         </div>
                         <div className="mb-8">
-                            <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-3">Assign Teachers</label>
-                            <div className="flex flex-wrap gap-2">
+                            <label className="block text-[#aaaab7] text-[11px] font-bold tracking-widest uppercase mb-3 ml-1">Assign Teachers</label>
+                            <div className="flex flex-wrap gap-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
                                 {teachers.map((t) => (
                                     <button
                                         key={t.uid || t.id}
@@ -210,26 +222,26 @@ function BatchesContent() {
                                         className={`px-4 py-2 rounded-xl text-xs font-bold tracking-wide border transition-all duration-300 cursor-pointer
                                             ${form.teacher_ids.includes(t.uid || t.id)
                                                 ? "bg-[#c799ff]/10 border-[#c799ff]/30 text-[#c799ff] shadow-[0_0_10px_rgba(199,153,255,0.2)]"
-                                                : "bg-[#222532]/50 border-[#464752]/50 text-[#aaaab7] hover:border-[#464752]"}`}
+                                                : "bg-white/[0.03] border-white/10 text-[#aaaab7] hover:border-white/20 hover:bg-white/5"}`}
                                     >
                                         {t.name}
                                     </button>
                                 ))}
-                                {teachers.length === 0 && <span className="text-[#ff9dac] text-xs font-medium">No teachers available. Add teachers first.</span>}
+                                {teachers.length === 0 && <span className="text-[#ff9dac] text-xs font-medium italic p-2 bg-[#ff6e84]/5 rounded-xl border border-[#ff6e84]/10 w-full text-center">No teachers available. Add teachers first.</span>}
                             </div>
                         </div>
-                        <div className="flex justify-end gap-4 pt-6 border-t border-[#464752]/30">
-                            <button type="button" onClick={() => { setShowForm(false); setEditId(null); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }} className="px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-widest text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 transition-all cursor-pointer">
+                        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-white/5">
+                            <button type="button" onClick={() => { setShowForm(false); setEditId(null); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }} className="w-full sm:flex-1 py-3.5 rounded-2xl text-xs font-bold uppercase tracking-widest text-[#aaaab7] bg-white/5 hover:bg-white/10 transition-all cursor-pointer">
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={formLoading}
-                                className="px-6 py-3 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
-                                hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(199,153,255,0.15)] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                                className={`w-full sm:flex-[1.5] py-3.5 rounded-2xl text-[#0c0e17] shadow-[0_8px_20px_rgba(0,0,0,0.3)] text-xs font-bold uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30 disabled:scale-100 cursor-pointer flex items-center justify-center gap-2
+                                    ${editId ? "bg-gradient-to-r from-[#c799ff] to-[#a78bfa]" : "bg-gradient-to-r from-[#4af8e3] to-[#2dd4bf]"}`}
                             >
                                 {formLoading ? (
-                                    <span className="w-5 h-5 rounded-full border-2 border-[#c799ff]/30 border-t-[#c799ff] animate-spin" />
+                                    <span className="w-5 h-5 rounded-full border-2 border-black/20 border-t-black animate-spin" />
                                 ) : (
                                     <span className="material-symbols-outlined text-[18px]">{editId ? "save" : "add"}</span>
                                 )}
@@ -237,13 +249,91 @@ function BatchesContent() {
                             </button>
                         </div>
                     </form>
-                </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deleteModalBatch && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={() => setDeleteModalBatch(null)}>
+                    <div 
+                        className="bg-[#0c0e17]/60 backdrop-blur-[30px] rounded-[32px] p-6 sm:p-8 w-full max-w-[480px] border border-[#ff4466]/30 shadow-[0_30px_60px_rgba(255,68,102,0.2)] relative animate-modal-in m-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-[#ff4466] font-bold text-xl flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                <span className="material-symbols-outlined">warning</span>
+                                Delete Batch
+                            </h3>
+                            <button onClick={() => setDeleteModalBatch(null)} className="text-[#aaaab7] hover:text-[#ff4466] transition-colors cursor-pointer p-2 rounded-full hover:bg-[#ff4466]/10 flex items-center justify-center">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-4 mb-6 text-[#aaaab7]">
+                            <p className="text-sm text-[#f0f0fd] font-medium leading-relaxed">
+                                Are you sure you want to permanently delete the <span className="font-bold text-[#ff4466] text-base">{deleteModalBatch.batch_name}</span> batch?
+                            </p>
+                            
+                            <div className="bg-[#ff4466]/5 border border-[#ff4466]/10 p-5 rounded-2xl text-[13px] leading-relaxed text-[#ffadbb]">
+                                <p className="font-bold mb-3 text-[#ff4466] tracking-widest uppercase text-[11px] flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#ff4466] shadow-[0_0_8px_#ff4466]" />
+                                    Data to be deleted:
+                                </p>
+                                <ul className="space-y-2 font-medium">
+                                    <li className="flex items-start gap-3">
+                                        <span className="material-symbols-outlined text-[14px] mt-0.5 text-[#ff4466]/60">cancel</span>
+                                        All students assigned to this batch.
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <span className="material-symbols-outlined text-[14px] mt-0.5 text-[#ff4466]/60">cancel</span>
+                                        All payment records & receipts.
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <span className="material-symbols-outlined text-[14px] mt-0.5 text-[#ff4466]/60">cancel</span>
+                                        Revenue distribution snapshots.
+                                    </li>
+                                </ul>
+                                <p className="mt-5 text-[10px] italic font-bold text-[#ff4466]/60 uppercase tracking-[0.15em] text-center border-t border-[#ff4466]/10 pt-4">Teacher accounts remain safe.</p>
+                            </div>
+
+                            <div className="mt-5">
+                                <label className="block text-[11px] font-bold tracking-widest uppercase mb-2 text-[#aaaab7] ml-1">
+                                    Type <span className="text-[#ff4466] font-black select-all cursor-pointer bg-[#ff4466]/10 px-1 rounded">I confirm to delete {deleteModalBatch.batch_name} batch</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={deleteConfirmText}
+                                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                    className="w-full px-4 py-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-[#ff4466]/40 focus:border-[#ff4466]/60 text-[#f0f0fd] text-sm font-medium focus:outline-none transition-all placeholder:text-[#464752] shadow-inner"
+                                    placeholder={`I confirm to delete ${deleteModalBatch.batch_name} batch`}
+                                    autoComplete="off"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col-reverse sm:flex-row gap-3 mt-8">
+                            <button onClick={() => setDeleteModalBatch(null)} className="w-full sm:flex-1 py-4 rounded-2xl text-[11px] font-bold uppercase tracking-widest text-[#aaaab7] bg-white/5 hover:bg-white/10 hover:text-white transition-all cursor-pointer border border-white/5">
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                disabled={deleteConfirmText !== `I confirm to delete ${deleteModalBatch.batch_name} batch`}
+                                className="w-full sm:flex-[1.5] py-4 rounded-2xl bg-gradient-to-r from-[#ff4466] to-[#dd2244] text-white shadow-[0_12px_24px_rgba(255,68,102,0.3)] text-[11px] font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-20 disabled:scale-100 cursor-pointer flex items-center justify-center gap-2 group"
+                            >
+                                <span className="material-symbols-outlined text-[20px] group-hover:rotate-12 transition-transform">delete_forever</span>
+                                Delete Permanently
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
 
             {/* Batch cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {batches.map((batch, idx) => (
-                    <div key={batch.id} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80 flex flex-col" style={{ animationDelay: `${idx * 80}ms` }}>
+                    <div key={batch.id} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 transition-colors hover:bg-[#171924]/80 flex flex-col">
                         <div className="flex items-start justify-between mb-4">
                             <h3 className="text-[#f0f0fd] font-bold text-lg leading-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>{batch.batch_name}</h3>
                             <div className="flex gap-2 shrink-0">
@@ -254,7 +344,7 @@ function BatchesContent() {
                                     <span className="material-symbols-outlined text-[18px]">edit</span>
                                 </button>
                                 <button
-                                    onClick={() => handleDelete(batch.id)}
+                                    onClick={() => openDeleteModal(batch)}
                                     disabled={deleting === batch.id}
                                     className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:text-[#ff6e84] hover:bg-[#ff6e84]/10 hover:border-[#ff6e84]/30 transition-all flex items-center justify-center disabled:opacity-50 cursor-pointer"
                                 >

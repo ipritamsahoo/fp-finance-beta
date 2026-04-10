@@ -119,7 +119,7 @@ function PaymentsContent() {
             {/* Header */}
             <div>
                 <h1 className="text-2xl md:text-3xl font-extrabold text-[#f0f0fd] flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                    All Payments <span className="text-2xl drop-shadow-md">💰</span>
+                    All Payments
                 </h1>
             </div>
 
@@ -131,10 +131,10 @@ function PaymentsContent() {
                 </div>
             )}
 
-            {/* Filters */}
-            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 animate-fade-in-up transition-colors">
-                <div className="flex gap-3">
-                    <div className="relative flex-1 z-20">
+{/* Filters */}
+            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 transition-colors">
+                <div className="flex flex-col md:flex-row gap-3">
+                    <div className="relative flex-1 md:flex-none md:w-[220px] z-20">
                         <ModernSelect
                             value={filterBatch}
                             onChange={(e) => setFilterBatch(e.target.value)}
@@ -143,7 +143,7 @@ function PaymentsContent() {
                             className="w-full flex items-center justify-between bg-[#222532]/50 border border-[#464752]/50 hover:border-[#3b82f6]/50 transition-colors rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 text-[#f0f0fd] text-sm"
                         />
                     </div>
-                    <div className="relative flex-1 z-10">
+                    <div className="relative flex-1 md:flex-none md:w-[140px] z-10">
                         <ModernSelect
                             value={filterYear}
                             onChange={(e) => setFilterYear(Number(e.target.value))}
@@ -155,9 +155,9 @@ function PaymentsContent() {
             </div>
 
             {/* Pivot Table */}
-            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden animate-fade-in-up transition-colors shadow-xl">
+            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden transition-colors shadow-xl">
                 {loading ? (
-                    <div className="animate-fade-in p-6">
+                    <div className="p-6">
                         <GenericListSkeleton />
                     </div>
                 ) : !filterBatch ? (
@@ -170,10 +170,10 @@ function PaymentsContent() {
                             <thead className="bg-[#0c0e17]/80 backdrop-blur-xl sticky top-0 z-20">
                                 <tr className="border-b border-white/5">
                                     <th className="px-4 py-3 text-left text-xs font-bold text-[#4af8e3] uppercase tracking-wider whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/60 backdrop-blur-md z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
-                                        Total Collected
+                                        Monthly Totals
                                     </th>
                                     {MONTHS_SHORT.map((_, i) => (
-                                        <th key={i} className="px-4 py-3 text-center text-sm font-bold text-[#4af8e3] tracking-widest border-r border-[#464752]/40 min-w-[130px]">
+                                        <th key={i} className="px-4 py-3 text-center text-sm font-bold text-[#4af8e3] tracking-widest border-r border-[#464752]/40 min-w-[170px]">
                                             ₹{monthTotals[i].toLocaleString()}
                                         </th>
                                     ))}
@@ -183,7 +183,7 @@ function PaymentsContent() {
                                         Student Name
                                     </th>
                                     {MONTHS_SHORT.map((m, i) => (
-                                        <th key={i} className="px-4 py-3 text-center text-xs font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40 min-w-[130px]">
+                                        <th key={i} className="px-4 py-3 text-center text-xs font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40 min-w-[170px]">
                                             {m}
                                         </th>
                                     ))}
@@ -208,16 +208,20 @@ function PaymentsContent() {
                                             const stBg = p.status === "Paid"
                                                 ? "bg-[#4af8e3]/10 border-[#4af8e3]/30 text-[#4af8e3]"
                                                 : p.status === "Pending_Verification"
-                                                    ? "bg-[#ff9dac]/10 border-[#ff9dac]/30 text-[#ff9dac]"
-                                                    : "bg-[#ff6e84]/10 border-[#ff6e84]/30 text-[#ff6e84]";
+                                                    ? "bg-[#facc15]/10 border-[#facc15]/30 text-[#facc15]"
+                                                    : p.status === "Rejected"
+                                                        ? "bg-[#ff6e84]/10 border-[#ff6e84]/30 text-[#ff6e84]"
+                                                        : "bg-[#fb923c]/10 border-[#fb923c]/30 text-[#fb923c]";
                                             const stGlow = p.status === "Paid"
                                                 ? "0 0 8px rgba(74,248,227,0.4), 0 0 2px rgba(74,248,227,0.2)"
                                                 : p.status === "Pending_Verification"
-                                                    ? "0 0 8px rgba(255,157,172,0.4), 0 0 2px rgba(255,157,172,0.2)"
-                                                    : "0 0 8px rgba(255,110,132,0.4), 0 0 2px rgba(255,110,132,0.2)";
+                                                    ? "0 0 8px rgba(250,204,21,0.4), 0 0 2px rgba(250,204,21,0.2)"
+                                                    : p.status === "Rejected"
+                                                        ? "0 0 8px rgba(255,110,132,0.4), 0 0 2px rgba(255,110,132,0.2)"
+                                                        : "0 0 8px rgba(251,146,60,0.4), 0 0 2px rgba(251,146,60,0.2)";
                                             return (
                                                 <td key={mi} className="px-2 py-4 border-r border-[#464752]/40 bg-black/10">
-                                                    <div className="flex flex-col gap-1.5 w-[130px] mx-auto">
+                                                    <div className="flex flex-col gap-1.5 w-[155px] mx-auto">
                                                         {/* Top Row: Amount & Status */}
                                                         <div className="grid grid-cols-2 gap-1.5 w-full">
                                                             <span className="flex items-center justify-center px-1.5 py-1 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] text-[10px] font-bold tracking-widest whitespace-nowrap shadow-[0_0_10px_rgba(59,130,246,0.2)]">

@@ -55,9 +55,11 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
     const containerRef = useRef(null);
     const pulseAnimRef = useRef(null);
 
+    const isRejected = status === "Rejected";
+
     // Which step are we actually at data-wise?
     const activeStep =
-        status === "Paid" ? 2 : status === "Pending_Verification" ? 1 : 0;
+        (status === "Paid" || isRejected) ? 2 : status === "Pending_Verification" ? 1 : 0;
 
     // Visual step determines what classes are applied.
     // Starts 1 step behind so GSAP can animate the fill first.
@@ -153,7 +155,9 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
 
                 tl.call(() => {
                     setVisualStep(2);
-                    createConfetti(confettiAnchorRef.current, isLight);
+                    if (!isRejected) {
+                        createConfetti(confettiAnchorRef.current, isLight);
+                    }
                 }, null, "-=0.2");
             } else {
                 setVisualStep(2);
@@ -185,9 +189,15 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
         : "linear-gradient(to bottom right, #20B2AA, #008B8B)";
     const approvedNodeBorder = isLight ? "#0d9488" : "#4af8e3";
 
+    const rejectedNodeGradient = isLight
+        ? "linear-gradient(to bottom right, #ef4444, #dc2626)"
+        : "linear-gradient(to bottom right, #ff6b81, #ff4757)";
+    const rejectedNodeBorder = isLight ? "rgba(239,68,68,0.6)" : "rgba(255,107,129,0.8)";
+    const rejectedNodeShadow = isLight ? "0 0 12px 3px rgba(239,68,68,0.2)" : "0 0 12px 3px rgba(255,107,129,0.3)";
+
     const fillGradient = isLight
-        ? "linear-gradient(90deg, #0d9488, #059669, #3b82f6)"
-        : "linear-gradient(90deg, #4af8e3, #20B2AA, #1E90FF)";
+        ? (isRejected ? "linear-gradient(90deg, #0d9488, #059669, #ef4444)" : "linear-gradient(90deg, #0d9488, #059669, #3b82f6)")
+        : (isRejected ? "linear-gradient(90deg, #4af8e3, #20B2AA, #ff6b81)" : "linear-gradient(90deg, #4af8e3, #20B2AA, #1E90FF)");
 
     const labelActiveColor = isLight ? '#0d9488' : '#4af8e3';
     const labelActiveSubColor = isLight ? 'rgba(13,148,136,0.5)' : 'rgba(74,248,227,0.6)';
@@ -216,6 +226,10 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
                         const isActive = idx <= visualStep;
                         const isCurrent = idx === visualStep && activeStep === visualStep;
                         const isApprovedDone = idx === 2 && visualStep >= 2;
+                        
+                        const stageLabel = (isRejected && idx === 2) ? "Rejected" : stage.label;
+                        const stageSub = (isRejected && idx === 2) ? "Payment Declined" : stage.sub;
+                        const stageIcon = (isRejected && idx === 2) ? "close" : stage.icon;
 
                         let nodeStyle = {};
                         if (isActive && idx < 1) {
@@ -237,10 +251,18 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
                         }
 
                         if (isApprovedDone) {
-                            nodeStyle = {
-                                background: approvedNodeGradient,
-                                borderColor: approvedNodeBorder,
-                            };
+                            if (isRejected) {
+                                nodeStyle = {
+                                    background: rejectedNodeGradient,
+                                    borderColor: rejectedNodeBorder,
+                                    boxShadow: rejectedNodeShadow,
+                                };
+                            } else {
+                                nodeStyle = {
+                                    background: approvedNodeGradient,
+                                    borderColor: approvedNodeBorder,
+                                };
+                            }
                         }
 
                         return (
@@ -257,11 +279,11 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
                                 >
                                     {isActive ? (
                                         <span className="material-symbols-outlined text-white text-base sm:text-lg material-symbols-filled drop-shadow-md">
-                                            {idx === 1 && visualStep === 1 ? "hourglass_top" : "check"}
+                                            {idx === 1 && visualStep === 1 ? "hourglass_top" : (isRejected && idx === 2 ? "close" : "check")}
                                         </span>
                                     ) : (
                                         <span className="material-symbols-outlined text-base sm:text-lg" style={{ color: 'var(--st-tracker-label-inactive)' }}>
-                                            {stage.icon}
+                                            {stageIcon}
                                         </span>
                                     )}
 
@@ -277,17 +299,17 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
                                 {/* Labels */}
                                 <span
                                     className="mt-2 text-[10px] sm:text-xs font-bold tracking-wide leading-tight text-center"
-                                    style={{ color: isActive ? labelActiveColor : 'var(--st-tracker-label-inactive)' }}
+                                    style={{ color: isActive ? (isRejected && idx === 2 ? (isLight ? '#ef4444' : '#ff6b81') : labelActiveColor) : 'var(--st-tracker-label-inactive)' }}
                                 >
-                                    {stage.label}
+                                    {stageLabel}
                                 </span>
                                 <span
                                     className="text-[8px] sm:text-[10px] leading-tight text-center mt-0.5"
-                                    style={{ color: isActive ? labelActiveSubColor : 'var(--st-tracker-label-inactive)' }}
+                                    style={{ color: isActive ? (isRejected && idx === 2 ? (isLight ? 'rgba(239,68,68,0.8)' : 'rgba(255,107,129,0.8)') : labelActiveSubColor) : 'var(--st-tracker-label-inactive)' }}
                                 >
                                     {idx === 0
                                         ? (mode === "offline" ? "Offline Mode" : "Screenshot Uploaded")
-                                        : stage.sub}
+                                        : stageSub}
                                 </span>
                             </div>
                         );
@@ -318,6 +340,19 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
                             {month} {year}
                         </span>{" "}
                         has been verified and settled!
+                    </p>
+                </div>
+            )}
+
+            {isRejected && (
+                <div className="mt-3 flex items-start sm:items-center gap-2 px-1">
+                    <span className="material-symbols-outlined text-[15px] sm:text-base mt-0.5 sm:mt-0 shrink-0 material-symbols-filled text-red-500">error</span>
+                    <p className="text-[11px] sm:text-xs leading-relaxed font-medium text-red-500">
+                        Payment for{" "}
+                        <span className="font-bold" style={{ color: 'var(--st-text-primary)' }}>
+                            {month} {year}
+                        </span>{" "}
+                        has been rejected. Please contact support.
                     </p>
                 </div>
             )}

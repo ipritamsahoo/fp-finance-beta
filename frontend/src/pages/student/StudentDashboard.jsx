@@ -337,6 +337,15 @@ function StudentDashboardContent() {
         }
     });
 
+    // Persist seen rejections — student sees the rejection animation once, then it goes away
+    const [seenRejections, setSeenRejections] = useState(() => {
+        try {
+            return new Set(JSON.parse(localStorage.getItem(`fp_seen_rejections`) || "[]"));
+        } catch {
+            return new Set();
+        }
+    });
+
     const [isVisible, setIsVisible] = useState(document.visibilityState === "visible");
 
     useEffect(() => {
@@ -355,6 +364,19 @@ function StudentDashboardContent() {
                 const stored = localStorage.getItem(`fp_seen_approvals_${user.uid}`);
                 if (stored) {
                     setSeenApprovals(new Set(JSON.parse(stored)));
+                }
+            } catch (e) {
+                // Ignore parse errors
+            }
+        }
+    }, [user?.uid]);
+
+    useEffect(() => {
+        if (user?.uid) {
+            try {
+                const stored = localStorage.getItem(`fp_seen_rejections_${user.uid}`);
+                if (stored) {
+                    setSeenRejections(new Set(JSON.parse(stored)));
                 }
             } catch (e) {
                 // Ignore parse errors
@@ -411,6 +433,25 @@ function StudentDashboardContent() {
         });
     }, [user?.uid]);
 
+    // Handle manual dismissal of "Rejected" payments — marks as seen so tracker disappears
+    const handleDismissRejected = useCallback(async (paymentId) => {
+        if (!user?.uid) return;
+        
+        setSeenRejections(prev => {
+            const newSet = new Set(prev);
+            newSet.add(paymentId);
+            localStorage.setItem(`fp_seen_rejections_${user.uid}`, JSON.stringify([...newSet]));
+            return newSet;
+        });
+
+        try {
+            await api.post(`/api/student/payments/${paymentId}/acknowledge-rejection`);
+            fetchPayments();
+        } catch (err) {
+            console.error("Failed to acknowledge rejection:", err);
+        }
+    }, [user?.uid, fetchPayments]);
+
     // Open Pay Now modal → fetch UPI link
     const openPayModal = async (payment) => {
         setPayModalPayment(payment);
@@ -449,7 +490,8 @@ function StudentDashboardContent() {
     const actionPayments = payments.filter((p) => 
         p.status === "Unpaid" || 
         p.status === "Pending_Verification" ||
-        (p.status === "Paid" && !seenApprovals.has(p.id))
+        (p.status === "Paid" && !seenApprovals.has(p.id)) ||
+        (p.status === "Rejected" && !seenRejections.has(p.id))
     );
     const paidProgress = totalPaid > 0 && (totalPaid + totalDue) > 0 ? (totalPaid / (totalPaid + totalDue)) * 100 : (totalDue === 0 && totalPaid > 0 ? 100 : 0);
 
@@ -640,23 +682,48 @@ function StudentDashboardContent() {
                                                 <span className="material-symbols-outlined text-[16px]">close</span>
                                             </button>
                                         )}
+                                        {p.status === "Rejected" && (
+                                            <button
+                                                onClick={() => handleDismissRejected(p.id)}
+                                                className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all cursor-pointer z-10 active:scale-95"
+                                                style={{
+                                                    backgroundColor: isLight ? 'rgba(239,68,68,0.1)' : 'rgba(255,107,129,0.12)',
+                                                    borderWidth: 1, borderStyle: 'solid',
+                                                    borderColor: isLight ? 'rgba(239,68,68,0.25)' : 'rgba(255,107,129,0.25)',
+                                                    color: isLight ? '#ef4444' : '#ff6b81',
+                                                }}
+                                                title="Acknowledge & Dismiss"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">check</span>
+                                                <span className="text-[11px] font-semibold">Got it</span>
+                                            </button>
+                                        )}
                                         <div className="flex items-center gap-3 pr-8">
                                             <div
                                                 className="w-10 h-10 rounded-xl flex items-center justify-center"
                                                 style={{
-                                                    backgroundColor: 'var(--st-accent-bg)',
+                                                    backgroundColor: p.status === "Rejected"
+                                                        ? (isLight ? 'rgba(239,68,68,0.08)' : 'rgba(255,107,129,0.1)')
+                                                        : 'var(--st-accent-bg)',
                                                     borderWidth: 1, borderStyle: 'solid',
-                                                    borderColor: isLight ? 'rgba(13,148,136,0.15)' : 'rgba(74,248,227,0.2)',
+                                                    borderColor: p.status === "Rejected"
+                                                        ? (isLight ? 'rgba(239,68,68,0.15)' : 'rgba(255,107,129,0.2)')
+                                                        : (isLight ? 'rgba(13,148,136,0.15)' : 'rgba(74,248,227,0.2)'),
                                                 }}
                                             >
-                                                <span className="material-symbols-outlined text-lg" style={{ color: 'var(--st-accent)' }}>history</span>
+                                                <span
+                                                    className="material-symbols-outlined text-lg"
+                                                    style={{ color: p.status === "Rejected" ? (isLight ? '#ef4444' : '#ff6b81') : 'var(--st-accent)' }}
+                                                >
+                                                    {p.status === "Rejected" ? "error" : "history"}
+                                                </span>
                                             </div>
                                             <div>
                                                 <h3 className="text-lg font-bold" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>
                                                     {MONTHS[p.month - 1]} {p.year}
                                                 </h3>
-                                                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--st-accent)', opacity: 0.7 }}>
-                                                    ₹{p.amount?.toLocaleString("en-IN")} • {p.status === "Paid" ? "Approved" : "In Progress"}
+                                                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: p.status === "Rejected" ? (isLight ? '#ef4444' : '#ff6b81') : 'var(--st-accent)', opacity: 0.7 }}>
+                                                    ₹{p.amount?.toLocaleString("en-IN")} • {p.status === "Paid" ? "Approved" : p.status === "Rejected" ? "Rejected" : "In Progress"}
                                                 </span>
                                             </div>
                                         </div>

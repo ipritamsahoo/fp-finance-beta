@@ -143,18 +143,17 @@ function TeacherDistributionContent() {
         <div className="space-y-6">
             {/* ── Title ── */}
             {/* ── Title ── */}
-            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between mb-2 gap-4 animate-fade-in-up">
+            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between mb-2 gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-[#f0f0fd] flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                        My Earnings <span className="text-2xl drop-shadow-md">💰</span>
+                    <h1 className="text-2xl md:text-3xl font-extrabold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                        My Earnings
                     </h1>
-                    <p className="text-[#aaaab7] text-sm mt-1">Real-time revenue distribution</p>
                 </div>
             </div>
 
             {/* ── Filters ── */}
             {/* ── Filters ── */}
-            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 animate-fade-in-up transition-colors">
+            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 transition-colors">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <ModernSelect
                         icon="calendar_month"
@@ -184,7 +183,7 @@ function TeacherDistributionContent() {
 
             {/* ── Error ── */}
             {error && (
-                <div className="p-4 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff9dac] text-sm flex items-center justify-between animate-fade-in-scale">
+                <div className="p-4 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff9dac] text-sm flex items-center justify-between">
                     <span>{error}</span>
                     <button onClick={() => setError("")} className="ml-2 text-[#ff6e84] hover:text-white cursor-pointer">
                         <span className="material-symbols-outlined text-lg">close</span>
@@ -193,13 +192,13 @@ function TeacherDistributionContent() {
             )}
 
             {loading ? (
-                <div className="animate-fade-in p-6">
+                <div className="p-6">
                     <GenericListSkeleton />
                 </div>
             ) : data ? (
                 <>
                     {/* ── Summary Bento Grid ── */}
-                    <section className="grid grid-cols-2 gap-4 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+                    <section className="grid grid-cols-2 gap-4">
                         {/* My Earnings — Full Width */}
                         <GlassCard className="col-span-2 p-6 relative overflow-hidden group hover:border-[#4af8e3]/30 transition-colors" style={{ background: "linear-gradient(135deg, rgba(28, 31, 43, 0.8) 0%, rgba(28, 31, 43, 0.4) 100%)" }}>
                             <div className="absolute top-0 right-0 w-64 h-64 bg-[#4af8e3]/10 blur-[80px] -mr-32 -mt-32 group-hover:bg-[#4af8e3]/20 transition-all duration-700" />
@@ -235,7 +234,7 @@ function TeacherDistributionContent() {
                     </section>
 
                     {/* ═══ Tab Bar ═══ */}
-                    <div className="flex flex-col sm:flex-row gap-2 mb-6 p-1.5 rounded-[1.25rem] bg-[#171924]/60 backdrop-blur-[20px] border border-[#464752]/40 animate-fade-in-up" style={{ animationDelay: "100ms", transform: "translateZ(0)", isolation: "isolate", willChange: "transform", backfaceVisibility: "hidden" }}>
+                    <div className="flex flex-col sm:flex-row gap-2 mb-6 p-1.5 rounded-[1.25rem] bg-[#171924]/60 backdrop-blur-[20px] border border-[#464752]/40" style={{ transform: "translateZ(0)", isolation: "isolate", willChange: "transform", backfaceVisibility: "hidden" }}>
                         <button
                             onClick={() => setActiveTab("datewise")}
                             className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 cursor-pointer flex items-center justify-center gap-2
@@ -260,7 +259,7 @@ function TeacherDistributionContent() {
 
                     {/* ═══ Tab 1: Date-wise Distribution ═══ */}
                     {activeTab === "datewise" && (
-                        <div className="animate-fade-in-up">
+                        <div>
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="font-bold text-lg text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                     Distribution History
@@ -359,7 +358,7 @@ function TeacherDistributionContent() {
 
                     {/* ═══ Tab 2: Teacher Earnings Ledger ═══ */}
                     {activeTab === "earnings" && (
-                        <div className="animate-fade-in-up">
+                        <div>
                             {data.dates && data.dates.length > 0 && allTeachers.length > 0 ? (
                                 <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden shadow-xl" style={{ maxHeight: "calc(100vh - 380px)", display: "flex", flexDirection: "column" }}>
                                     <div className="overflow-auto flex-1 custom-scrollbar">

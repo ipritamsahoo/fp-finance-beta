@@ -202,21 +202,6 @@ function StudentSettingsContent() {
                     </span>
                 </button>
 
-                {/* Notifications */}
-                <div className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 flex items-center justify-center rounded-xl" style={{ backgroundColor: 'var(--st-icon-bg)' }}>
-                            <span className="material-symbols-outlined" style={{ color: accentColor }}>notifications</span>
-                        </div>
-                        <span className="font-medium" style={{ color: 'var(--st-text-primary)' }}>Notifications</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--st-accent)' }}>ON</span>
-                        <div className="w-10 h-5 rounded-full relative flex items-center px-1" style={{ backgroundColor: isLight ? 'rgba(13,148,136,0.3)' : '#006a60' }}>
-                            <div className="w-3 h-3 rounded-full ml-auto shadow-sm" style={{ backgroundColor: 'var(--st-accent)' }} />
-                        </div>
-                    </div>
-                </div>
 
                 {/* ── Theme Toggle (Functional) ── */}
                 <button

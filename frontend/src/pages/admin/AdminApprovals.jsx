@@ -105,7 +105,7 @@ function ApprovalContent() {
 
     if (loading) {
         return (
-            <div className="animate-fade-in p-6">
+            <div className="p-6">
                 <GenericListSkeleton />
             </div>
         );
@@ -115,12 +115,9 @@ function ApprovalContent() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
                 <div className="space-y-1">
-                    <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-[#f0f0fd] flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                        Approval Queue <span className="text-2xl drop-shadow-md">✅</span>
+                    <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                        Approval Queue
                     </h1>
-                    <p className="text-[#aaaab7] text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
-                        {filtered.length} of {pending.length} payment(s) awaiting verification
-                    </p>
                 </div>
                     <div className="relative z-10 w-full sm:w-auto min-w-[200px]">
                         <ModernSelect
@@ -149,7 +146,7 @@ function ApprovalContent() {
             )}
 
             {filtered.length === 0 ? (
-                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl p-10 sm:p-12 text-center animate-fade-in-up">
+                <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl p-10 sm:p-12 text-center">
                     <span className="text-5xl block mb-4 drop-shadow-md">🎉</span>
                     <p className="text-[#f0f0fd] text-xl font-bold" style={{ fontFamily: "'Manrope', sans-serif" }}>All clear!</p>
                     <p className="text-[#aaaab7] text-sm mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>No pending approvals at the moment.</p>
@@ -157,7 +154,7 @@ function ApprovalContent() {
             ) : (
                 <div className="space-y-4">
                     {filtered.map((item, idx) => (
-                        <div key={item.id} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 sm:p-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80" style={{ animationDelay: `${idx * 80}ms` }}>
+                        <div key={item.id} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 sm:p-6 transition-colors hover:bg-[#171924]/80">
                             {/* Top: Name + Badges */}
                             <div className="flex items-center gap-4 mb-4 flex-wrap">
                                 {item.profile_pic_url ? (

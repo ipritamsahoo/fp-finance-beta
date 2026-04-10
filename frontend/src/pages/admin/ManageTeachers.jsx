@@ -151,7 +151,7 @@ function TeachersContent() {
 
     if (loading) {
         return (
-            <div className="animate-fade-in p-6">
+            <div className="p-6">
                 <GenericListSkeleton />
             </div>
         );
@@ -164,11 +164,8 @@ function TeachersContent() {
                     {/* Hide title on mobile as it's in the Sub-Page Header */}
                     <div className="hidden md:block">
                         <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#f0f0fd] tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                            Manage Teachers <span className="text-2xl drop-shadow-md">👨‍🏫</span>
+                            Manage Teachers
                         </h1>
-                        <p className="text-[#aaaab7] text-sm mt-1 font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
-                            {teachers.length} teacher(s)
-                        </p>
                     </div>
                     <button
                         onClick={() => { setShowForm(!showForm); cancelEdit(); }}
@@ -199,7 +196,7 @@ function TeachersContent() {
 
                 {/* Add Form */}
                 {showForm && (
-                    <form onSubmit={handleSubmit} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 sm:p-8 mb-6 animate-fade-in-up transition-colors hover:bg-[#171924]/80">
+                    <form onSubmit={handleSubmit} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 sm:p-8 mb-6 transition-colors hover:bg-[#171924]/80">
                         <h3 className="text-[#f0f0fd] font-bold mb-6 text-lg flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
                             <span className="w-8 h-8 rounded-xl bg-[#c799ff]/10 border border-[#c799ff]/30 flex items-center justify-center text-sm font-extrabold text-[#c799ff] shadow-[0_0_10px_rgba(199,153,255,0.2)]">
                                 <span className="material-symbols-outlined text-[16px]">person_add</span>
@@ -243,8 +240,8 @@ function TeachersContent() {
 
                 {/* Edit Form Modal */}
                 {editingTeacher && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto">
-                        <form onSubmit={handleEditSubmit} className="bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2rem] p-6 sm:p-8 w-full max-w-lg border border-[#737580]/20 shadow-2xl relative animate-fade-in-up m-auto">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md overflow-y-auto">
+                        <form onSubmit={handleEditSubmit} className="bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2rem] p-6 sm:p-8 w-full max-w-lg border border-[#737580]/20 shadow-2xl relative m-auto">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-[#f0f0fd] font-bold text-xl flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                     <span className="material-symbols-outlined text-[#c799ff]">edit</span>
@@ -307,7 +304,7 @@ function TeachersContent() {
                 {/* Mobile: Card layout */}
                 <div className="space-y-4 md:hidden">
                     {teachers.map((t, idx) => (
-                        <div key={t.uid || t.id} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-2xl p-5 animate-fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
+                        <div key={t.uid || t.id} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-2xl p-5">
                             <div className="flex flex-col gap-4">
                                 <div>
                                     <p className="text-[#f0f0fd] font-bold text-lg truncate tracking-wide" style={{ fontFamily: "'Manrope', sans-serif" }}>{t.name}</p>
@@ -352,7 +349,7 @@ function TeachersContent() {
                 </div>
 
                 {/* Desktop: Table */}
-                <div className="hidden md:block bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] overflow-hidden shadow-lg animate-fade-in-up">
+                <div className="hidden md:block bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] overflow-hidden shadow-lg">
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full">
                             <thead className="bg-[#222532]/50 border-b border-[#464752]/50">
@@ -368,7 +365,6 @@ function TeachersContent() {
                                         <td className="px-6 py-5 whitespace-nowrap">
                                             <div>
                                                 <p className="text-[#f0f0fd] font-bold tracking-wide">{t.name}</p>
-                                                <p className="text-[#aaaab7] text-xs mt-0.5">{t.username}</p>
                                             </div>
                                         </td>
                                         <td className="px-6 py-5">

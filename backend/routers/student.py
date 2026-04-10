@@ -254,6 +254,42 @@ def student_get_leaderboard(
 
 
 # ──────────────────────────────────────────────
+# POST /api/student/payments/{payment_id}/acknowledge-rejection
+# ──────────────────────────────────────────────
+@router.post("/payments/{payment_id}/acknowledge-rejection")
+def student_acknowledge_rejection(
+    payment_id: str,
+    user=Depends(require_role("student")),
+):
+    """Student acknowledges a rejected payment — resets it back to Unpaid so they can pay again."""
+    payment_ref = db.collection("payments").document(payment_id)
+    payment_doc = payment_ref.get()
+
+    if not payment_doc.exists:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    payment = payment_doc.to_dict()
+
+    if payment["student_id"] != user["uid"]:
+        raise HTTPException(status_code=403, detail="Not your payment record")
+
+    if payment["status"] != "Rejected":
+        raise HTTPException(status_code=400, detail="Payment is not in Rejected state")
+
+    payment_ref.update({
+        "status": "Unpaid",
+        "screenshot_url": None,
+        "screenshot_public_id": None,
+        "requested_at": None,
+        "rejected_at": None,
+        "rejection_reason": None,
+        "updated_at": ts_now(),
+    })
+
+    return {"message": "Payment reset to Unpaid. You may now submit a new payment request."}
+
+
+# ──────────────────────────────────────────────
 # PATCH /api/student/badge-celebrated
 # ──────────────────────────────────────────────
 @router.patch("/badge-celebrated")

@@ -12,7 +12,7 @@ function AdminProfileContent() {
     return (
         <div className="space-y-8 max-w-lg mx-auto pt-4">
             {/* ── Profile Header Card ── */}
-            <section className="relative animate-fade-in-scale">
+            <section className="relative">
                 <div className="bg-[#3b82f6]/10 backdrop-blur-2xl p-8 rounded-[32px] ring-1 ring-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex flex-col items-center text-center">
                     {/* Profile Picture with gradient glow */}
                     <div className="relative mb-4">
@@ -29,7 +29,7 @@ function AdminProfileContent() {
             </section>
 
             {/* ── Settings List ── */}
-            <section className="space-y-3 animate-fade-in-scale" style={{ animationDelay: "100ms" }}>
+            <section className="space-y-3">
                 {/* Change Profile Photo */}
                 <button
                     onClick={() => setPicModalOpen(true)}
@@ -46,7 +46,7 @@ function AdminProfileContent() {
             </section>
 
             {/* ── Footer ── */}
-            <footer className="mt-12 flex flex-col items-center gap-6 animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
+            <footer className="mt-12 flex flex-col items-center gap-6">
                 <button
                     onClick={logout}
                     className="group flex items-center gap-3 px-8 py-3 bg-[#a70138]/20 hover:bg-[#a70138]/30 transition-all rounded-full ring-1 ring-[#ff6e84]/20 active:scale-95 cursor-pointer"

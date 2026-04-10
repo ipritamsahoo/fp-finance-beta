@@ -215,12 +215,12 @@ def admin_reject(payment_id: str, user=Depends(require_role("admin"))):
             print(f"Cloudinary delete failed (reject): {e}")
 
     payment_ref.update({
-        "status": "Unpaid",
+        "status": "Rejected",
         "mode": None,
         "rejected_by": user["uid"],
+        "rejected_at": ts_now(),
         "screenshot_url": None,
         "screenshot_public_id": None,
-        "requested_at": None,
         "updated_at": ts_now(),
     })
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import TeacherLayout from "@/components/TeacherLayout";
 import ProfilePicture from "@/components/ProfilePicture";
@@ -93,6 +94,8 @@ function TeacherDashboardContent() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [offlineLoading, setOfflineLoading] = useState(null);
+    const [warningModalData, setWarningModalData] = useState(null);
+    const [warningConfirmText, setWarningConfirmText] = useState("");
 
     const fetchBatches = useCallback(async () => {
         try {
@@ -162,6 +165,45 @@ function TeacherDashboardContent() {
         return () => unsubscribe();
     }, [selectedBatch, fetchPayments]);
 
+    const handlePreOfflineClick = async (payment) => {
+        setOfflineLoading(payment.id);
+        setError("");
+        
+        try {
+            // Pre-check for previous dues
+            const targetMonth = payment.month || filterMonth;
+            const targetYear = payment.year || filterYear;
+            const sBatch = payment.batch_id || selectedBatch;
+            
+            const allBatchData = await api.get(`/api/teacher/payments?batch_id=${sBatch}`);
+            
+            // Sort by year, then month so they display nicely
+            const dueRecords = allBatchData
+                .filter(p => 
+                    p.student_id === payment.student_id && 
+                    p.status === "Unpaid" &&
+                    (p.year < targetYear || (p.year === targetYear && p.month < targetMonth))
+                )
+                .sort((a, b) => {
+                    if (a.year !== b.year) return a.year - b.year;
+                    return a.month - b.month;
+                });
+            
+            if (dueRecords.length > 0) {
+                setOfflineLoading(null);
+                setWarningModalData({ payment, dues: dueRecords });
+                setWarningConfirmText("");
+                return; // Stop here, wait for modal unblock
+            }
+            
+            // No dues found, proceed
+            handleOfflineRequest(payment);
+        } catch (err) {
+            setError(err.message);
+            setOfflineLoading(null);
+        }
+    };
+
     const handleOfflineRequest = async (payment) => {
         setOfflineLoading(payment.id);
         setError("");
@@ -205,7 +247,7 @@ function TeacherDashboardContent() {
     return (
         <div className="space-y-6">
             {/* ── Welcome ── */}
-            <div className="animate-fade-in-scale">
+            <div>
                 <h1
                     className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#f0f0fd]"
                     style={{ fontFamily: "'Manrope', sans-serif" }}
@@ -215,7 +257,7 @@ function TeacherDashboardContent() {
             </div>
 
             {/* ── Summary Cards ── */}
-            <section className="space-y-4 animate-fade-in-scale" style={{ animationDelay: "60ms" }}>
+            <section className="space-y-4">
                 {/* Total Students — Full Width */}
                 <GlassCard className="p-6 relative overflow-hidden group">
                     <div className="flex items-center justify-between">
@@ -264,40 +306,37 @@ function TeacherDashboardContent() {
             </section>
 
             {/* ── Current Filter ── */}
-            <section className="animate-fade-in-scale" style={{ animationDelay: "120ms" }}>
-                <div className="flex flex-col gap-3">
-                    {/* Batch Pill */}
+            <section>
+                <div className="flex flex-col md:grid md:grid-cols-4 gap-3">
+                    <ModernSelect
+                        icon="calendar_month"
+                        value={filterMonth}
+                        options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
+                        onChange={(e) => setFilterMonth(e.target.value)}
+                        className="w-full"
+                    />
+
+                    <ModernSelect
+                        icon="event"
+                        value={filterYear}
+                        options={getYearOptions()}
+                        onChange={(e) => setFilterYear(parseInt(e.target.value))}
+                        className="w-full"
+                    />
+
                     <ModernSelect
                         icon="school"
                         value={selectedBatch}
                         options={batches}
                         onChange={(e) => setSelectedBatch(e.target.value)}
-                        className="w-full"
+                        className="w-full md:col-span-2"
                     />
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <ModernSelect
-                            icon="calendar_month"
-                            value={filterMonth}
-                            options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
-                            onChange={(e) => setFilterMonth(e.target.value)}
-                            className="w-full"
-                        />
-
-                        <ModernSelect
-                            icon="event"
-                            value={filterYear}
-                            options={getYearOptions()}
-                            onChange={(e) => setFilterYear(parseInt(e.target.value))}
-                            className="w-full"
-                        />
-                    </div>
                 </div>
             </section>
 
             {/* ── Alerts ── */}
             {error && (
-                <div className="p-4 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff6e84] text-sm flex items-center justify-between animate-fade-in-scale">
+                <div className="p-4 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/20 text-[#ff6e84] text-sm flex items-center justify-between">
                     <span>{error}</span>
                     <button onClick={() => setError("")} className="ml-2 text-[#ff6e84] hover:text-white cursor-pointer">
                         <span className="material-symbols-outlined text-lg">close</span>
@@ -305,7 +344,7 @@ function TeacherDashboardContent() {
                 </div>
             )}
             {success && (
-                <div className="p-4 rounded-2xl bg-[#4af8e3]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-sm flex items-center justify-between animate-fade-in-scale">
+                <div className="p-4 rounded-2xl bg-[#4af8e3]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-sm flex items-center justify-between">
                     <span>{success}</span>
                     <button onClick={() => setSuccess("")} className="ml-2 text-[#4af8e3] hover:text-white cursor-pointer">
                         <span className="material-symbols-outlined text-lg">close</span>
@@ -315,12 +354,12 @@ function TeacherDashboardContent() {
 
             {/* ── Payment Status ── */}
             {loading ? (
-                <div className="animate-fade-in mt-6">
+                <div className="mt-6">
                     <TeacherDashboardSkeleton />
                 </div>
             ) : (
                 /* ── SINGLE MONTH — Card Layout ── */
-                <section className="animate-fade-in-scale" style={{ animationDelay: "200ms" }}>
+                <section>
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-bold text-lg text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                             Pending Actions
@@ -336,8 +375,7 @@ function TeacherDashboardContent() {
                             filteredPayments.map((p, idx) => (
                                 <GlassCard
                                     key={p.id}
-                                    className="p-4 animate-fade-in-scale hover:border-[#c799ff]/20 transition-all"
-                                    style={{ animationDelay: `${250 + idx * 60}ms` }}
+                                    className="p-4 hover:border-[#c799ff]/20 transition-all"
                                 >
                                     <div className="flex items-center gap-4">
                                         {/* Avatar */}
@@ -356,7 +394,7 @@ function TeacherDashboardContent() {
                                     {/* Offline button for Unpaid */}
                                     {p.status === "Unpaid" && (
                                         <button
-                                            onClick={() => handleOfflineRequest(p)}
+                                            onClick={() => handlePreOfflineClick(p)}
                                             disabled={offlineLoading === p.id}
                                             className="w-full mt-3 py-3 rounded-2xl bg-gradient-to-r from-[#4af8e3]/10 to-[#c799ff]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-xs font-bold uppercase tracking-wider hover:from-[#4af8e3]/20 hover:to-[#c799ff]/20 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
                                         >
@@ -375,6 +413,88 @@ function TeacherDashboardContent() {
                         )}
                     </div>
                 </section>
+            )}
+
+            {/* Offline Due Warning Modal */}
+            {warningModalData && createPortal(
+                (() => {
+                    const { payment, dues } = warningModalData;
+                    const targetText = `I confirm to skip dues`;
+                    const currentM = MONTH_FULL[(payment.month || filterMonth) - 1];
+                    const currentY = payment.year || filterYear;
+                    
+                    return (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={() => setWarningModalData(null)}>
+                            <div 
+                                className="bg-[#0c0e17]/95 backdrop-blur-3xl rounded-[32px] p-6 sm:p-8 w-full max-w-md border border-amber-400/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative animate-modal-in"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-amber-400 font-bold text-xl flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                        <span className="material-symbols-outlined">warning</span>
+                                        Previous Dues Found!
+                                    </h3>
+                                    <button onClick={() => setWarningModalData(null)} className="text-[#aaaab7] hover:text-white transition-colors cursor-pointer p-2 rounded-full hover:bg-white/5 flex items-center justify-center">
+                                        <span className="material-symbols-outlined">close</span>
+                                    </button>
+                                </div>
+                                
+                                <div className="space-y-4 mb-6 text-[#aaaab7]">
+                                    <p className="text-sm text-[#f0f0fd] font-medium leading-relaxed">
+                                        <span className="font-bold text-white">{payment.student_name}</span> has unpaid dues for previous months. 
+                                    </p>
+                                    
+                                    <div className="bg-amber-400/5 border border-amber-400/10 p-4 rounded-2xl text-[13px] leading-relaxed text-amber-200/80">
+                                        <p className="font-bold mb-2 text-amber-400/90 tracking-wide uppercase text-[11px]">Unpaid Months:</p>
+                                        <ul className="space-y-1.5 font-medium">
+                                            {dues.map(d => (
+                                                <li key={d.id} className="flex items-center gap-2">
+                                                    <span className="w-1 h-1 rounded-full bg-amber-400/40" />
+                                                    {MONTH_FULL[d.month - 1]} {d.year} (₹{d.amount})
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    <p className="text-xs font-medium text-amber-400/70 italic leading-snug">
+                                        Are you sure you want to exceptionally mark {currentM} {currentY} as Paid (Offline)?
+                                    </p>
+    
+                                    <div className="mt-4">
+                                        <label className="block text-[11px] font-bold tracking-widest uppercase mb-2 text-[#aaaab7]">
+                                            Type <span className="text-amber-400 font-black select-all cursor-pointer">{targetText}</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={warningConfirmText}
+                                            onChange={(e) => setWarningConfirmText(e.target.value)}
+                                            className="w-full px-4 py-3.5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-amber-400/30 focus:border-amber-400/50 focus:ring-amber-400 text-[#f0f0fd] text-sm font-medium focus:outline-none transition-all placeholder:text-[#464752]"
+                                            placeholder={targetText}
+                                            autoComplete="off"
+                                        />
+                                    </div>
+                                </div>
+    
+                                <div className="flex flex-col-reverse sm:flex-row gap-3 mt-8">
+                                    <button onClick={() => setWarningModalData(null)} className="w-full sm:flex-1 py-3.5 rounded-2xl text-xs font-bold uppercase tracking-widest text-[#aaaab7] bg-white/5 hover:bg-white/10 transition-all cursor-pointer">
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setWarningModalData(null);
+                                            handleOfflineRequest(payment);
+                                        }}
+                                        disabled={warningConfirmText !== targetText}
+                                        className="w-full sm:flex-[1.5] py-3.5 rounded-2xl bg-amber-400 text-[#0c0e17] shadow-[0_8px_20px_rgba(251,191,36,0.2)] text-xs font-bold uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30 disabled:scale-100 cursor-pointer flex items-center justify-center gap-2"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">verified</span>
+                                        Confirm
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })(),
+                document.body
             )}
         </div>
     );
