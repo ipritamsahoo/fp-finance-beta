@@ -8,38 +8,42 @@ import ModernSelect from "@/components/ModernSelect";
 import { getCache, setCache } from "@/lib/memoryCache";
 import { GenericListSkeleton } from "@/components/Skeletons";
 
-
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
 ];
 
 function StudentsContent() {
-    const cacheKeyStudents = "admin_students";
     const cacheKeyBatches = "admin_batches";
-    const cachedStudents = getCache(cacheKeyStudents);
     const cachedBatches = getCache(cacheKeyBatches);
 
-    const [students, setStudents] = useState(cachedStudents || []);
+    // ── Tab: "list" | "add" ──────────────────────────────────────────────
+    const [activeTab, setActiveTab] = useState("list");
+
+    // ── Batches (needed for dropdowns in both tabs) ──────────────────────
     const [batches, setBatches] = useState(cachedBatches || []);
-    const [filterBatch, setFilterBatch] = useState("");
-    const [loading, setLoading] = useState(!cachedStudents || !cachedBatches);
+    const [batchesLoading, setBatchesLoading] = useState(!cachedBatches);
+
+    // ── Global messages ──────────────────────────────────────────────────
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-    const [showForm, setShowForm] = useState(false);
-    const [togglingStatus, setTogglingStatus] = useState(null);
-    const [statusModalStudent, setStatusModalStudent] = useState(null);
-    const [statusConfirmText, setStatusConfirmText] = useState("");
 
+    // ── Add-student form ─────────────────────────────────────────────────
     const [form, setForm] = useState({ name: "", username: "", password: "", batch_id: "" });
     const [formLoading, setFormLoading] = useState(false);
 
-    // Edit state
+    // ── List tab state ───────────────────────────────────────────────────
+    const [selectedListBatch, setSelectedListBatch] = useState("");
+    const [students, setStudents] = useState([]);
+    const [listLoading, setListLoading] = useState(false);
+    const [hasLoaded, setHasLoaded] = useState(false);
+
+    // ── Edit modal ───────────────────────────────────────────────────────
     const [editingStudent, setEditingStudent] = useState(null);
     const [editForm, setEditForm] = useState({ name: "", username: "", batch_id: "", password: "" });
     const [editLoading, setEditLoading] = useState(false);
 
-    // Fee override state
+    // ── Fee-override modal ───────────────────────────────────────────────
     const [overrideStudent, setOverrideStudent] = useState(null);
     const [overrideType, setOverrideType] = useState("permanent");
     const [overrideAmount, setOverrideAmount] = useState("");
@@ -47,68 +51,64 @@ function StudentsContent() {
     const [overrideYear, setOverrideYear] = useState(new Date().getFullYear());
     const [overrideLoading, setOverrideLoading] = useState(false);
 
-    // Devices modal state
+    // ── Status-toggle modal ──────────────────────────────────────────────
+    const [togglingStatus, setTogglingStatus] = useState(null);
+    const [statusModalStudent, setStatusModalStudent] = useState(null);
+    const [statusConfirmText, setStatusConfirmText] = useState("");
+
+    // ── Devices modal ────────────────────────────────────────────────────
     const [devicesStudent, setDevicesStudent] = useState(null);
 
-    const fetchData = useCallback(async () => {
-        if (!getCache("admin_students") || !getCache("admin_batches")) {
-             if (!loading) setLoading(true);
+    // ── Fetch ONLY batches on mount ──────────────────────────────────────
+    const fetchBatches = useCallback(async () => {
+        const cached = getCache(cacheKeyBatches);
+        if (cached) {
+            setBatches(cached);
+            setBatchesLoading(false);
+            return;
         }
         try {
-            const [s, b] = await Promise.all([
-                api.get("/api/admin/students"),
-                api.get("/api/admin/batches"),
-            ]);
-            if (JSON.stringify(getCache("admin_students")) !== JSON.stringify(s)) {
-                setStudents(s);
-                setCache("admin_students", s);
-            }
-            if (JSON.stringify(getCache("admin_batches")) !== JSON.stringify(b)) {
-                setBatches(b);
-                setCache("admin_batches", b);
-            }
-        } catch (err) {
-            // Handled globally
-        } finally {
-            if (loading) setLoading(false);
-        }
-    }, [loading]);
-
-    useEffect(() => { fetchData(); }, [fetchData]);
-
-    const handleToggleStatus = (student) => {
-        setStatusModalStudent(student);
-        setStatusConfirmText("");
-    };
-
-    const confirmStatusToggle = async () => {
-        if (!statusModalStudent) return;
-        const uid = statusModalStudent.uid || statusModalStudent.id;
-        const newStatus = !statusModalStudent.is_disabled;
-        
-        setStatusModalStudent(null);
-        setTogglingStatus(uid);
-        try {
-            await api.put(`/api/admin/students/${uid}/status`, { is_disabled: newStatus });
-            setSuccess(`Student ${newStatus ? "disabled" : "enabled"} successfully.`);
-            fetchData();
+            const b = await api.get("/api/admin/batches");
+            setBatches(b);
+            setCache(cacheKeyBatches, b);
         } catch (err) {
             setError(err.message);
         } finally {
-            setTogglingStatus(null);
+            setBatchesLoading(false);
         }
-    };
+    }, []);
 
+    // ── Load students for selected batch (on demand only) ────────────────
+    const loadStudents = useCallback(async (batchId) => {
+        if (!batchId) return;
+        setListLoading(true);
+        setHasLoaded(false);
+        setStudents([]);
+        try {
+            const s = await api.get(`/api/admin/students?batch_id=${batchId}`);
+            setStudents(s);
+            setHasLoaded(true);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setListLoading(false);
+        }
+    }, []);
+
+    const handleViewStudents = () => loadStudents(selectedListBatch);
+
+    useEffect(() => { fetchBatches(); }, [fetchBatches]);
+
+    // ── Add student ──────────────────────────────────────────────────────
     const handleSubmit = async (e) => {
         e.preventDefault();
         setFormLoading(true);
         setError("");
+        setSuccess("");
         try {
             await api.post("/api/admin/students", form);
-            setSuccess("Student added!");
+            setSuccess("Student added successfully!");
             setForm({ name: "", username: "", password: "", batch_id: "" });
-            setShowForm(false);
-            fetchData();
         } catch (err) {
             setError(err.message);
         } finally {
@@ -116,10 +116,12 @@ function StudentsContent() {
         }
     };
 
+    // After edit/status — refresh the currently viewed batch list
+    const refreshList = () => {
+        if (selectedListBatch && hasLoaded) loadStudents(selectedListBatch);
+    };
 
-
-
-
+    // ── Edit handlers (used from list tab modals) ────────────────────────
     const startEdit = (student) => {
         setEditingStudent(student.uid || student.id);
         setEditForm({
@@ -128,7 +130,6 @@ function StudentsContent() {
             batch_id: student.batch_id || "",
             password: "",
         });
-        setShowForm(false);
         setOverrideStudent(null);
     };
 
@@ -147,11 +148,10 @@ function StudentsContent() {
             if (editForm.username) payload.username = editForm.username;
             if (editForm.batch_id) payload.batch_id = editForm.batch_id;
             if (editForm.password && editForm.password.trim()) payload.password = editForm.password;
-
             await api.put(`/api/admin/students/${editingStudent}`, payload);
             setSuccess("Student updated!");
             cancelEdit();
-            fetchData();
+            refreshList();
         } catch (err) {
             setError(err.message);
         } finally {
@@ -159,13 +159,12 @@ function StudentsContent() {
         }
     };
 
-    // Fee override handlers
+    // ── Fee-override handlers ────────────────────────────────────────────
     const startOverride = (student) => {
         setOverrideStudent(student);
         setOverrideAmount(student.custom_fee != null ? String(student.custom_fee) : "");
         setOverrideType("permanent");
         cancelEdit();
-        setShowForm(false);
     };
 
     const cancelOverride = () => {
@@ -181,10 +180,7 @@ function StudentsContent() {
             const uid = overrideStudent.uid || overrideStudent.id;
             if (overrideType === "permanent") {
                 if (overrideAmount === "") {
-                    // Clear custom fee using the student update endpoint
-                    await api.put(`/api/admin/students/${uid}`, {
-                        clear_custom_fee: true,
-                    });
+                    await api.put(`/api/admin/students/${uid}`, { clear_custom_fee: true });
                 } else {
                     await api.post("/api/admin/fee-override", {
                         student_id: uid,
@@ -204,7 +200,6 @@ function StudentsContent() {
                 setSuccess(`Fee for ${MONTHS[overrideMonth - 1]} ${overrideYear} updated to ₹${overrideAmount}.`);
             }
             cancelOverride();
-            fetchData();
         } catch (err) {
             setError(err.message);
         } finally {
@@ -212,9 +207,31 @@ function StudentsContent() {
         }
     };
 
-    const filtered = (filterBatch ? students.filter((s) => s.batch_id === filterBatch) : [...students]).sort((a, b) => (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" }));
+    // ── Status-toggle handlers ───────────────────────────────────────────
+    const handleToggleStatus = (student) => {
+        setStatusModalStudent(student);
+        setStatusConfirmText("");
+    };
 
-    if (loading) {
+    const confirmStatusToggle = async () => {
+        if (!statusModalStudent) return;
+        const uid = statusModalStudent.uid || statusModalStudent.id;
+        const newStatus = !statusModalStudent.is_disabled;
+        setStatusModalStudent(null);
+        setTogglingStatus(uid);
+        try {
+            await api.put(`/api/admin/students/${uid}/status`, { is_disabled: newStatus });
+            setSuccess(`Student ${newStatus ? "disabled" : "enabled"} successfully.`);
+            refreshList();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setTogglingStatus(null);
+        }
+    };
+
+    // ── Loading skeleton (only while batches load) ───────────────────────
+    if (batchesLoading) {
         return (
             <div className="p-6">
                 <GenericListSkeleton />
@@ -224,383 +241,437 @@ function StudentsContent() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-                    {/* Hide title on mobile as it's in the Sub-Page Header */}
-                    <div className="hidden md:block">
-                        <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#f0f0fd] tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                            Manage Students
-                        </h1>
-                        <p className="text-[#aaaab7] text-sm mt-1 font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
-                            {filtered.length} of {students.length} student(s)
-                        </p>
-                    </div>
-                    <div className="flex gap-3">
-                        <ModernSelect
-                            value={filterBatch}
-                            onChange={(e) => setFilterBatch(e.target.value)}
-                            options={[{ id: "", batch_name: "All Batches" }, ...batches]}
-                            placeholder="All Batches"
-                            className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors w-full sm:w-48"
-                        />
-                        <button
-                            onClick={() => { setShowForm(!showForm); cancelEdit(); cancelOverride(); }}
-                            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
-                            hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(199,153,255,0.15)] cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
-                        >
-                            <span className="material-symbols-outlined text-[18px]">
-                                {showForm ? "close" : "add"}
-                            </span>
-                            {showForm ? "Cancel" : "Add"}
-                        </button>
-                    </div>
+
+            {/* ── Tab control ─────────────────────────────────────────── */}
+            <div className="flex items-center gap-1 p-1 bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-2xl w-fit">
+                <button
+                    onClick={() => setActiveTab("list")}
+                    className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-300 cursor-pointer flex items-center gap-2
+                        ${activeTab === "list"
+                            ? "bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 shadow-[0_0_15px_rgba(199,153,255,0.15)]"
+                            : "text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 border border-transparent"}`}
+                >
+                    <span className="material-symbols-outlined text-[16px]">group</span>
+                    View Students
+                </button>
+                <button
+                    onClick={() => setActiveTab("add")}
+                    className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-300 cursor-pointer flex items-center gap-2
+                        ${activeTab === "add"
+                            ? "bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 shadow-[0_0_15px_rgba(199,153,255,0.15)]"
+                            : "text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 border border-transparent"}`}
+                >
+                    <span className="material-symbols-outlined text-[16px]">person_add</span>
+                    Add Student
+                </button>
+            </div>
+
+            {/* ── Messages ────────────────────────────────────────────── */}
+            {error && (
+                <div className="p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#ff6e84]/30 shadow-lg text-[#ff9dac] text-sm flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#ff6e84]">error</span>
+                    <span className="flex-1">{error}</span>
+                    <button onClick={() => setError("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
                 </div>
+            )}
+            {success && (
+                <div className="p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#4af8e3]/30 shadow-lg text-[#dcfff8] text-sm flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#4af8e3]">check_circle</span>
+                    <span className="flex-1">{success}</span>
+                    <button onClick={() => setSuccess("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
+                </div>
+            )}
 
-                {error && (
-                    <div className="mb-4 p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#ff6e84]/30 shadow-lg text-[#ff9dac] text-sm flex items-center gap-3">
-                        <span className="material-symbols-outlined text-[#ff6e84]">error</span>
-                        <span className="flex-1">{error}</span>
-                        <button onClick={() => setError("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
-                    </div>
-                )}
-                {success && (
-                    <div className="mb-4 p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#4af8e3]/30 shadow-lg text-[#dcfff8] text-sm flex items-center gap-3">
-                        <span className="material-symbols-outlined text-[#4af8e3]">check_circle</span>
-                        <span className="flex-1">{success}</span>
-                        <button onClick={() => setSuccess("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
-                    </div>
-                )}
-
-                {/* Add Form */}
-                {showForm && (
-                    <form onSubmit={handleSubmit} className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 sm:p-8 mb-6 transition-colors hover:bg-[#171924]/80">
-                        <h3 className="text-[#f0f0fd] font-bold mb-6 text-lg flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                            <span className="w-8 h-8 rounded-xl bg-[#c799ff]/10 border border-[#c799ff]/30 flex items-center justify-center text-sm font-extrabold text-[#c799ff] shadow-[0_0_10px_rgba(199,153,255,0.2)]">
-                                <span className="material-symbols-outlined text-[16px]">person_add</span>
-                            </span>
-                            New Student
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-                            <input placeholder="Full Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required
-                                className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors placeholder:text-[#aaaab7]/70" />
-                            <input placeholder="Username or Mobile" type="text" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required
-                                className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors placeholder:text-[#aaaab7]/70" />
-                            <input placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6}
-                                className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors placeholder:text-[#aaaab7]/70" />
+            {/* ═══════════════════════════════════════════════════════════
+                TAB 1 — VIEW STUDENTS (lazy-loaded by batch)
+            ══════════════════════════════════════════════════════════════ */}
+            {activeTab === "list" && (
+                <div className="space-y-5">
+                    {/* Batch selector row */}
+                    <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                        <div className="flex-1 max-w-xs">
                             <ModernSelect
-                                value={form.batch_id}
-                                onChange={(e) => setForm({ ...form, batch_id: e.target.value })}
+                                value={selectedListBatch}
+                                onChange={(e) => { setSelectedListBatch(e.target.value); setHasLoaded(false); setStudents([]); }}
                                 options={batches}
                                 placeholder="Select Batch"
-                                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
+                                className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
                             />
                         </div>
-                        <button type="submit" disabled={formLoading}
-                            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
-                            hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(199,153,255,0.15)] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-3">
-                            {formLoading ? (
-                                <span className="w-5 h-5 rounded-full border-2 border-[#c799ff]/30 border-t-[#c799ff] animate-spin" />
+                        <button
+                            onClick={handleViewStudents}
+                            disabled={!selectedListBatch || listLoading}
+                            className="px-6 py-3 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
+                            hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(199,153,255,0.15)]
+                            disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
+                        >
+                            {listLoading ? (
+                                <span className="w-4 h-4 rounded-full border-2 border-[#c799ff]/30 border-t-[#c799ff] animate-spin" />
                             ) : (
-                                <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                                <span className="material-symbols-outlined text-[16px]">search</span>
                             )}
-                            {formLoading ? "Adding..." : "Add Student"}
+                            {listLoading ? "Loading..." : "View Students"}
                         </button>
-                    </form>
-                )}
-
-                {/* Edit Form Modal */}
-                {editingStudent && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto">
-                        <form onSubmit={handleEditSubmit} className="bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2rem] p-6 sm:p-8 w-full max-w-lg border border-[#737580]/20 shadow-2xl relative animate-fade-in-up m-auto">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-[#f0f0fd] font-bold text-xl flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                                    <span className="material-symbols-outlined text-[#c799ff]">edit</span>
-                                    Edit Student
-                                </h3>
-                                <button type="button" onClick={cancelEdit} className="text-[#aaaab7] hover:text-[#ff6e84] transition-colors cursor-pointer p-2 rounded-full hover:bg-white/5 flex items-center justify-center">
-                                    <span className="material-symbols-outlined">close</span>
-                                </button>
-                            </div>
-                            <div className="space-y-5 mb-8">
-                                <div>
-                                    <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Full Name</label>
-                                    <input placeholder="Full Name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                        className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors" />
-                                </div>
-                                <div>
-                                    <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Username or Mobile</label>
-                                    <input placeholder="Username or Mobile" type="text" value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                                        className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors" />
-                                </div>
-                                <div>
-                                    <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">New Password (Optional)</label>
-                                    <input placeholder="Leave blank to keep current" type="password" value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} minLength={editForm.password ? 6 : undefined}
-                                        className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors" />
-                                </div>
-                                <div>
-                                    <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Batch</label>
-                                    <ModernSelect
-                                        value={editForm.batch_id}
-                                        onChange={(e) => setEditForm({ ...editForm, batch_id: e.target.value })}
-                                        options={batches}
-                                        placeholder="Select Batch"
-                                        className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-4 pt-6 border-t border-[#464752]/30">
-                                <button type="button" onClick={cancelEdit} className="px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-widest text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 transition-all cursor-pointer">
-                                    Cancel
-                                </button>
-                                <button type="submit" disabled={editLoading}
-                                    className="px-6 py-3 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
-                                    hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(199,153,255,0.15)] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2">
-                                    {editLoading ? (
-                                        <span className="w-5 h-5 rounded-full border-2 border-[#c799ff]/30 border-t-[#c799ff] animate-spin" />
-                                    ) : (
-                                        <span className="material-symbols-outlined text-[18px]">save</span>
-                                    )}
-                                    {editLoading ? "Saving..." : "Save Changes"}
-                                </button>
-                            </div>
-                        </form>
                     </div>
-                )}
 
-                {/* Fee Override Form Modal */}
-                {overrideStudent && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto">
-                        <form onSubmit={handleOverrideSubmit} className="bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2rem] p-6 sm:p-8 w-full max-w-lg border border-[#f5c542]/20 shadow-2xl relative animate-fade-in-up m-auto">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-[#f0f0fd] font-bold text-xl flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                                    <span className="material-symbols-outlined text-[#f5c542]">payments</span>
-                                    Override: {overrideStudent.name}
-                                </h3>
-                                <button type="button" onClick={cancelOverride} className="text-[#aaaab7] hover:text-[#ff6e84] transition-colors cursor-pointer p-2 rounded-full hover:bg-white/5 flex items-center justify-center">
-                                    <span className="material-symbols-outlined">close</span>
-                                </button>
-                            </div>
-                            <div className="flex gap-3 mb-6">
-                                <button type="button" onClick={() => setOverrideType("permanent")}
-                                    className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-widest border transition-all duration-300 cursor-pointer
-                                    ${overrideType === "permanent" ? "bg-[#c799ff]/10 border-[#c799ff]/50 text-[#c799ff] shadow-[0_0_15px_rgba(199,153,255,0.2)]" : "bg-[#222532]/50 border-[#464752]/50 text-[#aaaab7] hover:bg-[#222532]/80"}`}>
-                                    All-Time
-                                </button>
-                                <button type="button" onClick={() => setOverrideType("monthly")}
-                                    className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-widest border transition-all duration-300 cursor-pointer
-                                    ${overrideType === "monthly" ? "bg-[#4af8e3]/10 border-[#4af8e3]/50 text-[#4af8e3] shadow-[0_0_15px_rgba(74,248,227,0.2)]" : "bg-[#222532]/50 border-[#464752]/50 text-[#aaaab7] hover:bg-[#222532]/80"}`}>
-                                    Specific Month
-                                </button>
-                            </div>
-                            <div className="space-y-5 mb-8">
-                                <div>
-                                    <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Custom Fee (₹)</label>
-                                    <input type="number" value={overrideAmount} onChange={(e) => setOverrideAmount(e.target.value)} placeholder="Leave blank to reset"
-                                        className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50 transition-colors placeholder:text-[#aaaab7]/50" />
-                                </div>
-                                {overrideType === "monthly" && (
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Month</label>
-                                            <div className="relative">
-                                                <ModernSelect
-                                                    value={overrideMonth}
-                                                    onChange={(e) => setOverrideMonth(Number(e.target.value))}
-                                                    options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
-                                                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50 transition-colors"
-                                                />
+                    {/* Loading skeleton */}
+                    {listLoading && <GenericListSkeleton />}
+
+                    {/* Empty state — no batch selected or no data */}
+                    {!listLoading && !hasLoaded && (
+                        <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-16 flex flex-col items-center justify-center gap-4 text-center">
+                            <span className="material-symbols-outlined text-5xl text-[#464752]">group</span>
+                            <p className="text-[#f0f0fd] font-bold text-lg" style={{ fontFamily: "'Manrope', sans-serif" }}>Select a batch and click View</p>
+                            <p className="text-[#aaaab7] text-sm">No unnecessary database reads until you choose a batch.</p>
+                        </div>
+                    )}
+
+                    {!listLoading && hasLoaded && students.length === 0 && (
+                        <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-12 flex flex-col items-center justify-center gap-4 text-center">
+                            <span className="material-symbols-outlined text-4xl text-[#464752]">person_off</span>
+                            <p className="text-[#aaaab7] font-medium">No students found in this batch.</p>
+                        </div>
+                    )}
+
+                    {/* ── Mobile: Card layout ───────────────────────────── */}
+                    {!listLoading && hasLoaded && students.length > 0 && (
+                        <>
+                            <div className="space-y-4 md:hidden">
+                                {students.map((s) => (
+                                    <div key={s.uid || s.id} className={`bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-2xl p-5 transition-all ${s.is_disabled ? "opacity-60 grayscale-[0.3]" : ""}`}>
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-[#f0f0fd] font-bold text-lg truncate tracking-wide" style={{ fontFamily: "'Manrope', sans-serif" }}>{s.name}</p>
+                                                {s.is_disabled && (
+                                                    <span className="px-2 py-0.5 rounded-lg bg-[#ff6e84]/10 text-[#ff6e84] text-[10px] font-black uppercase tracking-tighter border border-[#ff6e84]/30 shadow-[0_0_10px_rgba(255,110,132,0.2)]">Disabled</span>
+                                                )}
                                             </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Year</label>
-                                            <div className="relative">
-                                                <ModernSelect
-                                                    value={overrideYear}
-                                                    onChange={(e) => setOverrideYear(Number(e.target.value))}
-                                                    options={getYearOptions()}
-                                                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50 transition-colors"
-                                                />
+                                            <div className="flex flex-wrap gap-2 -mt-1">
+                                                {s.custom_fee != null && (
+                                                    <span className="px-3 py-1 rounded-full bg-[#f5c542]/10 text-[#f5c542] text-[11px] border border-[#f5c542]/30 font-bold uppercase tracking-widest whitespace-nowrap">₹{s.custom_fee}/mo</span>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-2 justify-end w-full border-t border-[#464752]/30 pt-4">
+                                                <button onClick={() => setDevicesStudent(s)} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:bg-[#4af8e3]/10 hover:border-[#4af8e3]/30 hover:text-[#4af8e3] transition-all cursor-pointer flex-1 flex justify-center">
+                                                    <span className="material-symbols-outlined text-[20px]">devices</span>
+                                                </button>
+                                                <button onClick={() => startOverride(s)} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:bg-[#f5c542]/10 hover:border-[#f5c542]/30 hover:text-[#f5c542] transition-all cursor-pointer flex-1 flex justify-center">
+                                                    <span className="material-symbols-outlined text-[20px]">payments</span>
+                                                </button>
+                                                <button onClick={() => startEdit(s)} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:bg-[#c799ff]/10 hover:border-[#c799ff]/30 hover:text-[#c799ff] transition-all cursor-pointer flex-1 flex justify-center">
+                                                    <span className="material-symbols-outlined text-[20px]">edit</span>
+                                                </button>
+                                                <button onClick={() => handleToggleStatus(s)} disabled={togglingStatus === (s.uid || s.id)}
+                                                    className={`p-2.5 rounded-xl border transition-all disabled:opacity-50 cursor-pointer flex-1 flex justify-center
+                                                    ${s.is_disabled ? "bg-[#4af8e3]/5 border-[#4af8e3]/10 text-[#4af8e3]/60 hover:bg-[#4af8e3]/10 hover:border-[#4af8e3]/30 hover:text-[#4af8e3]" : "bg-white/5 border-white/10 text-[#aaaab7] hover:bg-[#ff6e84]/10 hover:border-[#ff6e84]/30 hover:text-[#ff6e84]"}`}>
+                                                    {togglingStatus === (s.uid || s.id)
+                                                        ? <span className="w-5 h-5 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                                                        : <span className="material-symbols-outlined text-[20px]">{s.is_disabled ? "person_check" : "person_off"}</span>}
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
-                                )}
+                                ))}
                             </div>
-                            <div className="flex justify-end gap-4 pt-6 border-t border-[#464752]/30">
-                                <button type="button" onClick={cancelOverride} className="px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-widest text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 transition-all cursor-pointer">
-                                    Cancel
-                                </button>
-                                <button type="submit" disabled={overrideLoading}
-                                    className="px-6 py-3 rounded-xl bg-[#f5c542]/10 text-[#f5c542] border border-[#f5c542]/30 text-sm font-bold uppercase tracking-widest
-                                    hover:bg-[#f5c542]/20 hover:border-[#f5c542]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(245,197,66,0.15)] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2">
-                                    {overrideLoading ? (
-                                        <span className="w-5 h-5 rounded-full border-2 border-[#f5c542]/30 border-t-[#f5c542] animate-spin" />
-                                    ) : (
-                                        <span className="material-symbols-outlined text-[18px]">save</span>
-                                    )}
-                                    {overrideLoading ? "Saving..." : "Set Fee Override"}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                )}
 
-                {/* Mobile: Card layout */}
-                <div className="space-y-4 md:hidden">
-                    {filtered.map((s, idx) => (
-                        <div key={s.uid || s.id} className={`bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-2xl p-5 transition-all ${s.is_disabled ? "opacity-60 grayscale-[0.3]" : ""}`}>
-                            <div className="flex flex-col gap-4">
-                                <div className="flex items-center justify-between">
-                                    <p className="text-[#f0f0fd] font-bold text-lg truncate tracking-wide" style={{ fontFamily: "'Manrope', sans-serif" }}>{s.name}</p>
-                                    {s.is_disabled && (
-                                        <span className="px-2 py-0.5 rounded-lg bg-[#ff6e84]/10 text-[#ff6e84] text-[10px] font-black uppercase tracking-tighter border border-[#ff6e84]/30 shadow-[0_0_10px_rgba(255,110,132,0.2)]">
-                                            Disabled
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="flex flex-wrap gap-2 -mt-1">
-                                    <span className="px-3 py-1 rounded-full bg-[#c799ff]/10 text-[#c799ff] text-[11px] border border-[#c799ff]/30 font-bold uppercase tracking-widest whitespace-nowrap">
-                                        {s.batch_name || "No Batch"}
+                            {/* ── Desktop: Table layout ──────────────────── */}
+                            <div className="hidden md:block bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] overflow-hidden shadow-lg">
+                                <div className="px-6 py-4 border-b border-[#464752]/30 flex items-center justify-between">
+                                    <span className="text-[#aaaab7] text-xs font-bold uppercase tracking-widest">
+                                        {students.length} student{students.length !== 1 ? "s" : ""} · {batches.find(b => b.id === selectedListBatch)?.batch_name || ""}
                                     </span>
-                                    {s.custom_fee != null && (
-                                        <span className="px-3 py-1 rounded-full bg-[#f5c542]/10 text-[#f5c542] text-[11px] border border-[#f5c542]/30 font-bold uppercase tracking-widest whitespace-nowrap">
-                                            ₹{s.custom_fee}/mo
-                                        </span>
-                                    )}
                                 </div>
-                                <div className="flex gap-2 justify-end w-full border-t border-[#464752]/30 pt-4">
-                                    <button onClick={() => setDevicesStudent(s)}
-                                        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:bg-[#4af8e3]/10 hover:border-[#4af8e3]/30 hover:text-[#4af8e3] transition-all cursor-pointer flex-1 flex justify-center">
-                                        <span className="material-symbols-outlined text-[20px]">devices</span>
-                                    </button>
-                                    <button onClick={() => startOverride(s)}
-                                        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:bg-[#f5c542]/10 hover:border-[#f5c542]/30 hover:text-[#f5c542] transition-all cursor-pointer flex-1 flex justify-center">
-                                        <span className="material-symbols-outlined text-[20px]">payments</span>
-                                    </button>
-                                    <button onClick={() => startEdit(s)}
-                                        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[#aaaab7] hover:bg-[#c799ff]/10 hover:border-[#c799ff]/30 hover:text-[#c799ff] transition-all cursor-pointer flex-1 flex justify-center">
-                                        <span className="material-symbols-outlined text-[20px]">edit</span>
-                                    </button>
-                                    <button onClick={() => handleToggleStatus(s)} disabled={togglingStatus === (s.uid || s.id)}
-                                        className={`p-2.5 rounded-xl border transition-all disabled:opacity-50 cursor-pointer flex-1 flex justify-center 
-                                        ${s.is_disabled 
-                                            ? "bg-[#4af8e3]/5 border-[#4af8e3]/10 text-[#4af8e3]/60 hover:bg-[#4af8e3]/10 hover:border-[#4af8e3]/30 hover:text-[#4af8e3]" 
-                                            : "bg-white/5 border-white/10 text-[#aaaab7] hover:bg-[#ff6e84]/10 hover:border-[#ff6e84]/30 hover:text-[#ff6e84]"}`}>
-                                        {togglingStatus === (s.uid || s.id) ? (
-                                            <span className="w-5 h-5 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                                        ) : (
-                                            <span className="material-symbols-outlined text-[20px]">{s.is_disabled ? "person_check" : "person_off"}</span>
-                                        )}
-                                    </button>
+                                <div className="overflow-x-auto custom-scrollbar">
+                                    <table className="w-full">
+                                        <thead className="bg-[#222532]/50 border-b border-[#464752]/50">
+                                            <tr>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap">Student</th>
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap">Custom Fee</th>
+                                                <th className="px-6 py-4 text-right text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-[#464752]/30">
+                                            {students.map((s) => (
+                                                <tr key={s.uid || s.id} className={`hover:bg-[#222532]/30 transition-colors group ${s.is_disabled ? "opacity-50 grayscale-[0.5]" : ""}`}>
+                                                    <td className="px-6 py-5 whitespace-nowrap">
+                                                        <p className="text-[#f0f0fd] font-bold tracking-wide flex items-center gap-2">
+                                                            {s.name}
+                                                            {s.is_disabled && (
+                                                                <span className="px-1.5 py-0.5 rounded bg-[#ff6e84]/10 text-[#ff6e84] text-[9px] font-black uppercase tracking-tighter border border-[#ff6e84]/20">OFF</span>
+                                                            )}
+                                                        </p>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        {s.custom_fee != null ? (
+                                                            <span className="px-3 py-1 rounded-full bg-[#f5c542]/10 text-[#f5c542] text-[11px] border border-[#f5c542]/30 font-bold uppercase tracking-widest whitespace-nowrap">₹{s.custom_fee}</span>
+                                                        ) : (
+                                                            <span className="text-[#aaaab7] text-xs font-bold tracking-widest uppercase">—</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-5 whitespace-nowrap">
+                                                        <div className="flex justify-end gap-2">
+                                                            <button onClick={() => setDevicesStudent(s)} className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[#aaaab7] hover:text-[#4af8e3] hover:bg-[#4af8e3]/10 hover:border-[#4af8e3]/30 transition-all cursor-pointer flex items-center gap-2">
+                                                                <span className="material-symbols-outlined text-[16px]">devices</span>
+                                                                <span className="text-xs font-bold tracking-wide uppercase">Devices</span>
+                                                            </button>
+                                                            <button onClick={() => startOverride(s)} className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[#aaaab7] hover:text-[#f5c542] hover:bg-[#f5c542]/10 hover:border-[#f5c542]/30 transition-all cursor-pointer flex items-center gap-2">
+                                                                <span className="material-symbols-outlined text-[16px]">payments</span>
+                                                                <span className="text-xs font-bold tracking-wide uppercase">Fee</span>
+                                                            </button>
+                                                            <button onClick={() => startEdit(s)} className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[#aaaab7] hover:text-[#c799ff] hover:bg-[#c799ff]/10 hover:border-[#c799ff]/30 transition-all cursor-pointer flex items-center gap-2">
+                                                                <span className="material-symbols-outlined text-[16px]">edit</span>
+                                                                <span className="text-xs font-bold tracking-wide uppercase">Edit</span>
+                                                            </button>
+                                                            <button onClick={() => handleToggleStatus(s)} disabled={togglingStatus === (s.uid || s.id)}
+                                                                className={`px-3 py-1.5 rounded-lg border transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2
+                                                                ${s.is_disabled ? "bg-[#4af8e3]/5 border-[#4af8e3]/10 text-[#4af8e3]/60 hover:text-[#4af8e3] hover:bg-[#4af8e3]/10 hover:border-[#4af8e3]/30" : "bg-white/5 border-white/10 text-[#aaaab7] hover:text-[#ff6e84] hover:bg-[#ff6e84]/10 hover:border-[#ff6e84]/30"}`}>
+                                                                {togglingStatus === (s.uid || s.id)
+                                                                    ? <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                                                                    : <span className="material-symbols-outlined text-[16px]">{s.is_disabled ? "person_check" : "person_off"}</span>}
+                                                                <span className="text-xs font-bold tracking-wide uppercase">{s.is_disabled ? "Enable" : "Disable"}</span>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
-                        </div>
-                    ))}
-                    {filtered.length === 0 && (
-                        <div className="bg-[#171924]/60 backdrop-blur-[20px] rounded-[2rem] p-10 text-center text-[#aaaab7] border border-[#737580]/10 flex flex-col items-center justify-center gap-4">
-                            <span className="material-symbols-outlined text-4xl text-[#464752]">group</span>
-                            <p className="font-medium text-lg">No students found.</p>
-                        </div>
+                        </>
                     )}
                 </div>
+            )}
 
-                {/* Desktop: Table */}
-                <div className="hidden md:block bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] overflow-hidden shadow-lg">
-                    <div className="overflow-x-auto custom-scrollbar">
-                        <table className="w-full">
-                            <thead className="bg-[#222532]/50 border-b border-[#464752]/50">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap">Student Details</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap">Batch</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap">All time Custom Fee</th>
-                                    <th className="px-6 py-4 text-right text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[#464752]/30">
-                                {filtered.map((s) => (
-                                    <tr key={s.uid || s.id} className={`hover:bg-[#222532]/30 transition-colors group ${s.is_disabled ? "opacity-50 grayscale-[0.5]" : ""}`}>
-                                        <td className="px-6 py-5 whitespace-nowrap">
-                                            <div className="flex items-center gap-3">
-                                                <div>
-                                                    <p className="text-[#f0f0fd] font-bold tracking-wide flex items-center gap-2">
-                                                        {s.name}
-                                                        {s.is_disabled && (
-                                                            <span className="px-1.5 py-0.5 rounded bg-[#ff6e84]/10 text-[#ff6e84] text-[9px] font-black uppercase tracking-tighter border border-[#ff6e84]/20 shadow-[0_0_8px_rgba(255,110,132,0.1)]">
-                                                                OFF
-                                                            </span>
-                                                        )}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-5">
-                                            <span className="px-3 py-1 rounded-full bg-[#c799ff]/10 text-[#c799ff] text-[11px] border border-[#c799ff]/30 font-bold uppercase tracking-widest whitespace-nowrap">
-                                                {s.batch_name || "None"}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-5">
-                                            {s.custom_fee != null ? (
-                                                <span className="px-3 py-1 rounded-full bg-[#f5c542]/10 text-[#f5c542] text-[11px] border border-[#f5c542]/30 font-bold uppercase tracking-widest whitespace-nowrap shadow-[0_0_10px_rgba(245,197,66,0.1)]">
-                                                    ₹{s.custom_fee}
-                                                </span>
-                                            ) : (
-                                                <span className="text-[#aaaab7] text-xs font-bold tracking-widest uppercase">—</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-5 whitespace-nowrap">
-                                            <div className="flex justify-end gap-2 outline-none">
-                                                <button onClick={() => setDevicesStudent(s)}
-                                                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[#aaaab7] hover:text-[#4af8e3] hover:bg-[#4af8e3]/10 hover:border-[#4af8e3]/30 transition-all cursor-pointer flex items-center gap-2">
-                                                    <span className="material-symbols-outlined text-[16px]">devices</span>
-                                                    <span className="text-xs font-bold tracking-wide uppercase">Devices</span>
-                                                </button>
-                                                <button onClick={() => startOverride(s)}
-                                                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[#aaaab7] hover:text-[#f5c542] hover:bg-[#f5c542]/10 hover:border-[#f5c542]/30 transition-all cursor-pointer flex items-center gap-2">
-                                                    <span className="material-symbols-outlined text-[16px]">payments</span>
-                                                    <span className="text-xs font-bold tracking-wide uppercase">Fee</span>
-                                                </button>
-                                                <button onClick={() => startEdit(s)}
-                                                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[#aaaab7] hover:text-[#c799ff] hover:bg-[#c799ff]/10 hover:border-[#c799ff]/30 transition-all cursor-pointer flex items-center gap-2">
-                                                    <span className="material-symbols-outlined text-[16px]">edit</span>
-                                                    <span className="text-xs font-bold tracking-wide uppercase">Edit</span>
-                                                </button>
-                                                <button onClick={() => handleToggleStatus(s)} disabled={togglingStatus === (s.uid || s.id)}
-                                                    className={`px-3 py-1.5 rounded-lg border transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2 
-                                                    ${s.is_disabled 
-                                                        ? "bg-[#4af8e3]/5 border-[#4af8e3]/10 text-[#4af8e3]/60 hover:text-[#4af8e3] hover:bg-[#4af8e3]/10 hover:border-[#4af8e3]/30" 
-                                                        : "bg-white/5 border-white/10 text-[#aaaab7] hover:text-[#ff6e84] hover:bg-[#ff6e84]/10 hover:border-[#ff6e84]/30"}`}>
-                                                    {togglingStatus === (s.uid || s.id) ? (
-                                                        <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                                                    ) : (
-                                                        <span className="material-symbols-outlined text-[16px]">{s.is_disabled ? "person_check" : "person_off"}</span>
-                                                    )}
-                                                    <span className="text-xs font-bold tracking-wide uppercase">{s.is_disabled ? "Enable" : "Disable"}</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {filtered.length === 0 && (
-                                    <tr>
-                                        <td colSpan={4} className="px-6 py-8">
-                                            <div className="flex flex-col items-center justify-center gap-3 text-[#aaaab7]">
-                                                <span className="material-symbols-outlined text-3xl">group</span>
-                                                <p className="font-medium">No students found.</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+            {/* ═══════════════════════════════════════════════════════════
+                TAB 2 — ADD STUDENT
+                No student list, no counts — just the form.
+            ══════════════════════════════════════════════════════════════ */}
+            {activeTab === "add" && (
+                <form
+                    onSubmit={handleSubmit}
+                    className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-6 sm:p-8 transition-colors hover:bg-[#171924]/80"
+                >
+                    <h3 className="text-[#f0f0fd] font-bold mb-6 text-lg flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                        <span className="w-8 h-8 rounded-xl bg-[#c799ff]/10 border border-[#c799ff]/30 flex items-center justify-center text-sm font-extrabold text-[#c799ff] shadow-[0_0_10px_rgba(199,153,255,0.2)]">
+                            <span className="material-symbols-outlined text-[16px]">person_add</span>
+                        </span>
+                        New Student
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+                        <input
+                            placeholder="Full Name"
+                            value={form.name}
+                            onChange={(e) => setForm({ ...form, name: e.target.value })}
+                            required
+                            className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors placeholder:text-[#aaaab7]/70"
+                        />
+                        <input
+                            placeholder="Username or Mobile"
+                            type="text"
+                            value={form.username}
+                            onChange={(e) => setForm({ ...form, username: e.target.value })}
+                            required
+                            className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors placeholder:text-[#aaaab7]/70"
+                        />
+                        <input
+                            placeholder="Password"
+                            type="password"
+                            value={form.password}
+                            onChange={(e) => setForm({ ...form, password: e.target.value })}
+                            required
+                            minLength={6}
+                            className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors placeholder:text-[#aaaab7]/70"
+                        />
+                        <ModernSelect
+                            value={form.batch_id}
+                            onChange={(e) => setForm({ ...form, batch_id: e.target.value })}
+                            options={batches}
+                            placeholder="Select Batch"
+                            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
+                        />
                     </div>
-                </div>
-            </div>
+                    <button
+                        type="submit"
+                        disabled={formLoading}
+                        className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
+                        hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(199,153,255,0.15)] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-3"
+                    >
+                        {formLoading ? (
+                            <span className="w-5 h-5 rounded-full border-2 border-[#c799ff]/30 border-t-[#c799ff] animate-spin" />
+                        ) : (
+                            <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                        )}
+                        {formLoading ? "Adding..." : "Add Student"}
+                    </button>
+                </form>
+            )}
 
-            {/* Status Confirmation Modal */}
+            {/* ═══════════════════════════════════════════════════════════
+                MODALS (shared between both tabs — used by list actions)
+            ══════════════════════════════════════════════════════════════ */}
+
+            {/* Edit Student Modal */}
+            {editingStudent && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto">
+                    <form onSubmit={handleEditSubmit} className="bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2rem] p-6 sm:p-8 w-full max-w-lg border border-[#737580]/20 shadow-2xl relative animate-fade-in-up m-auto">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-[#f0f0fd] font-bold text-xl flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                <span className="material-symbols-outlined text-[#c799ff]">edit</span>
+                                Edit Student
+                            </h3>
+                            <button type="button" onClick={cancelEdit} className="text-[#aaaab7] hover:text-[#ff6e84] transition-colors cursor-pointer p-2 rounded-full hover:bg-white/5 flex items-center justify-center">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div className="space-y-5 mb-8">
+                            <div>
+                                <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Full Name</label>
+                                <input
+                                    placeholder="Full Name"
+                                    value={editForm.name}
+                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                    className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Username or Mobile</label>
+                                <input
+                                    placeholder="Username or Mobile"
+                                    type="text"
+                                    value={editForm.username}
+                                    onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                                    className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">New Password (Optional)</label>
+                                <input
+                                    placeholder="Leave blank to keep current"
+                                    type="password"
+                                    value={editForm.password}
+                                    onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                                    minLength={editForm.password ? 6 : undefined}
+                                    className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Batch</label>
+                                <ModernSelect
+                                    value={editForm.batch_id}
+                                    onChange={(e) => setEditForm({ ...editForm, batch_id: e.target.value })}
+                                    options={batches}
+                                    placeholder="Select Batch"
+                                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-4 pt-6 border-t border-[#464752]/30">
+                            <button type="button" onClick={cancelEdit} className="px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-widest text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 transition-all cursor-pointer">
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={editLoading}
+                                className="px-6 py-3 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(199,153,255,0.15)] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                            >
+                                {editLoading ? (
+                                    <span className="w-5 h-5 rounded-full border-2 border-[#c799ff]/30 border-t-[#c799ff] animate-spin" />
+                                ) : (
+                                    <span className="material-symbols-outlined text-[18px]">save</span>
+                                )}
+                                {editLoading ? "Saving..." : "Save Changes"}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {/* Fee Override Modal */}
+            {overrideStudent && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto">
+                    <form onSubmit={handleOverrideSubmit} className="bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2rem] p-6 sm:p-8 w-full max-w-lg border border-[#f5c542]/20 shadow-2xl relative animate-fade-in-up m-auto">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-[#f0f0fd] font-bold text-xl flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                <span className="material-symbols-outlined text-[#f5c542]">payments</span>
+                                Override: {overrideStudent.name}
+                            </h3>
+                            <button type="button" onClick={cancelOverride} className="text-[#aaaab7] hover:text-[#ff6e84] transition-colors cursor-pointer p-2 rounded-full hover:bg-white/5 flex items-center justify-center">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div className="flex gap-3 mb-6">
+                            <button type="button" onClick={() => setOverrideType("permanent")}
+                                className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-widest border transition-all duration-300 cursor-pointer
+                                ${overrideType === "permanent" ? "bg-[#c799ff]/10 border-[#c799ff]/50 text-[#c799ff] shadow-[0_0_15px_rgba(199,153,255,0.2)]" : "bg-[#222532]/50 border-[#464752]/50 text-[#aaaab7] hover:bg-[#222532]/80"}`}>
+                                All-Time
+                            </button>
+                            <button type="button" onClick={() => setOverrideType("monthly")}
+                                className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-widest border transition-all duration-300 cursor-pointer
+                                ${overrideType === "monthly" ? "bg-[#4af8e3]/10 border-[#4af8e3]/50 text-[#4af8e3] shadow-[0_0_15px_rgba(74,248,227,0.2)]" : "bg-[#222532]/50 border-[#464752]/50 text-[#aaaab7] hover:bg-[#222532]/80"}`}>
+                                Specific Month
+                            </button>
+                        </div>
+                        <div className="space-y-5 mb-8">
+                            <div>
+                                <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Custom Fee (₹)</label>
+                                <input
+                                    type="number"
+                                    value={overrideAmount}
+                                    onChange={(e) => setOverrideAmount(e.target.value)}
+                                    placeholder="Leave blank to reset"
+                                    className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50 transition-colors placeholder:text-[#aaaab7]/50"
+                                />
+                            </div>
+                            {overrideType === "monthly" && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Month</label>
+                                        <ModernSelect
+                                            value={overrideMonth}
+                                            onChange={(e) => setOverrideMonth(Number(e.target.value))}
+                                            options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
+                                            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50 transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Year</label>
+                                        <ModernSelect
+                                            value={overrideYear}
+                                            onChange={(e) => setOverrideYear(Number(e.target.value))}
+                                            options={getYearOptions()}
+                                            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5c542]/50 transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex justify-end gap-4 pt-6 border-t border-[#464752]/30">
+                            <button type="button" onClick={cancelOverride} className="px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-widest text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 transition-all cursor-pointer">
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={overrideLoading}
+                                className="px-6 py-3 rounded-xl bg-[#f5c542]/10 text-[#f5c542] border border-[#f5c542]/30 text-sm font-bold uppercase tracking-widest hover:bg-[#f5c542]/20 hover:border-[#f5c542]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(245,197,66,0.15)] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                            >
+                                {overrideLoading ? (
+                                    <span className="w-5 h-5 rounded-full border-2 border-[#f5c542]/30 border-t-[#f5c542] animate-spin" />
+                                ) : (
+                                    <span className="material-symbols-outlined text-[18px]">save</span>
+                                )}
+                                {overrideLoading ? "Saving..." : "Set Fee Override"}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {/* Status Toggle Modal */}
             {statusModalStudent && (() => {
                 const isDisabling = !statusModalStudent.is_disabled;
                 const actionText = isDisabling ? "disable" : "enable";
                 const targetText = `I confirm to ${actionText} ${statusModalStudent.name}`;
-                
                 return (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in overflow-y-auto">
                         <div className={`bg-[#13151f]/90 backdrop-blur-[20px] rounded-[2rem] p-6 sm:p-8 w-full max-w-lg border ${isDisabling ? "border-[#ff6e84]/30 shadow-[0_0_40px_rgba(255,110,132,0.15)]" : "border-[#4af8e3]/30 shadow-[0_0_40px_rgba(74,248,227,0.15)]"} relative animate-fade-in-up m-auto`}>
@@ -613,10 +684,8 @@ function StudentsContent() {
                                     <span className="material-symbols-outlined">close</span>
                                 </button>
                             </div>
-                            
                             <div className="space-y-4 mb-6 text-[#aaaab7]">
                                 <p className="text-base text-[#f0f0fd] font-medium">Are you sure you want to {actionText} <span className="font-bold text-white">{statusModalStudent.name}</span>?</p>
-                                
                                 {isDisabling ? (
                                     <div className="bg-[#ff6e84]/10 border border-[#ff6e84]/20 p-4 rounded-xl text-sm leading-relaxed text-[#ff9dac]">
                                         <p className="font-bold mb-1">If you disable this student:</p>
@@ -636,7 +705,6 @@ function StudentsContent() {
                                         </ul>
                                     </div>
                                 )}
-
                                 <div>
                                     <label className="block text-[13px] font-bold tracking-wide uppercase mb-2">
                                         Please type <span className={`${isDisabling ? "text-[#ff6e84]" : "text-[#4af8e3]"} select-all`}>{targetText}</span> to verify
@@ -651,7 +719,6 @@ function StudentsContent() {
                                     />
                                 </div>
                             </div>
-
                             <div className="flex justify-end gap-4 pt-6 border-t border-[#464752]/30">
                                 <button onClick={() => setStatusModalStudent(null)} className="px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-widest text-[#aaaab7] hover:text-[#f0f0fd] hover:bg-white/5 transition-all cursor-pointer">
                                     Cancel
@@ -671,15 +738,13 @@ function StudentsContent() {
             })()}
 
             {/* Devices Modal */}
-            {
-                devicesStudent && (
-                    <UserDevicesModal
-                        user={devicesStudent}
-                        onClose={() => setDevicesStudent(null)}
-                        onSessionDeleted={fetchData}
-                    />
-                )
-            }
+            {devicesStudent && (
+                <UserDevicesModal
+                    user={devicesStudent}
+                    onClose={() => setDevicesStudent(null)}
+                    onSessionDeleted={() => {}}
+                />
+            )}
         </div>
     );
 }

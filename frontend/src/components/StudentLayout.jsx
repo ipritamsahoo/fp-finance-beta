@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { StudentThemeProvider, useStudentTheme } from "@/context/StudentThemeContext";
 import ProfilePicture from "./ProfilePicture";
 import NotificationPanel from "./NotificationPanel";
+import ProfilePicUpload from "./ProfilePicUpload";
 
 // ── Heavy inertia cubic-bezier(0.85, 0, 0.15, 1) solver ──
 const heavyInertia = (progress) => {
@@ -38,6 +39,10 @@ function StudentLayoutInner({ children }) {
     const [notifOpen, setNotifOpen] = useState(false);
 
     const isLight = theme === "light";
+
+    // Show mandatory upload modal if student has no profile pic yet
+    const needsProfilePic = user && !user.profilePicUrl;
+    const isLight2 = isLight; // alias for use in portal
 
     // ── Bottom nav: kinetic sliding indicator ──
     const activeIdx = studentNav.findIndex(item => pathname === item.href);
@@ -378,6 +383,16 @@ function StudentLayoutInner({ children }) {
                     {children}
                 </div>
             </main>
+
+            {/* ── Mandatory Profile Pic Upload ── */}
+            {/* Shown to students who have no profile picture yet. Non-dismissible. */}
+            {needsProfilePic && (
+                <ProfilePicUpload
+                    isOpen={true}
+                    onClose={() => {}}
+                    mandatory={true}
+                />
+            )}
 
             {/* ── Mobile Bottom Navigation ── */}
             {!isSubPageMobile && (

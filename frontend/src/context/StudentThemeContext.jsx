@@ -1,18 +1,18 @@
 import { createContext, useContext, useState, useEffect } from "react";
 
-const StudentThemeContext = createContext({ theme: "dark", toggleTheme: () => {} });
+const StudentThemeContext = createContext({ theme: "light", toggleTheme: () => {} });
 
 export function StudentThemeProvider({ children }) {
     const [theme, setTheme] = useState(() => {
         try {
-            return localStorage.getItem("fp_student_theme") || "dark";
+            return localStorage.getItem("fp_student_theme_v2") || "light";
         } catch {
-            return "dark";
+            return "light";
         }
     });
 
     useEffect(() => {
-        try { localStorage.setItem("fp_student_theme", theme); } catch {}
+        try { localStorage.setItem("fp_student_theme_v2", theme); } catch {}
     }, [theme]);
 
     const toggleTheme = () => setTheme(prev => prev === "dark" ? "light" : "dark");

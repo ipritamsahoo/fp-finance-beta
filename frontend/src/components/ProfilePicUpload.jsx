@@ -10,7 +10,7 @@ import ProfilePicture from "./ProfilePicture";
  * Profile picture upload modal with 1:1 circular crop & preview.
  * Steps: "select" → "crop" → "preview"
  */
-export default function ProfilePicUpload({ isOpen, onClose }) {
+export default function ProfilePicUpload({ isOpen, onClose, mandatory = false }) {
     const { user, updateProfilePic } = useAuth();
     const { theme } = useStudentTheme();
     const isLight = theme === "light";
@@ -257,7 +257,7 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
         <div 
             data-theme={theme}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4" 
-            onClick={handleClose}
+            onClick={mandatory ? undefined : handleClose}
             style={{ 
                 backgroundColor: isLight ? 'rgba(238,242,255,0.4)' : 'rgba(0,0,0,0.7)',
                 backdropFilter: 'blur(8px)',
@@ -310,24 +310,21 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
                                 Choose Photo
                             </button>
 
-                            {user?.profilePicUrl && (
+                            {!mandatory && (
                                 <button
-                                    onClick={handleRemove}
-                                    disabled={uploading}
-                                    className="w-full py-3.5 rounded-2xl bg-[#ff6e84]/10 border border-[#ff6e84]/30 text-[#ff6e84] text-sm font-bold hover:bg-[#ff6e84]/20 transition-all disabled:opacity-50 cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+                                    onClick={handleClose}
+                                    className="w-full py-2.5 text-sm font-bold transition-colors cursor-pointer"
+                                    style={{ color: 'var(--st-text-secondary)' }}
                                 >
-                                    <span className="material-symbols-outlined text-[20px]">delete</span>
-                                    Remove Photo
+                                    Cancel
                                 </button>
                             )}
 
-                            <button
-                                onClick={handleClose}
-                                className="w-full py-2.5 text-sm font-bold transition-colors cursor-pointer"
-                                style={{ color: 'var(--st-text-secondary)' }}
-                            >
-                                Cancel
-                            </button>
+                            {mandatory && (
+                                <p className="text-center text-xs pt-1" style={{ color: 'var(--st-text-muted)' }}>
+                                    A profile photo is required to continue.
+                                </p>
+                            )}
                         </div>
 
                         {status && (
@@ -397,14 +394,16 @@ export default function ProfilePicUpload({ isOpen, onClose }) {
                             </button>
                         </div>
 
-                        <button
-                            onClick={handleClose}
-                            disabled={uploading}
-                            className="w-full py-2 text-sm font-bold transition-colors cursor-pointer"
-                            style={{ color: 'var(--st-text-secondary)' }}
-                        >
-                            Cancel
-                        </button>
+                        {!mandatory && (
+                            <button
+                                onClick={handleClose}
+                                disabled={uploading}
+                                className="w-full py-2 text-sm font-bold transition-colors cursor-pointer"
+                                style={{ color: 'var(--st-text-secondary)' }}
+                            >
+                                Cancel
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

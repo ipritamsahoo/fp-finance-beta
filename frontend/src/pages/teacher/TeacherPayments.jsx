@@ -28,59 +28,38 @@ function PaymentsContent() {
     const cachedBatches = getCache(cacheKeyBatches);
 
     const [batches,     setBatches]     = useState(cachedBatches || []);
-    const [filterBatch, setFilterBatch] = useState(cachedBatches?.[0]?.id || "");
+    const [filterBatch, setFilterBatch] = useState("");
     const [filterYear,  setFilterYear]  = useState(now.getFullYear());
     const [filterMonth, setFilterMonth] = useState(now.getMonth() + 1);
 
-    const cacheKey = filterBatch
-        ? `teacher_payments_${filterBatch}_${filterYear}_${filterMonth}`
-        : null;
-    const cachedPayments = cacheKey ? getCache(cacheKey) : null;
+    const [payments,  setPayments]  = useState([]);
+    const [loading,   setLoading]   = useState(false);
+    const [hasLoaded, setHasLoaded] = useState(false);
+    const [error,     setError]     = useState("");
 
-    const [payments, setPayments] = useState(cachedPayments || []);
-    const [loading,  setLoading]  = useState(!cachedBatches || (filterBatch && !cachedPayments));
-    const [error,    setError]    = useState("");
-
-    // Fetch batches once
+    // Fetch batches once on mount — no payment fetch yet
     useEffect(() => {
+        const cached = getCache(cacheKeyBatches);
+        if (cached) { setBatches(cached); return; }
         api.get("/api/teacher/batches").then((data) => {
-            if (JSON.stringify(getCache(cacheKeyBatches)) !== JSON.stringify(data)) {
-                setBatches(data);
-                setCache(cacheKeyBatches, data);
-            }
+            setBatches(data);
+            setCache(cacheKeyBatches, data);
         }).catch(() => {});
     }, [cacheKeyBatches]);
 
-    // Auto-select first batch
-    useEffect(() => {
-        if (batches.length > 0 && !filterBatch) {
-            setFilterBatch(batches[0].id);
-        }
-    }, [batches, filterBatch]);
-
+    // Called ONLY when View button is clicked
     const fetchPayments = useCallback(async () => {
-        if (!filterBatch) { setPayments([]); setLoading(false); return; }
-
-        const key = `teacher_payments_${filterBatch}_${filterYear}_${filterMonth}`;
-        const cached = getCache(key);
-
-        if (cached) {
-            setPayments(prev => JSON.stringify(prev) !== JSON.stringify(cached) ? cached : prev);
-            setLoading(false);
-        } else {
-            setPayments([]);
-            setLoading(true);
-        }
-
+        if (!filterBatch) return;
+        setLoading(true);
+        setHasLoaded(false);
+        setPayments([]);
         setError("");
         try {
             const res = await api.get(
                 `/api/teacher/payments?batch_id=${filterBatch}&year=${filterYear}&month=${filterMonth}`
             );
-            if (JSON.stringify(cached) !== JSON.stringify(res)) {
-                setCache(key, res);
-                setPayments(prev => JSON.stringify(prev) !== JSON.stringify(res) ? res : prev);
-            }
+            setPayments(res);
+            setHasLoaded(true);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -88,7 +67,7 @@ function PaymentsContent() {
         }
     }, [filterBatch, filterYear, filterMonth]);
 
-    useEffect(() => { fetchPayments(); }, [fetchPayments]);
+    const handleView = () => fetchPayments();
 
     // ── helpers ──────────────────────────────────────────
     const formatDate = (dateStr) => {
@@ -135,17 +114,17 @@ function PaymentsContent() {
                 </div>
             )}
 
-            {/* Filters */}
+            {/* Filters + View button */}
             <div
                 className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5"
                 style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
             >
-                <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
                     {/* Batch */}
                     <div className="relative flex-1 md:flex-none md:w-[220px] z-30">
                         <ModernSelect
                             value={filterBatch}
-                            onChange={(e) => setFilterBatch(e.target.value)}
+                            onChange={(e) => { setFilterBatch(e.target.value); setHasLoaded(false); setPayments([]); }}
                             options={batches}
                             placeholder="Select Batch"
                             className="w-full"
@@ -155,7 +134,7 @@ function PaymentsContent() {
                     <div className="relative flex-1 md:flex-none md:w-[140px] z-20">
                         <ModernSelect
                             value={filterYear}
-                            onChange={(e) => setFilterYear(Number(e.target.value))}
+                            onChange={(e) => { setFilterYear(Number(e.target.value)); setHasLoaded(false); setPayments([]); }}
                             options={yearOptions}
                             className="w-full"
                         />
@@ -164,17 +143,32 @@ function PaymentsContent() {
                     <div className="relative flex-1 md:flex-none md:w-[160px] z-10">
                         <ModernSelect
                             value={filterMonth}
-                            onChange={(e) => setFilterMonth(Number(e.target.value))}
+                            onChange={(e) => { setFilterMonth(Number(e.target.value)); setHasLoaded(false); setPayments([]); }}
                             options={MONTHS.map(m => ({ id: m.value, batch_name: m.label }))}
                             className="w-full"
                         />
                     </div>
+                    {/* View button */}
+                    <button
+                        onClick={handleView}
+                        disabled={!filterBatch || loading}
+                        className="px-6 py-3 rounded-xl bg-[#4af8e3]/10 text-[#4af8e3] border border-[#4af8e3]/30 text-sm font-bold uppercase tracking-widest
+                        hover:bg-[#4af8e3]/20 hover:border-[#4af8e3]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(74,248,227,0.10)]
+                        disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap md:ml-auto"
+                    >
+                        {loading ? (
+                            <span className="w-4 h-4 rounded-full border-2 border-[#4af8e3]/30 border-t-[#4af8e3] animate-spin" />
+                        ) : (
+                            <span className="material-symbols-outlined text-[16px]">search</span>
+                        )}
+                        {loading ? "Loading..." : "View"}
+                    </button>
                 </div>
             </div>
 
 
             {/* Total Collected */}
-            {!loading && filterBatch && totalCollected > 0 && (
+            {!loading && hasLoaded && totalCollected > 0 && (
                 <div className="bg-[#171924]/40 backdrop-blur-[20px] border border-[#4af8e3]/10 rounded-2xl px-6 py-4 flex items-center gap-4 w-fit shadow-[0_0_30px_rgba(74,248,227,0.05)]">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#4af8e3] shadow-[0_0_8px_rgba(74,248,227,0.7)] flex-shrink-0" />
                     <span className="text-[#aaaab7] text-xs font-semibold uppercase tracking-widest">Total Collected</span>
@@ -189,9 +183,11 @@ function PaymentsContent() {
             >
                 {loading ? (
                     <div className="p-6"><GenericListSkeleton /></div>
-                ) : !filterBatch ? (
-                    <div className="flex items-center justify-center p-14 text-[#aaaab7]" style={{ fontFamily: "'Inter', sans-serif" }}>
-                        Select a batch to view payments.
+                ) : !hasLoaded ? (
+                    <div className="flex flex-col items-center justify-center gap-4 p-14 text-center">
+                        <span className="material-symbols-outlined text-5xl text-[#464752]">payments</span>
+                        <p className="text-[#f0f0fd] font-bold text-lg" style={{ fontFamily: "'Manrope', sans-serif" }}>Select filters and click View</p>
+                        <p className="text-[#aaaab7] text-sm">No data is loaded until you click the View button.</p>
                     </div>
                 ) : sorted.length === 0 ? (
                     <div className="flex flex-col items-center justify-center gap-3 p-14 text-[#aaaab7]" style={{ fontFamily: "'Inter', sans-serif" }}>

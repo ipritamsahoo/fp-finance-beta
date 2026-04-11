@@ -148,11 +148,11 @@ def admin_approve(payment_id: str, user=Depends(require_role("admin"))):
             diff_minutes = diff_seconds / 60
             print(f"[BADGE DEBUG] diff_seconds = {diff_seconds}, diff_minutes = {diff_minutes:.2f}")
 
-            if diff_minutes < 1:
+            if diff_minutes < 1440:          # within 24 hours → Prime
                 badge_tier = "prime"
-            elif diff_minutes < 3:
+            elif diff_minutes < 7200:         # within 5 days → Golden
                 badge_tier = "golden"
-            else:
+            else:                             # after 5 days → Silver
                 badge_tier = "silver"
             print(f"[BADGE DEBUG] Calculated badge_tier = {badge_tier}")
         except Exception as e:
@@ -283,7 +283,9 @@ def admin_delete_user_session(uid: str, session_id: str, user=Depends(require_ro
 
 @router.get("/batches")
 def admin_list_batches(user=Depends(require_role("admin"))):
-    """List all batches."""
+    """List all batches.
+    student_count is read directly from the denormalized field on the batch
+    document — no extra query per batch."""
     # Pre-fetch all teacher names into a dictionary to avoid N+1 reads
     teachers = db.collection("users").where("role", "==", "teacher").stream()
     teacher_map = {t.id: t.to_dict().get("name", t.id) for t in teachers}
@@ -292,19 +294,15 @@ def admin_list_batches(user=Depends(require_role("admin"))):
     results = []
     for b in batches:
         data = serialize_doc(b)
-        
-        # Count students efficiently using native .count()
-        students_query = db.collection("users") \
-            .where("batch_id", "==", b.id) \
-            .where("role", "==", "student") \
-            .count()
-        data["student_count"] = students_query.get()[0][0].value
-        
+
+        # Read pre-computed count — zero extra queries
+        data["student_count"] = data.get("student_count", 0)
+
         # Get teacher names directly from local map
         teacher_names = []
         for tid in data.get("teacher_ids", []):
             teacher_names.append(teacher_map.get(tid, tid))
-            
+
         data["teacher_names"] = teacher_names
         results.append(data)
     return results
@@ -409,11 +407,13 @@ def admin_delete_batch(batch_id: str, user=Depends(require_role("admin"))):
 def _auto_generate_for_student(student_id: str, student_name: str, batch_id: str) -> int:
     """Auto-generate unpaid payment records for a student by looking at
     which (month, year) combos already exist for other students in the same batch.
+    Uses the denormalized `generated_months` field on the batch document instead
+    of scanning the entire payments collection — O(1) reads instead of O(N).
     Returns the number of records created."""
     if not batch_id:
         return 0
 
-    # Don't auto-generate if batch has no teachers assigned
+    # Single read: batch doc contains teachers + fee + generated_months
     batch_doc = db.collection("batches").document(batch_id).get()
     if not batch_doc.exists:
         return 0
@@ -421,20 +421,15 @@ def _auto_generate_for_student(student_id: str, student_name: str, batch_id: str
     if not batch_data.get("teacher_ids"):
         return 0
 
-    # Find all unique (month, year) combos that exist for this batch
-    batch_payments = db.collection("payments") \
-        .where("batch_id", "==", batch_id) \
-        .stream()
-
-    existing_months = set()
-    for p in batch_payments:
-        pd = p.to_dict()
-        existing_months.add((pd.get("month"), pd.get("year")))
-
-    if not existing_months:
+    # Read pre-computed list of generated months — no payment scan needed
+    generated_months = batch_data.get("generated_months", [])
+    if not generated_months:
         return 0
 
-    # Determine the fee and check if disabled
+    # Convert to set of (month, year) tuples
+    existing_months = {(entry["month"], entry["year"]) for entry in generated_months}
+
+    # Determine the fee (already have batch_data, no extra read needed)
     student_doc = db.collection("users").document(student_id).get()
     student_data = student_doc.to_dict() if student_doc.exists else {}
 
@@ -442,12 +437,10 @@ def _auto_generate_for_student(student_id: str, student_name: str, batch_id: str
         return 0
 
     student_custom_fee = student_data.get("custom_fee")
-
     if student_custom_fee is not None:
         fee = student_custom_fee
     else:
-        batch_doc = db.collection("batches").document(batch_id).get()
-        batch_fee = batch_doc.to_dict().get("batch_fee") if batch_doc.exists else None
+        batch_fee = batch_data.get("batch_fee")
         fee = batch_fee if batch_fee is not None else DEFAULT_FEE_AMOUNT
 
     created = 0
@@ -544,6 +537,12 @@ def admin_add_student(req: StudentCreate, user=Depends(require_role("admin"))):
     }
     db.collection("users").document(fb_user.uid).set(user_doc)
 
+    # Increment the denormalized student_count on the batch document
+    if req.batch_id:
+        db.collection("batches").document(req.batch_id).update({
+            "student_count": firestore.Increment(1)
+        })
+
     # Auto-generate payment records for months already generated in this batch
     auto_created = _auto_generate_for_student(fb_user.uid, req.name, req.batch_id)
 
@@ -605,10 +604,19 @@ def admin_update_student(uid: str, req: StudentUpdate, user=Depends(require_role
                 "updated_at": ts_now(),
             })
 
-    # Auto-generate payment records if batch changed
+    # Update student_count on batch documents if batch changed
     auto_created = 0
     new_batch_id = req.batch_id
-    if new_batch_id is not None and new_batch_id != student_data.get("batch_id"):
+    old_batch_id = student_data.get("batch_id")
+    if new_batch_id is not None and new_batch_id != old_batch_id:
+        # Decrement old batch, increment new batch
+        if old_batch_id:
+            db.collection("batches").document(old_batch_id).update({
+                "student_count": firestore.Increment(-1)
+            })
+        db.collection("batches").document(new_batch_id).update({
+            "student_count": firestore.Increment(1)
+        })
         student_name = req.name or student_data.get("name", "")
         auto_created = _auto_generate_for_student(uid, student_name, new_batch_id)
 
@@ -986,6 +994,25 @@ def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role("admi
                 "bill_generated",
             )
 
+    # Update generated_months on the affected batch document(s)
+    if created > 0:
+        month_entry = {"month": req.month, "year": req.year}
+        if req.batch_id:
+            db.collection("batches").document(req.batch_id).update({
+                "generated_months": firestore.ArrayUnion([month_entry])
+            })
+        else:
+            # All batches that received new payment records
+            affected_batch_ids = {
+                s.to_dict().get("batch_id", "")
+                for s in student_list
+                if s.to_dict().get("batch_id")
+            }
+            for bid in affected_batch_ids:
+                db.collection("batches").document(bid).update({
+                    "generated_months": firestore.ArrayUnion([month_entry])
+                })
+
     return {
         "message": f"Generated {created} payment records{batch_label}, skipped {skipped} existing",
         "created": created,
@@ -1023,6 +1050,23 @@ def admin_undo_monthly(req: UndoMonthly, user=Depends(require_role("admin"))):
         batch_doc = db.collection("batches").document(req.batch_id).get()
         if batch_doc.exists:
             batch_label = f" for batch '{batch_doc.to_dict().get('batch_name', '')}'"
+
+    # If ALL Unpaid records for this month/batch are deleted, remove from generated_months
+    # Check: are there any remaining non-Unpaid records for this month in this batch?
+    if req.batch_id and deleted > 0:
+        remaining = list(
+            db.collection("payments")
+            .where("batch_id", "==", req.batch_id)
+            .where("month", "==", req.month)
+            .where("year", "==", req.year)
+            .limit(1)
+            .stream()
+        )
+        if not remaining:
+            # No records left for this month — remove from generated_months
+            db.collection("batches").document(req.batch_id).update({
+                "generated_months": firestore.ArrayRemove([{"month": req.month, "year": req.year}])
+            })
 
     return {
         "message": f"Removed {deleted} unpaid record(s) for {month_name} {req.year}{batch_label}",

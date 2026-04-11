@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 const BADGE_CONFIG = {
     prime: {
         gradient: "from-[#a855f7] via-[#4af8e3] to-[#a855f7]",
-        shadow: "shadow-[0_0_25px_rgba(168,85,247,0.8),inset_0_0_10px_rgba(168,85,247,0.5)]",
+        shadow: "shadow-[0_0_20px_rgba(168,85,247,1),0_0_50px_rgba(168,85,247,0.6),inset_0_0_15px_rgba(168,85,247,0.8)]",
         icon: "bolt",
         iconColor: "text-[#a855f7]",
         iconBg: "bg-[#a855f7]/90",
