@@ -28,7 +28,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [submitting, setSubmitting] = useState(false);
-    const [upiNotice, setUpiNotice] = useState(false);
+    const [upiNotice, setUpiNotice] = useState(payment?.status === "Rejected");
     const [showPreviewModal, setShowPreviewModal] = useState(false);
     const { theme } = useStudentTheme();
     const isLight = theme === "light";
@@ -182,8 +182,8 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                                 color: isLight ? '#b91c1c' : '#ff9dac'
                             }}
                         >
-                            <span className="font-semibold" style={{ color: isLight ? '#ef4444' : '#ff6e84' }}>⚠️ This service is currently unavailable!</span><br />
-                            Pay either via QR code or pay <span className="font-semibold" style={{ color: isLight ? '#ef4444' : '#ff6e84' }}>Mr. Soumya Sengupta</span> directly through your UPI app, then upload a screenshot here for verification.
+                            <span className="font-semibold" style={{ color: isLight ? '#ef4444' : '#ff6e84' }}>⚠️ Payment Rejected!</span><br />
+                            Your previous submission was rejected. Please ensure you upload a clear screenshot of the transaction showing the UTR/Transaction ID.
                             <button onClick={() => setUpiNotice(false)} className="ml-2 cursor-pointer font-bold" style={{ color: isLight ? '#ef4444' : '#ff6e84' }}>✕</button>
                         </div>
                     )}
@@ -316,8 +316,8 @@ function StudentDashboardContent() {
     const { theme } = useStudentTheme();
     const isLight = theme === "light";
     
-    // In-Memory Caching for instant load
-    const cacheKey = `student_payments_${user?.uid}`;
+    // In-Memory Caching for instant load (Shared with Payments History)
+    const cacheKey = `student_global_payments_${user?.uid}`;
     const cachedPayments = getCache(cacheKey);
     
     const [payments, setPayments] = useState(cachedPayments || []);
@@ -329,22 +329,8 @@ function StudentDashboardContent() {
     );
 
     // Persist seen approvals across sessions to guarantee the student sees the animation
-    const [seenApprovals, setSeenApprovals] = useState(() => {
-        try {
-            return new Set(JSON.parse(localStorage.getItem(`fp_seen_approvals`) || "[]"));
-        } catch {
-            return new Set();
-        }
-    });
-
-    // Persist seen rejections — student sees the rejection animation once, then it goes away
-    const [seenRejections, setSeenRejections] = useState(() => {
-        try {
-            return new Set(JSON.parse(localStorage.getItem(`fp_seen_rejections`) || "[]"));
-        } catch {
-            return new Set();
-        }
-    });
+    const [seenApprovals, setSeenApprovals] = useState(new Set());
+    const [seenRejections, setSeenRejections] = useState(new Set());
 
     const [isVisible, setIsVisible] = useState(document.visibilityState === "visible");
 
@@ -354,42 +340,56 @@ function StudentDashboardContent() {
         return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
     }, []);
 
+    // Load seen states from localStorage once user.uid is available
+    useEffect(() => {
+        if (user?.uid) {
+            try {
+                const sR = localStorage.getItem(`fp_seen_rejections_${user.uid}`);
+                const sA = localStorage.getItem(`fp_seen_approvals_${user.uid}`);
+                if (sR) setSeenRejections(new Set(JSON.parse(sR)));
+                if (sA) setSeenApprovals(new Set(JSON.parse(sA)));
+            } catch (e) { console.error("Cache load error", e); }
+        }
+    }, [user?.uid]);
+
+    // AUTO-SYNC: If a payment's status moves away from terminal (Paid/Rejected), 
+    // remove it from seen sets so the student sees the new state.
+    useEffect(() => {
+        if (!user?.uid || payments.length === 0) return;
+
+        let changedS = false;
+        let newSR = new Set(seenRejections);
+        let newSA = new Set(seenApprovals);
+
+        payments.forEach(p => {
+            if (p.status !== "Rejected" && newSR.has(p.id)) {
+                newSR.delete(p.id);
+                changedS = true;
+            }
+            if (p.status !== "Paid" && newSA.has(p.id)) {
+                newSA.delete(p.id);
+                changedS = true;
+            }
+        });
+
+        if (changedS) {
+            setSeenRejections(newSR);
+            localStorage.setItem(`fp_seen_rejections_${user.uid}`, JSON.stringify(Array.from(newSR)));
+            setSeenApprovals(newSA);
+            localStorage.setItem(`fp_seen_approvals_${user.uid}`, JSON.stringify(Array.from(newSA)));
+        }
+    }, [payments, user?.uid]);
+
     // Pay Now modal state
     const [payModalPayment, setPayModalPayment] = useState(null);
     const [payModalUpi, setPayModalUpi] = useState(null);
-
-    useEffect(() => {
-        if (user?.uid) {
-            try {
-                const stored = localStorage.getItem(`fp_seen_approvals_${user.uid}`);
-                if (stored) {
-                    setSeenApprovals(new Set(JSON.parse(stored)));
-                }
-            } catch (e) {
-                // Ignore parse errors
-            }
-        }
-    }, [user?.uid]);
-
-    useEffect(() => {
-        if (user?.uid) {
-            try {
-                const stored = localStorage.getItem(`fp_seen_rejections_${user.uid}`);
-                if (stored) {
-                    setSeenRejections(new Set(JSON.parse(stored)));
-                }
-            } catch (e) {
-                // Ignore parse errors
-            }
-        }
-    }, [user?.uid]);
 
     const fetchPayments = useCallback(async () => {
         try {
             const data = await api.get("/api/student/payments");
             
             // Optimization: Update state and cache only if data has changed (prevent unnecessary re-renders)
-            if (JSON.stringify(getCache(cacheKey)) !== JSON.stringify(data)) {
+            if (cacheKey && JSON.stringify(getCache(cacheKey)) !== JSON.stringify(data)) {
                 setPayments(data);
                 setCache(cacheKey, data);
             }
@@ -665,7 +665,7 @@ function StudentDashboardContent() {
                                         </button>
                                     </div>
                                 ) : (
-                                    /* ── Pending Verification / Paid: Vertical layout with Progress Tracker ── */
+                                    /* ── Pending Verification / Paid / Rejected: Vertical layout with Progress Tracker ── */
                                     <div className="p-5 space-y-3 relative">
                                         {p.status === "Paid" && (
                                             <button
@@ -722,8 +722,8 @@ function StudentDashboardContent() {
                                                 <h3 className="text-lg font-bold" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>
                                                     {MONTHS[p.month - 1]} {p.year}
                                                 </h3>
-                                                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: p.status === "Rejected" ? (isLight ? '#ef4444' : '#ff6b81') : 'var(--st-accent)', opacity: 0.7 }}>
-                                                    ₹{p.amount?.toLocaleString("en-IN")} • {p.status === "Paid" ? "Approved" : p.status === "Rejected" ? "Rejected" : "In Progress"}
+                                                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: p.status === "Rejected" ? (isLight ? '#ef4444' : '#ff6b84') : 'var(--st-accent)', opacity: 1.0 }}>
+                                                    ₹{p.amount?.toLocaleString("en-IN")} • {p.status === "Paid" ? "Approved" : p.status === "Rejected" ? "REJECTED" : "In Progress"}
                                                 </span>
                                             </div>
                                         </div>

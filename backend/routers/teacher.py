@@ -31,12 +31,6 @@ def teacher_get_batches(user=Depends(require_role("teacher"))):
     result = []
     for batch in batches:
         b = serialize_doc(batch)
-        # Count students in this batch
-        students_query = db.collection("users") \
-            .where("batch_id", "==", batch.id) \
-            .where("role", "==", "student") \
-            .count()
-        b["student_count"] = students_query.get()[0][0].value
         result.append(b)
 
     return result
@@ -112,7 +106,7 @@ def teacher_student_dues(
     """Get unpaid previous dues for a single student to check before offline approval."""
     query = db.collection("payments") \
         .where("student_id", "==", student_id) \
-        .where("status", "==", "Unpaid")
+        .where("status", "in", ["Unpaid", "Rejected"])
 
     dues = query.stream()
     result = []

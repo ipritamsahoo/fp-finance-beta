@@ -270,8 +270,8 @@ function StudentPaymentsContent() {
     const { theme } = useStudentTheme();
     const isLight = theme === "light";
     
-    // Memory Cache Key
-    const cacheKey = `student_payments_history_${user?.uid}`;
+    // Memory Cache Key (Shared with Dashboard)
+    const cacheKey = `student_global_payments_${user?.uid}`;
     const cachedData = getCache(cacheKey);
 
     const [payments, setPayments] = useState(cachedData || []);

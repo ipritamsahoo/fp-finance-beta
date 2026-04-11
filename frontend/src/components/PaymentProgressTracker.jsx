@@ -59,7 +59,7 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
 
     // Which step are we actually at data-wise?
     const activeStep =
-        (status === "Paid" || isRejected) ? 2 : status === "Pending_Verification" ? 1 : 0;
+        status === "Paid" ? 2 : isRejected ? 2 : status === "Pending_Verification" ? 1 : 0;
 
     // Visual step determines what classes are applied.
     // Starts 1 step behind so GSAP can animate the fill first.
@@ -160,7 +160,7 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
                     }
                 }, null, "-=0.2");
             } else {
-                setVisualStep(2);
+                setVisualStep(activeStep);
             }
         }
 
@@ -190,14 +190,14 @@ export default function PaymentProgressTracker({ status, mode, month, year, paus
     const approvedNodeBorder = isLight ? "#0d9488" : "#4af8e3";
 
     const rejectedNodeGradient = isLight
-        ? "linear-gradient(to bottom right, #ef4444, #dc2626)"
-        : "linear-gradient(to bottom right, #ff6b81, #ff4757)";
-    const rejectedNodeBorder = isLight ? "rgba(239,68,68,0.6)" : "rgba(255,107,129,0.8)";
-    const rejectedNodeShadow = isLight ? "0 0 12px 3px rgba(239,68,68,0.2)" : "0 0 12px 3px rgba(255,107,129,0.3)";
+        ? "linear-gradient(to bottom right, #ef4444, #be123c)"
+        : "linear-gradient(to bottom right, #ff4b4b, #991b1b)";
+    const rejectedNodeBorder = isLight ? "#ef4444" : "#ff4b4b";
+    const rejectedNodeShadow = isLight ? "0 0 15px 4px rgba(239, 68, 68, 0.4)" : "0 0 20px 5px rgba(255, 75, 75, 0.5)";
 
     const fillGradient = isLight
-        ? (isRejected ? "linear-gradient(90deg, #0d9488, #059669, #ef4444)" : "linear-gradient(90deg, #0d9488, #059669, #3b82f6)")
-        : (isRejected ? "linear-gradient(90deg, #4af8e3, #20B2AA, #ff6b81)" : "linear-gradient(90deg, #4af8e3, #20B2AA, #1E90FF)");
+        ? (isRejected ? "linear-gradient(90deg, #0d9488 0%, #059669 50%, #ef4444 50%, #ef4444 100%)" : "linear-gradient(90deg, #0d9488, #059669, #10b981)")
+        : (isRejected ? "linear-gradient(90deg, #4af8e3 0%, #20B2AA 50%, #ff4b4b 50%, #ff4b4b 100%)" : "linear-gradient(90deg, #4af8e3, #20B2AA, #10b981)");
 
     const labelActiveColor = isLight ? '#0d9488' : '#4af8e3';
     const labelActiveSubColor = isLight ? 'rgba(13,148,136,0.5)' : 'rgba(74,248,227,0.6)';

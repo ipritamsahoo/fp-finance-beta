@@ -139,6 +139,15 @@ function StudentLeaderboardContent() {
     }, [hasInit, loading]);
 
     useEffect(() => {
+        const fetchCacheKey = `student_leaderboard_${month}_${year}`;
+        const cached = getCache(fetchCacheKey);
+        if (cached) {
+            setData(cached);
+            setLoading(false);
+        } else {
+            setData(null);
+            setLoading(true);
+        }
         fetchLeaderboard(month, year);
     }, [month, year, fetchLeaderboard]);
 

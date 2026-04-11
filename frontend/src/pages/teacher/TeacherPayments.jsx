@@ -7,61 +7,49 @@ import ModernSelect from "@/components/ModernSelect";
 import { getCache, setCache } from "@/lib/memoryCache";
 import { GenericListSkeleton } from "@/components/Skeletons";
 
-const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = [
+    { value: 1,  label: "January"   },
+    { value: 2,  label: "February"  },
+    { value: 3,  label: "March"     },
+    { value: 4,  label: "April"     },
+    { value: 5,  label: "May"       },
+    { value: 6,  label: "June"      },
+    { value: 7,  label: "July"      },
+    { value: 8,  label: "August"    },
+    { value: 9,  label: "September" },
+    { value: 10, label: "October"   },
+    { value: 11, label: "November"  },
+    { value: 12, label: "December"  },
+];
 
 function PaymentsContent() {
     const now = new Date();
     const cacheKeyBatches = "teacher_all_batches";
     const cachedBatches = getCache(cacheKeyBatches);
 
-    const [batches, setBatches] = useState(cachedBatches || []);
+    const [batches,     setBatches]     = useState(cachedBatches || []);
     const [filterBatch, setFilterBatch] = useState(cachedBatches?.[0]?.id || "");
-    const [filterYear, setFilterYear] = useState(now.getFullYear());
+    const [filterYear,  setFilterYear]  = useState(now.getFullYear());
+    const [filterMonth, setFilterMonth] = useState(now.getMonth() + 1);
 
-    const cacheKeyPayments = `teacher_all_payments_${filterBatch}_${filterYear}`;
-    const cachedPayments = filterBatch ? getCache(cacheKeyPayments) : null;
+    const cacheKey = filterBatch
+        ? `teacher_payments_${filterBatch}_${filterYear}_${filterMonth}`
+        : null;
+    const cachedPayments = cacheKey ? getCache(cacheKey) : null;
 
     const [payments, setPayments] = useState(cachedPayments || []);
-    const [loading, setLoading] = useState(!cachedBatches || !cachedPayments);
-    const [error, setError] = useState("");
+    const [loading,  setLoading]  = useState(!cachedBatches || (filterBatch && !cachedPayments));
+    const [error,    setError]    = useState("");
 
+    // Fetch batches once
     useEffect(() => {
         api.get("/api/teacher/batches").then((data) => {
             if (JSON.stringify(getCache(cacheKeyBatches)) !== JSON.stringify(data)) {
                 setBatches(data);
                 setCache(cacheKeyBatches, data);
             }
-        }).catch(() => { });
+        }).catch(() => {});
     }, [cacheKeyBatches]);
-
-    const fetchPayments = useCallback(async () => {
-        if (!filterBatch) { 
-            setPayments([]); 
-            return; 
-        }
-        
-        const currentCacheKey = `teacher_all_payments_${filterBatch}_${filterYear}`;
-        if (!getCache(currentCacheKey) && !loading) {
-            setLoading(true);
-        }
-        
-        setError("");
-        try {
-            const res = await api.get(`/api/teacher/payments?batch_id=${filterBatch}&year=${filterYear}`);
-            if (JSON.stringify(getCache(currentCacheKey)) !== JSON.stringify(res)) {
-                setPayments(res);
-                setCache(currentCacheKey, res);
-            }
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            if (loading) setLoading(false);
-        }
-    }, [filterBatch, filterYear, loading]);
-
-    useEffect(() => {
-        fetchPayments();
-    }, [fetchPayments]);
 
     // Auto-select first batch
     useEffect(() => {
@@ -70,51 +58,71 @@ function PaymentsContent() {
         }
     }, [batches, filterBatch]);
 
-    const yearOptions = getYearOptions();
+    const fetchPayments = useCallback(async () => {
+        if (!filterBatch) { setPayments([]); setLoading(false); return; }
 
-    // Pivot: group payments by student, then by month
-    const studentMap = {};
-    for (const p of payments) {
-        const sid = p.student_id;
-        if (!studentMap[sid]) {
-            studentMap[sid] = { name: p.student_name, profile_pic_url: p.profile_pic_url, pic_version: p.pic_version, months: {} };
+        const key = `teacher_payments_${filterBatch}_${filterYear}_${filterMonth}`;
+        const cached = getCache(key);
+
+        if (cached) {
+            setPayments(prev => JSON.stringify(prev) !== JSON.stringify(cached) ? cached : prev);
+            setLoading(false);
+        } else {
+            setPayments([]);
+            setLoading(true);
         }
-        studentMap[sid].months[p.month] = p;
-    }
 
-    const students = Object.entries(studentMap)
-        .map(([id, data]) => ({ id, ...data }))
-        .sort((a, b) => (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" }));
-
-    // Monthly Totals
-    const monthTotals = Array(12).fill(0);
-    for (const p of payments) {
-        if (p.status === "Paid") {
-            monthTotals[p.month - 1] += (p.amount || 0);
+        setError("");
+        try {
+            const res = await api.get(
+                `/api/teacher/payments?batch_id=${filterBatch}&year=${filterYear}&month=${filterMonth}`
+            );
+            if (JSON.stringify(cached) !== JSON.stringify(res)) {
+                setCache(key, res);
+                setPayments(prev => JSON.stringify(prev) !== JSON.stringify(res) ? res : prev);
+            }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
         }
-    }
+    }, [filterBatch, filterYear, filterMonth]);
 
+    useEffect(() => { fetchPayments(); }, [fetchPayments]);
+
+    // ── helpers ──────────────────────────────────────────
     const formatDate = (dateStr) => {
-        if (!dateStr) return "";
+        if (!dateStr) return "—";
         try {
             const d = new Date(dateStr);
-            const dd = String(d.getDate()).padStart(2, "0");
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            const yyyy = d.getFullYear();
-            return `${dd}.${mm}.${yyyy}`;
-        } catch { return ""; }
+            return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()}`;
+        } catch { return "—"; }
     };
 
-    const statusLabel = (status) => {
-        if (status === "Pending_Verification") return "Pending";
-        return status || "—";
+    const statusMeta = (status) => {
+        if (status === "Paid")                 return { label: "Paid",    cls: "bg-[#4af8e3]/10 border-[#4af8e3]/30 text-[#4af8e3]", glow: "0 0 8px rgba(74,248,227,0.4)" };
+        if (status === "Pending_Verification") return { label: "Pending", cls: "bg-[#facc15]/10 border-[#facc15]/30 text-[#facc15]", glow: "0 0 8px rgba(250,204,21,0.4)"  };
+        if (status === "Rejected")             return { label: "Rejected",cls: "bg-[#ff6e84]/10 border-[#ff6e84]/30 text-[#ff6e84]", glow: "0 0 8px rgba(255,110,132,0.4)" };
+        return                                        { label: "Unpaid",  cls: "bg-[#fb923c]/10 border-[#fb923c]/30 text-[#fb923c]", glow: "0 0 8px rgba(251,146,60,0.4)"  };
     };
+
+    const yearOptions  = getYearOptions();
+
+    // Sort by student name
+    const sorted = [...payments].sort((a, b) =>
+        (a.student_name || "").localeCompare(b.student_name || "", undefined, { sensitivity: "base" })
+    );
+
+    const totalCollected = payments.reduce((s, p) => p.status === "Paid" ? s + (p.amount || 0) : s, 0);
+
+    const selectedMonth = MONTHS.find(m => m.value === filterMonth)?.label || "";
+    const selectedBatch = batches.find(b => b.id === filterBatch)?.batch_name || "";
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6" style={{ transform: "translateZ(0)", isolation: "isolate" }}>
             {/* Header */}
             <div>
-                <h1 className="text-2xl md:text-3xl font-extrabold text-[#f0f0fd] flex items-center gap-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                <h1 className="text-2xl md:text-3xl font-extrabold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                     All Payments
                 </h1>
             </div>
@@ -128,117 +136,129 @@ function PaymentsContent() {
             )}
 
             {/* Filters */}
-            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5 transition-colors" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
-                <div className="flex flex-col md:flex-row gap-4">
-                    <ModernSelect
-                        value={filterBatch}
-                        options={batches}
-                        onChange={(e) => setFilterBatch(e.target.value)}
-                        placeholder="Select Batch"
-                        className="w-full md:w-[220px]"
-                    />
-                    <ModernSelect
-                        value={filterYear}
-                        options={yearOptions}
-                        onChange={(e) => setFilterYear(Number(e.target.value))}
-                        className="w-full md:w-[140px]"
-                    />
+            <div
+                className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-[2rem] p-5"
+                style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+            >
+                <div className="flex flex-col md:flex-row gap-3">
+                    {/* Batch */}
+                    <div className="relative flex-1 md:flex-none md:w-[220px] z-30">
+                        <ModernSelect
+                            value={filterBatch}
+                            onChange={(e) => setFilterBatch(e.target.value)}
+                            options={batches}
+                            placeholder="Select Batch"
+                            className="w-full"
+                        />
+                    </div>
+                    {/* Year */}
+                    <div className="relative flex-1 md:flex-none md:w-[140px] z-20">
+                        <ModernSelect
+                            value={filterYear}
+                            onChange={(e) => setFilterYear(Number(e.target.value))}
+                            options={yearOptions}
+                            className="w-full"
+                        />
+                    </div>
+                    {/* Month */}
+                    <div className="relative flex-1 md:flex-none md:w-[160px] z-10">
+                        <ModernSelect
+                            value={filterMonth}
+                            onChange={(e) => setFilterMonth(Number(e.target.value))}
+                            options={MONTHS.map(m => ({ id: m.value, batch_name: m.label }))}
+                            className="w-full"
+                        />
+                    </div>
                 </div>
             </div>
 
-            {/* Pivot Table */}
-            <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden transition-colors shadow-xl" style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+
+            {/* Total Collected */}
+            {!loading && filterBatch && totalCollected > 0 && (
+                <div className="bg-[#171924]/40 backdrop-blur-[20px] border border-[#4af8e3]/10 rounded-2xl px-6 py-4 flex items-center gap-4 w-fit shadow-[0_0_30px_rgba(74,248,227,0.05)]">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#4af8e3] shadow-[0_0_8px_rgba(74,248,227,0.7)] flex-shrink-0" />
+                    <span className="text-[#aaaab7] text-xs font-semibold uppercase tracking-widest">Total Collected</span>
+                    <span className="text-[#4af8e3] text-base font-extrabold tracking-wide" style={{ fontFamily: "'Manrope', sans-serif" }}>₹{totalCollected.toLocaleString()}</span>
+                </div>
+            )}
+
+            {/* Table */}
+            <div
+                className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden shadow-xl"
+                style={{ transform: "translateZ(0)", isolation: "isolate", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+            >
                 {loading ? (
-                    <div className="p-6">
-                        <GenericListSkeleton />
-                    </div>
+                    <div className="p-6"><GenericListSkeleton /></div>
                 ) : !filterBatch ? (
-                    <div className="flex items-center justify-center p-12 text-[#aaaab7]" style={{ fontFamily: "'Inter', sans-serif" }}>Select a batch to view payments.</div>
-                ) : students.length === 0 ? (
-                    <div className="flex items-center justify-center p-12 text-[#aaaab7]" style={{ fontFamily: "'Inter', sans-serif" }}>No payment records found.</div>
+                    <div className="flex items-center justify-center p-14 text-[#aaaab7]" style={{ fontFamily: "'Inter', sans-serif" }}>
+                        Select a batch to view payments.
+                    </div>
+                ) : sorted.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center gap-3 p-14 text-[#aaaab7]" style={{ fontFamily: "'Inter', sans-serif" }}>
+                        <span className="material-symbols-outlined text-4xl opacity-30">payments</span>
+                        <span>No payment records for <strong className="text-[#f0f0fd]">{selectedBatch}</strong> — {selectedMonth} {filterYear}</span>
+                    </div>
                 ) : (
                     <div className="overflow-x-auto custom-scrollbar">
-                        <table className="w-full border-collapse min-w-[1000px]">
+                        <table className="w-full border-collapse min-w-[560px]">
                             <thead className="bg-[#0c0e17]/80 backdrop-blur-xl sticky top-0 z-20">
-                                <tr className="border-b border-white/5">
-                                    <th className="px-4 py-4 text-left text-sm font-bold text-[#3b82f6] uppercase tracking-wider whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/40 backdrop-blur-md z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
-                                        Monthly Totals
-                                    </th>
-                                    {MONTHS_SHORT.map((_, i) => (
-                                        <th key={i} className="px-2 py-3 text-center text-sm font-bold text-[#3b82f6] tracking-widest border-r border-[#464752]/40 min-w-[170px]">
-                                            ₹{monthTotals[i].toLocaleString()}
-                                        </th>
-                                    ))}
-                                </tr>
                                 <tr className="border-b border-[#464752]/40">
-                                    <th className="px-4 py-3 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#0c0e17]/40 backdrop-blur-md z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                                    <th className="px-5 py-3.5 text-left text-xs font-bold text-[#aaaab7] uppercase tracking-widest whitespace-nowrap w-0 sticky left-0 bg-[#0c0e17]/80 backdrop-blur-md z-30 shadow-[4px_0_10px_rgba(0,0,0,0.3)] border-r border-[#464752]/40">
                                         Student Name
                                     </th>
-                                    {MONTHS_SHORT.map((m, i) => (
-                                        <th key={i} className="px-2 py-3 text-center text-xs font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40 min-w-[170px]">
-                                            {m}
-                                        </th>
-                                    ))}
+                                    <th className="px-5 py-3.5 text-center text-xs font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40">
+                                        Amount
+                                    </th>
+                                    <th className="px-5 py-3.5 text-center text-xs font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40">
+                                        Status
+                                    </th>
+                                    <th className="px-5 py-3.5 text-center text-xs font-bold text-[#aaaab7] uppercase tracking-widest border-r border-[#464752]/40">
+                                        Mode
+                                    </th>
+                                    <th className="px-5 py-3.5 text-center text-xs font-bold text-[#aaaab7] uppercase tracking-widest">
+                                        Date
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {students.map((student) => (
-                                    <tr key={student.id} className="border-b border-[#464752]/20 hover:bg-white/5 transition-colors group">
-                                        <td className="px-4 py-5 text-base text-[#f0f0fd] font-bold whitespace-nowrap w-0 border-r border-[#464752]/40 sticky left-0 bg-[#171924]/40 backdrop-blur-md group-hover:bg-[#1f2231]/60 transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                                                <span>{student.name}</span>
-                                        </td>
-                                        {MONTHS_SHORT.map((_, mi) => {
-                                            const monthNum = mi + 1;
-                                            const p = student.months[monthNum];
-                                            if (!p) {
-                                                return (
-                                                    <td key={mi} className="px-3 py-4 text-center border-r border-[#464752]/40 opacity-50">
-                                                        <span className="text-[#aaaab7] text-xs">—</span>
-                                                    </td>
-                                                );
-                                            }
-                                            const stBg = p.status === "Paid"
-                                                ? "bg-[#4af8e3]/10 border-[#4af8e3]/30 text-[#4af8e3]"
-                                                : p.status === "Pending_Verification"
-                                                    ? "bg-[#facc15]/10 border-[#facc15]/30 text-[#facc15]"
-                                                    : p.status === "Rejected"
-                                                        ? "bg-[#ff6e84]/10 border-[#ff6e84]/30 text-[#ff6e84]"
-                                                        : "bg-[#fb923c]/10 border-[#fb923c]/30 text-[#fb923c]";
-                                            const stGlow = p.status === "Paid"
-                                                ? "0 0 8px rgba(74,248,227,0.4), 0 0 2px rgba(74,248,227,0.2)"
-                                                : p.status === "Pending_Verification"
-                                                    ? "0 0 8px rgba(250,204,21,0.4), 0 0 2px rgba(250,204,21,0.2)"
-                                                    : p.status === "Rejected"
-                                                        ? "0 0 8px rgba(255,110,132,0.4), 0 0 2px rgba(255,110,132,0.2)"
-                                                        : "0 0 8px rgba(251,146,60,0.4), 0 0 2px rgba(251,146,60,0.2)";
-                                            return (
-                                                <td key={mi} className="px-2 py-5 border-r border-[#464752]/40 bg-black/10">
-                                                    <div className="flex flex-col gap-2 w-[155px] mx-auto">
-                                                        {/* Top Row: Amount & Status */}
-                                                        <div className="grid grid-cols-2 gap-2 w-full">
-                                                            <span className="flex items-center justify-center px-2 py-1.5 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] text-[10px] font-bold tracking-widest whitespace-nowrap shadow-[0_0_10px_rgba(59,130,246,0.2)]">
-                                                                ₹{p.amount}
-                                                            </span>
-                                                            <span className={`flex items-center justify-center px-2 py-1.5 rounded-full border text-[10px] uppercase font-bold tracking-widest whitespace-nowrap ${stBg}`}
-                                                                style={{ boxShadow: stGlow }}>
-                                                                {statusLabel(p.status)}
-                                                            </span>
-                                                        </div>
-                                                        {/* Bottom Row: Mode & Date */}
-                                                        <div className="grid grid-cols-2 gap-2 w-full">
-                                                            <span className="flex items-center justify-center px-2 py-1.5 rounded-full bg-[#222532]/50 border border-[#464752]/50 text-[#aaaab7] text-[10px] font-bold tracking-widest whitespace-nowrap">
-                                                                {p.mode ? p.mode.charAt(0).toUpperCase() + p.mode.slice(1) : "—"}
-                                                            </span>
-                                                            <span className="flex items-center justify-center px-2 py-1.5 rounded-full bg-[#171924]/60 border border-[#464752]/30 text-[#f0f0fd] text-[10px] font-bold tracking-widest whitespace-nowrap opacity-80">
-                                                                {p.status === "Paid" && p.updated_at ? formatDate(p.updated_at) : "—"}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            );
-                                        })}
-                                    </tr>
-                                ))}
+                                {sorted.map((p) => {
+                                    const sm = statusMeta(p.status);
+                                    return (
+                                        <tr key={p.id} className="border-b border-[#464752]/20 hover:bg-white/[0.03] transition-colors group">
+                                            {/* Student name — sticky */}
+                                            <td className="px-5 py-4 text-sm font-bold text-[#f0f0fd] whitespace-nowrap sticky left-0 bg-[#171924]/60 backdrop-blur-md group-hover:bg-[#1f2231]/80 transition-colors z-10 shadow-[4px_0_10px_rgba(0,0,0,0.15)] border-r border-[#464752]/40" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                                {p.student_name || "—"}
+                                            </td>
+                                            {/* Amount */}
+                                            <td className="px-5 py-4 text-center border-r border-[#464752]/40">
+                                                <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] text-xs font-bold tracking-widest shadow-[0_0_10px_rgba(59,130,246,0.2)]">
+                                                    ₹{(p.amount || 0).toLocaleString()}
+                                                </span>
+                                            </td>
+                                            {/* Status */}
+                                            <td className="px-5 py-4 text-center border-r border-[#464752]/40">
+                                                <span
+                                                    className={`inline-flex items-center justify-center px-3 py-1 rounded-full border text-[10px] uppercase font-bold tracking-widest ${sm.cls}`}
+                                                    style={{ boxShadow: sm.glow }}
+                                                >
+                                                    {sm.label}
+                                                </span>
+                                            </td>
+                                            {/* Mode */}
+                                            <td className="px-5 py-4 text-center border-r border-[#464752]/40">
+                                                <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#222532]/50 border border-[#464752]/50 text-[#aaaab7] text-xs font-bold tracking-widest">
+                                                    {p.mode ? p.mode.charAt(0).toUpperCase() + p.mode.slice(1) : "—"}
+                                                </span>
+                                            </td>
+                                            {/* Date */}
+                                            <td className="px-5 py-4 text-center">
+                                                <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#171924]/60 border border-[#464752]/30 text-[#f0f0fd] text-xs font-bold tracking-widest opacity-80">
+                                                    {p.status === "Paid" && p.updated_at ? formatDate(p.updated_at) : "—"}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -253,20 +273,10 @@ export default function TeacherPayments() {
         <ProtectedRoute allowedRoles={["teacher"]}>
             <TeacherLayout>
                 <style dangerouslySetInnerHTML={{__html: `
-                    .custom-scrollbar::-webkit-scrollbar {
-                        height: 8px;
-                        width: 8px;
-                    }
-                    .custom-scrollbar::-webkit-scrollbar-track {
-                        background: rgba(12, 14, 23, 0.5);
-                    }
-                    .custom-scrollbar::-webkit-scrollbar-thumb {
-                        background: rgba(59, 130, 246, 0.2);
-                        border-radius: 4px;
-                    }
-                    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                        background: rgba(59, 130, 246, 0.5);
-                    }
+                    .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+                    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(12,14,23,0.5); }
+                    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.2); border-radius: 4px; }
+                    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(59,130,246,0.5); }
                 `}} />
                 <PaymentsContent />
             </TeacherLayout>

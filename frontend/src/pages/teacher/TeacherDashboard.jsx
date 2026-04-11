@@ -11,7 +11,7 @@ import { db } from "@/lib/firebase";
 import { getYearOptions } from "@/lib/yearOptions";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import ModernSelect from "@/components/ModernSelect";
-import { getCache, setCache } from "@/lib/memoryCache";
+import { getCache, setCache, clearCache } from "@/lib/memoryCache";
 import { TeacherDashboardSkeleton } from "@/components/Skeletons";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -37,6 +37,12 @@ function StatusBadge({ status }) {
             text: "text-[#ff6e84]",
             ring: "ring-[#ff6e84]/30",
             label: "UNPAID",
+        },
+        Rejected: {
+            bg: "bg-[#ff6e84]/10",
+            text: "text-[#ff6e84]",
+            ring: "ring-[#ff6e84]/30",
+            label: "REJECTED",
         },
     };
     const c = config[status] || config.Unpaid;
@@ -92,7 +98,6 @@ function TeacherDashboardContent() {
     const [loading, setLoading] = useState(!cachedBatches || !cachedPayments);
     
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
     const [offlineLoading, setOfflineLoading] = useState(null);
     const [warningModalData, setWarningModalData] = useState(null);
     const [warningConfirmText, setWarningConfirmText] = useState("");
@@ -118,9 +123,11 @@ function TeacherDashboardContent() {
         // Show loading spinner ONLY if there is no cached data 
         const currentCacheKey = `teacher_payments_${selectedBatch}_${filterYear}_${filterMonth}`;
         const currentCache = getCache(currentCacheKey);
-        if (!currentCache && !loading) {
-            setLoading(true);
-        }
+        
+        setLoading(prev => {
+            if (!currentCache && !prev) return true;
+            return prev;
+        });
 
         try {
             let url = `/api/teacher/payments?batch_id=${selectedBatch}&year=${filterYear}`;
@@ -136,7 +143,7 @@ function TeacherDashboardContent() {
         } finally {
             setLoading(false);
         }
-    }, [selectedBatch, filterMonth, filterYear, loading]);
+    }, [selectedBatch, filterMonth, filterYear]);
 
     useEffect(() => {
         fetchBatches();
@@ -149,8 +156,18 @@ function TeacherDashboardContent() {
     }, [fetchBatches, fetchPayments, selectedBatch]);
 
     useEffect(() => {
-        if (selectedBatch) fetchPayments();
-    }, [selectedBatch, fetchPayments]);
+        if (!selectedBatch) return;
+        const currentCacheKey = `teacher_payments_${selectedBatch}_${filterYear}_${filterMonth}`;
+        const cached = getCache(currentCacheKey);
+        if (cached) {
+            setPayments(cached);
+            setLoading(false);
+        } else {
+            setPayments([]);
+            setLoading(true);
+        }
+        fetchPayments();
+    }, [selectedBatch, filterYear, filterMonth, fetchPayments]);
 
     // Targeted Real-time listener (Drastically lowers reads compared to full batch listener)
     useEffect(() => {
@@ -208,7 +225,12 @@ function TeacherDashboardContent() {
     const handleOfflineRequest = async (payment) => {
         setOfflineLoading(payment.id);
         setError("");
-        setSuccess("");
+        
+        // Optimistic UI Update (Instant Feedback)
+        setPayments(prev => prev.map(p => 
+            p.id === payment.id ? { ...p, status: "Pending_Verification", mode: "offline" } : p
+        ));
+
         try {
             await api.post("/api/teacher/offline-request", {
                 student_id: payment.student_id,
@@ -216,10 +238,13 @@ function TeacherDashboardContent() {
                 year: payment.year || filterYear,
                 amount: payment.amount,
             });
-            setSuccess("Offline payment request submitted!");
+            
             fetchPayments();
-            setTimeout(() => setSuccess(""), 3000);
         } catch (err) {
+            // Revert Optimistic UI if failed
+            setPayments(prev => prev.map(p => 
+                p.id === payment.id ? { ...p, status: payment.status } : p
+            ));
             const msg = typeof err.message === "string" ? err.message : JSON.stringify(err.message);
             setError(msg);
         } finally {
@@ -344,14 +369,7 @@ function TeacherDashboardContent() {
                     </button>
                 </div>
             )}
-            {success && (
-                <div className="p-4 rounded-2xl bg-[#4af8e3]/10 border border-[#4af8e3]/20 text-[#4af8e3] text-sm flex items-center justify-between">
-                    <span>{success}</span>
-                    <button onClick={() => setSuccess("")} className="ml-2 text-[#4af8e3] hover:text-white cursor-pointer">
-                        <span className="material-symbols-outlined text-lg">close</span>
-                    </button>
-                </div>
-            )}
+
 
             {/* ── Payment Status ── */}
             {loading ? (
@@ -392,8 +410,8 @@ function TeacherDashboardContent() {
                                         <StatusBadge status={p.status} />
                                     </div>
 
-                                    {/* Offline button for Unpaid */}
-                                    {p.status === "Unpaid" && (
+                                    {/* Offline button for Unpaid or Rejected */}
+                                    {(p.status === "Unpaid" || p.status === "Rejected") && (
                                         <button
                                             onClick={() => handlePreOfflineClick(p)}
                                             disabled={offlineLoading === p.id}

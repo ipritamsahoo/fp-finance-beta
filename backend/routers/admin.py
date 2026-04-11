@@ -216,7 +216,6 @@ def admin_reject(payment_id: str, user=Depends(require_role("admin"))):
 
     payment_ref.update({
         "status": "Rejected",
-        "mode": None,
         "rejected_by": user["uid"],
         "rejected_at": ts_now(),
         "screenshot_url": None,

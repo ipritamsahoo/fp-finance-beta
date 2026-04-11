@@ -32,18 +32,6 @@ def student_get_payments(user=Depends(require_role("student"))):
         for p in result:
             p["student_name"] = name
 
-        # Resolve teacher names for offline payments
-        teacher_uids = {p["requested_by_teacher"] for p in result if p.get("requested_by_teacher")}
-        teacher_names = {}
-        for tid in teacher_uids:
-            t_doc = db.collection("users").document(tid).get()
-            if t_doc.exists:
-                teacher_names[tid] = t_doc.to_dict().get("name", "Unknown")
-        for p in result:
-            tid = p.get("requested_by_teacher")
-            if tid and tid in teacher_names:
-                p["offline_teacher_name"] = teacher_names[tid]
-
         # Sort in Python to avoid composite index requirement
         result.sort(key=lambda x: (x.get("year", 0), x.get("month", 0)), reverse=True)
         return result
@@ -160,50 +148,53 @@ def student_get_leaderboard(
                 "total_students": 0, "cohort_progress": 0, "available_months": [],
             }
 
-        # ── Fetch all payments for this billing cycle AND this batch ──
-        all_payments_stream = db.collection("payments") \
+        # ── Fetch ONLY 'Paid' payments for this billing cycle and batch ──
+        paid_payments_stream = db.collection("payments") \
             .where("month", "==", month) \
             .where("year", "==", year) \
             .where("batch_id", "==", student_batch_id) \
+            .where("status", "==", "Paid") \
             .stream()
 
-        all_payments = []
         paid_payments = []
-        for p in all_payments_stream:
+        for p in paid_payments_stream:
             data = p.to_dict()
             data["id"] = p.id
             # Convert any datetime objects to ISO strings
             for k, v in data.items():
                 if hasattr(v, "isoformat"):
                     data[k] = v.isoformat()
-            all_payments.append(data)
-            if data.get("status") == "Paid":
-                paid_payments.append(data)
+            paid_payments.append(data)
 
         # ── Total students in this specific batch (Current Headcount) ──
-        batch_students_stream = db.collection("users") \
+        batch_students_query = db.collection("users") \
             .where("batch_id", "==", student_batch_id) \
             .where("role", "==", "student") \
-            .stream()
-        total_students = sum(1 for _ in batch_students_stream)
+            .count()
+        total_students = batch_students_query.get()[0][0].value
         
         total_paid = len(paid_payments)
 
         # ── Sort paid payments by requested_at ascending (fastest requester first) ──
         paid_payments.sort(key=lambda x: x.get("requested_at", "") or "9999")
 
-        # ── Build top 5 with student profile info ──
+        # ── Build top 5 with student profile info using batched fetch ──
         top5 = []
-        for i, p in enumerate(paid_payments[:5]):
-            student_doc = db.collection("users").document(p["student_id"]).get()
-            student_data = student_doc.to_dict() if student_doc.exists else {}
-            top5.append({
-                "rank": i + 1,
-                "student_name": student_data.get("name", p.get("student_name", "Unknown")),
-                "student_id": p["student_id"],
-                "paid_at": p.get("updated_at", ""),
-                "profile_pic_url": student_data.get("profile_pic_url"),
-            })
+        top5_sliced = paid_payments[:5]
+        if top5_sliced:
+            user_refs = [db.collection("users").document(p["student_id"]) for p in top5_sliced]
+            docs = db.get_all(user_refs)
+            student_cache = {doc.id: doc.to_dict() for doc in docs if doc.exists}
+            
+            for i, p in enumerate(top5_sliced):
+                student_data = student_cache.get(p["student_id"], {})
+                top5.append({
+                    "rank": i + 1,
+                    "student_name": student_data.get("name", p.get("student_name", "Unknown")),
+                    "student_id": p["student_id"],
+                    "paid_at": p.get("updated_at", ""),
+                    "profile_pic_url": student_data.get("profile_pic_url"),
+                })
 
         # ── Find current student's position ──
         current_position = None
@@ -215,7 +206,13 @@ def student_get_leaderboard(
                 break
 
         # Check if current student has a payment for this month at all
-        has_bill = any(p["student_id"] == user["uid"] for p in all_payments)
+        has_bill_query = db.collection("payments") \
+            .where("student_id", "==", user["uid"]) \
+            .where("month", "==", month) \
+            .where("year", "==", year) \
+            .limit(1) \
+            .get()
+        has_bill = len(has_bill_query) > 0
 
         # ── Available months (unique month/year combos from this student's payments) ──
         student_payments = db.collection("payments") \
