@@ -16,6 +16,10 @@ import asyncio
 from config import HOST, PORT, CRON_SECRET
 from config import CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
 from routers import auth, student, teacher, admin
+from read_logger import patch_firestore_reads, ReadLoggerMiddleware
+
+# Patch Firestore to count database reads (temporary for optimization)
+patch_firestore_reads()
 
 # ──────────────────────────────────────────────
 # APP SETUP
@@ -33,6 +37,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Temporary middleware to log Firestore reads for Admin APIs
+app.add_middleware(ReadLoggerMiddleware)
 
 # Cloudinary configuration
 cloudinary.config(

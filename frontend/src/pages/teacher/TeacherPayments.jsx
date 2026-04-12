@@ -56,7 +56,7 @@ function PaymentsContent() {
         setError("");
         try {
             const res = await api.get(
-                `/api/teacher/payments?batch_id=${filterBatch}&year=${filterYear}&month=${filterMonth}`
+                `/api/teacher/all-payments?batch_id=${filterBatch}&year=${filterYear}&month=${filterMonth}`
             );
             setPayments(res);
             setHasLoaded(true);

@@ -94,6 +94,42 @@ def teacher_get_payments(
 
 
 # ──────────────────────────────────────────────
+# GET /api/teacher/all-payments
+# ──────────────────────────────────────────────
+@router.get("/all-payments")
+def teacher_all_payments(
+    batch_id: str,
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    user=Depends(require_role("teacher")),
+):
+    """Get heavily optimized payment records for a batch, specifically for the main data table view."""
+    # Verify teacher is assigned to this batch
+    batch_doc = db.collection("batches").document(batch_id).get()
+    if not batch_doc.exists:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    batch_data = batch_doc.to_dict()
+    if user["uid"] not in batch_data.get("teacher_ids", []):
+        raise HTTPException(status_code=403, detail="Not assigned to this batch")
+
+    # Build query
+    query = db.collection("payments").where("batch_id", "==", batch_id)
+    if month:
+        query = query.where("month", "==", month)
+    if year:
+        query = query.where("year", "==", year)
+
+    payments = query.stream()
+    results = [serialize_doc(p) for p in payments]
+
+    # Rely completely on denormalized student_name. No user queries.
+    results.sort(key=lambda x: x.get("student_name", "").lower())
+
+    return results
+
+
+# ──────────────────────────────────────────────
 # GET /api/teacher/student-dues/{student_id}
 # ──────────────────────────────────────────────
 @router.get("/student-dues/{student_id}")
@@ -157,16 +193,27 @@ def teacher_offline_request(
         if current["status"] == "Paid":
             raise HTTPException(status_code=400, detail="Payment already verified for this month")
 
+        # Get teacher and batch names for denormalization
+        teacher_name = user.get("name", "Teacher")
+        student_name = student.get("name", "Student")
+        batch_name = "Unknown"
+        batch_id = student.get("batch_id")
+        if batch_id:
+            batch_doc = db.collection("batches").document(batch_id).get()
+            if batch_doc.exists:
+                batch_name = batch_doc.to_dict().get("batch_name", "Unknown")
+
         payment_ref.update({
             "status": "Pending_Verification",
             "mode": "offline",
             "requested_by_teacher": user["uid"],
+            "teacher_name": teacher_name,
+            "student_name": student_name,
+            "batch_name": batch_name,
             "requested_at": ts_now(),
             "updated_at": ts_now(),
         })
         # Notify student + admins
-        student_name = student.get("name", "Student")
-        teacher_name = user.get("name", "Teacher")
         student_tokens = student.get("fcm_tokens", [])
         notify_user(req.student_id, "Your payment is currently pending verification.", "payment_pending", tokens=student_tokens)
         notify_admins(f"New payment request for {student_name} (Offline) by {teacher_name}.", "new_approval")
@@ -174,16 +221,28 @@ def teacher_offline_request(
     else:
         # Create new payment record
         amount = req.amount or DEFAULT_FEE_AMOUNT
+        
+        teacher_name = user.get("name", "Teacher")
+        student_name = student.get("name", "Student")
+        batch_name = "Unknown"
+        batch_id = student.get("batch_id")
+        if batch_id:
+            batch_doc = db.collection("batches").document(batch_id).get()
+            if batch_doc.exists:
+                batch_name = batch_doc.to_dict().get("batch_name", "Unknown")
+
         payment_data = {
             "student_id": req.student_id,
-            "student_name": student.get("name", ""),
-            "batch_id": student.get("batch_id", ""),
+            "student_name": student_name,
+            "batch_id": batch_id or "",
+            "batch_name": batch_name,
             "month": req.month,
             "year": req.year,
             "amount": amount,
             "mode": "offline",
             "screenshot_url": None,
             "requested_by_teacher": user["uid"],
+            "teacher_name": teacher_name,
             "status": "Pending_Verification",
             "requested_at": ts_now(),
             "created_at": ts_now(),
@@ -191,8 +250,6 @@ def teacher_offline_request(
         }
         _, doc_ref = db.collection("payments").add(payment_data)
         # Notify student + admins
-        student_name = student.get("name", "Student")
-        teacher_name = user.get("name", "Teacher")
         student_tokens = student.get("fcm_tokens", [])
         notify_user(req.student_id, "Your payment is currently pending verification.", "payment_pending", tokens=student_tokens)
         notify_admins(f"New payment request for {student_name} (Offline) by {teacher_name}.", "new_approval")

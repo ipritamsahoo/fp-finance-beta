@@ -150,8 +150,13 @@ function StudentsContent() {
             if (editForm.password && editForm.password.trim()) payload.password = editForm.password;
             await api.put(`/api/admin/students/${editingStudent}`, payload);
             setSuccess("Student updated!");
+            
+            // Optimistic UI update instead of full list refresh
+            setStudents((prev) => prev.map((s) => 
+                (s.uid || s.id) === editingStudent ? { ...s, ...payload } : s
+            ));
+            
             cancelEdit();
-            refreshList();
         } catch (err) {
             setError(err.message);
         } finally {
@@ -189,6 +194,11 @@ function StudentsContent() {
                     });
                 }
                 setSuccess(overrideAmount === "" ? "Custom fee removed." : `Custom fee set to ₹${overrideAmount}.`);
+                
+                // Optimistic UI update for custom_fee
+                setStudents((prev) => prev.map((s) => 
+                    (s.uid || s.id) === uid ? { ...s, custom_fee: overrideAmount === "" ? null : parseFloat(overrideAmount) } : s
+                ));
             } else {
                 await api.post("/api/admin/fee-override", {
                     student_id: uid,
@@ -222,7 +232,11 @@ function StudentsContent() {
         try {
             await api.put(`/api/admin/students/${uid}/status`, { is_disabled: newStatus });
             setSuccess(`Student ${newStatus ? "disabled" : "enabled"} successfully.`);
-            refreshList();
+            
+            // Optimistic UI update
+            setStudents((prev) => prev.map((s) => 
+                (s.uid || s.id) === uid ? { ...s, is_disabled: newStatus } : s
+            ));
         } catch (err) {
             setError(err.message);
         } finally {

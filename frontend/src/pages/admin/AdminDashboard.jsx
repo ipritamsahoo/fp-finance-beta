@@ -80,9 +80,9 @@ function AdminDashboardContent() {
         } catch (err) {
             // Handled globally
         } finally {
-            if (loading) setLoading(false);
+            setLoading(false);
         }
-    }, [loading]);
+    }, []);
 
     useEffect(() => {
         fetchStats();
@@ -94,13 +94,7 @@ function AdminDashboardContent() {
         return () => window.removeEventListener("online", handleOnline);
     }, [fetchStats]);
 
-    // Real-time: auto-refresh stats when any payment changes in Firestore
-    useEffect(() => {
-        const unsubscribe = onSnapshot(collection(db, "payments"), () => {
-            fetchStats();
-        });
-        return () => unsubscribe();
-    }, [fetchStats]);
+    // Removed resource-intensive onSnapshot listener for entire payments collection
 
     const handleGenerate = async () => {
         setGenerating(true);

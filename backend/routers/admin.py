@@ -72,27 +72,42 @@ def admin_get_pending(user=Depends(require_role("admin"))):
         .stream()
 
     results = []
+    student_ids = set()
+
     for p in payments:
         data = serialize_doc(p)
-        # Fetch student info
-        student_doc = db.collection("users").document(data["student_id"]).get()
-        if student_doc.exists:
-            s = student_doc.to_dict()
-            data["student_name"] = s.get("name", "")
-            data["student_email"] = s.get("email", "")
-            data["profile_pic_url"] = s.get("profile_pic_url")
-            data["pic_version"] = s.get("pic_version")
-        # Fetch batch info
-        if data.get("batch_id"):
-            batch_doc = db.collection("batches").document(data["batch_id"]).get()
-            if batch_doc.exists:
-                data["batch_name"] = batch_doc.to_dict().get("batch_name", "")
-        # Fetch teacher info if offline
-        if data.get("requested_by_teacher"):
-            teacher_doc = db.collection("users").document(data["requested_by_teacher"]).get()
-            if teacher_doc.exists:
-                data["teacher_name"] = teacher_doc.to_dict().get("name", "")
+        # Denormalized fields are already in `data` (batch_name, teacher_name)
+        # Provide fallback if missing
+        data["batch_name"] = data.get("batch_name", "")
+        data["teacher_name"] = data.get("teacher_name", "")
+        
+        # We need to fetch latest user profile info (email, pip) without N+1 loops
+        student_ids.add(data["student_id"])
         results.append(data)
+
+    if student_ids:
+        user_refs = [db.collection("users").document(sid) for sid in student_ids]
+        student_details = {}
+        for i in range(0, len(user_refs), 100):
+            docs = db.get_all(user_refs[i:i+100])
+            for doc in docs:
+                if doc.exists:
+                    d = doc.to_dict()
+                    student_details[doc.id] = {
+                        "student_name": d.get("name", "Unknown"),
+                        "student_email": d.get("email", ""),
+                        "profile_pic_url": d.get("profile_pic_url"),
+                        "pic_version": d.get("pic_version"),
+                    }
+        
+        for p in results:
+            sid = p.get("student_id")
+            if sid and sid in student_details:
+                # Fill in dynamically fetched profile details
+                p["student_name"] = p.get("student_name") or student_details[sid]["student_name"]
+                p["student_email"] = student_details[sid]["student_email"]
+                p["profile_pic_url"] = student_details[sid]["profile_pic_url"]
+                p["pic_version"] = student_details[sid]["pic_version"]
 
     return results
 
@@ -461,6 +476,7 @@ def _auto_generate_for_student(student_id: str, student_name: str, batch_id: str
             "student_id": student_id,
             "student_name": student_name,
             "batch_id": batch_id,
+            "batch_name": batch_data.get("batch_name", "Unknown"),
             "month": month,
             "year": year,
             "amount": fee,
@@ -936,13 +952,16 @@ def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role("admi
         # Determine fee using hierarchy: custom_fee → batch_fee → fallback
         student_custom_fee = student.get("custom_fee")
         student_batch_id = student.get("batch_id", "")
+        batch_name_val = "Unknown"
         if student_custom_fee is not None:
             final_amount = student_custom_fee
         elif student_batch_id:
             if student_batch_id not in batch_cache:
                 batch_doc = db.collection("batches").document(student_batch_id).get()
-                batch_cache[student_batch_id] = batch_doc.to_dict().get("batch_fee") if batch_doc.exists else None
-            batch_fee = batch_cache[student_batch_id]
+                batch_cache[student_batch_id] = batch_doc.to_dict() if batch_doc.exists else {}
+            b_data = batch_cache[student_batch_id]
+            batch_fee = b_data.get("batch_fee")
+            batch_name_val = b_data.get("batch_name", "Unknown")
             final_amount = batch_fee if batch_fee is not None else fallback_amount
         else:
             final_amount = fallback_amount
@@ -951,6 +970,7 @@ def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role("admi
             "student_id": student_id,
             "student_name": student.get("name", ""),
             "batch_id": student_batch_id,
+            "batch_name": batch_name_val,
             "month": req.month,
             "year": req.year,
             "amount": final_amount,
@@ -1205,27 +1225,7 @@ def admin_all_payments(
     payments = query.stream()
     results = [serialize_doc(p) for p in payments]
 
-    # Dynamically inject the latest student details
-    student_ids = {p.get("student_id") for p in results if p.get("student_id")}
-    if student_ids:
-        user_refs = [db.collection("users").document(sid) for sid in student_ids]
-        student_details = {}
-        for i in range(0, len(user_refs), 100):
-            docs = db.get_all(user_refs[i:i+100])
-            for doc in docs:
-                if doc.exists:
-                    d = doc.to_dict()
-                    student_details[doc.id] = {
-                        "name": d.get("name", "Unknown"),
-                        "profile_pic_url": d.get("profile_pic_url"),
-                        "pic_version": d.get("pic_version"),
-                    }
-        for p in results:
-            sid = p.get("student_id")
-            if sid and sid in student_details:
-                p["student_name"] = student_details[sid]["name"]
-                p["profile_pic_url"] = student_details[sid]["profile_pic_url"]
-                p["pic_version"] = student_details[sid]["pic_version"]
+    # Rely completely on denormalized `student_name` already present inside the payment document.
 
     return results
 
