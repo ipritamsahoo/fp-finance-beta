@@ -167,7 +167,8 @@ def teacher_offline_request(
         # Notify student + admins
         student_name = student.get("name", "Student")
         teacher_name = user.get("name", "Teacher")
-        notify_user(req.student_id, "Your payment is currently pending verification.", "payment_pending")
+        student_tokens = student.get("fcm_tokens", [])
+        notify_user(req.student_id, "Your payment is currently pending verification.", "payment_pending", tokens=student_tokens)
         notify_admins(f"New payment request for {student_name} (Offline) by {teacher_name}.", "new_approval")
         return {"message": "Offline request submitted", "payment_id": existing_list[0].id}
     else:
@@ -192,7 +193,8 @@ def teacher_offline_request(
         # Notify student + admins
         student_name = student.get("name", "Student")
         teacher_name = user.get("name", "Teacher")
-        notify_user(req.student_id, "Your payment is currently pending verification.", "payment_pending")
+        student_tokens = student.get("fcm_tokens", [])
+        notify_user(req.student_id, "Your payment is currently pending verification.", "payment_pending", tokens=student_tokens)
         notify_admins(f"New payment request for {student_name} (Offline) by {teacher_name}.", "new_approval")
         return {"message": "Offline request submitted", "payment_id": doc_ref.id}
 

@@ -169,32 +169,6 @@ function TeacherDashboardContent() {
         fetchPayments();
     }, [selectedBatch, filterYear, filterMonth, fetchPayments]);
 
-    // Targeted Real-time listener (Drastically lowers reads compared to full batch listener)
-    useEffect(() => {
-        if (!selectedBatch) return;
-        
-        // Only track Unpaid & Pending records. Ignore Paid ones which are stable.
-        const q = query(
-            collection(db, "payments"),
-            where("batch_id", "==", selectedBatch),
-            where("status", "in", ["Unpaid", "Pending_Verification", "Rejected"])
-        );
-        
-        let isFirstRun = true;
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            if (isFirstRun) {
-                isFirstRun = false; 
-                return; // fetchPayments handles the initial load
-            }
-            
-            // Only trigger a re-fetch if there was an actual change
-            if (snapshot.docChanges().length > 0) {
-                fetchPayments();
-            }
-        });
-        return () => unsubscribe();
-    }, [selectedBatch, fetchPayments]);
-
     const handlePreOfflineClick = async (payment) => {
         setOfflineLoading(payment.id);
         setError("");
@@ -227,9 +201,15 @@ function TeacherDashboardContent() {
         setError("");
         
         // Optimistic UI Update (Instant Feedback)
-        setPayments(prev => prev.map(p => 
-            p.id === payment.id ? { ...p, status: "Pending_Verification", mode: "offline" } : p
-        ));
+        setPayments(prev => {
+            const updated = prev.map(p => 
+                p.id === payment.id ? { ...p, status: "Pending_Verification", mode: "offline" } : p
+            );
+            // Update cache so switching tabs doesn't instantly revert
+            const currentCacheKey = `teacher_payments_${selectedBatch}_${filterYear}_${filterMonth}`;
+            setCache(currentCacheKey, updated);
+            return updated;
+        });
 
         try {
             await api.post("/api/teacher/offline-request", {
@@ -238,8 +218,8 @@ function TeacherDashboardContent() {
                 year: payment.year || filterYear,
                 amount: payment.amount,
             });
-            
-            fetchPayments();
+            // We consciously DO NOT call fetchPayments() here to save 100+ DB reads per click. 
+            // The optimistic UI is already perfectly synced.
         } catch (err) {
             // Revert Optimistic UI if failed
             setPayments(prev => prev.map(p => 

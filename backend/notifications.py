@@ -71,9 +71,10 @@ def _get_fcm_tokens(uid: str) -> list:
     return []
 
 
-def notify_user(uid: str, message: str, notif_type: str, title: str = "FP Finance"):
+def notify_user(uid: str, message: str, notif_type: str, title: str = "FP Finance", tokens: list = None):
     """Send FCM push notification to a single user."""
-    tokens = _get_fcm_tokens(uid)
+    if tokens is None:
+        tokens = _get_fcm_tokens(uid)
     if tokens:
         _send_fcm(tokens, title, message, notif_type, target_uid=uid)
 
@@ -90,6 +91,8 @@ def notify_users(uids: list, message: str, notif_type: str, title: str = "FP Fin
 def notify_admins(message: str, notif_type: str, title: str = "FP Finance"):
     """Find all admin users and notify them via FCM."""
     admins = db.collection("users").where("role", "==", "admin").stream()
-    admin_uids = [a.id for a in admins]
-    if admin_uids:
-        notify_users(admin_uids, message, notif_type, title)
+    for a in admins:
+        uid = a.id
+        tokens = a.to_dict().get("fcm_tokens") or []
+        if tokens:
+            _send_fcm(tokens, title, message, notif_type, target_uid=uid)

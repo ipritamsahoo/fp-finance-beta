@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
@@ -33,6 +33,7 @@ function ApprovalContent() {
     const [success, setSuccess] = useState("");
     const [actionLoading, setActionLoading] = useState(null);
     const [previewImg, setPreviewImg] = useState(null);
+    const removedIdsRef = useRef(new Set());
 
     const fetchPending = useCallback(async () => {
         if (!getCache("admin_pending_approvals") || !getCache("admin_approval_batches")) {
@@ -45,13 +46,17 @@ function ApprovalContent() {
                 api.get("/api/admin/batches"),
             ]);
             
-            if (JSON.stringify(getCache("admin_pending_approvals")) !== JSON.stringify(pendingData)) {
-                setPending(pendingData);
-                setCache("admin_pending_approvals", pendingData);
-            }
             if (JSON.stringify(getCache("admin_approval_batches")) !== JSON.stringify(batchData)) {
                 setBatches(batchData);
                 setCache("admin_approval_batches", batchData);
+            }
+
+            // Filter out any IDs we already optimistically removed
+            const filteredPending = pendingData.filter(p => !removedIdsRef.current.has(p.id));
+            
+            if (JSON.stringify(getCache("admin_pending_approvals")) !== JSON.stringify(filteredPending)) {
+                setPending(filteredPending);
+                setCache("admin_pending_approvals", filteredPending);
             }
         } catch (err) {
             setError(err.message);
@@ -63,14 +68,19 @@ function ApprovalContent() {
     // Initial fetch
     useEffect(() => { fetchPending(); }, [fetchPending]);
 
-    // Real-time listener
+    // Real-time listener (Only fetch when NEW payments arrive)
     useEffect(() => {
         const q = query(
             collection(db, "payments"),
             where("status", "==", "Pending_Verification")
         );
-        const unsubscribe = onSnapshot(q, () => {
-            fetchPending();
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            // Ignore removals/modifications since Optimistic UI handles them.
+            // Only refetch if a completely new pending payment was added.
+            const hasNewDocs = snapshot.docChanges().some(change => change.type === "added");
+            if (hasNewDocs) {
+                fetchPending();
+            }
         });
         return () => unsubscribe();
     }, [fetchPending]);
@@ -82,22 +92,50 @@ function ApprovalContent() {
     const handleApprove = async (paymentId) => {
         setActionLoading(paymentId);
         setError("");
+
+        // Register to ignore future stale network reads
+        removedIdsRef.current.add(paymentId);
+
+        // Optimistic UI Update
+        setPending(prev => {
+            const updated = prev.filter(p => p.id !== paymentId);
+            setCache(cacheKeyPending, updated);
+            return updated;
+        });
+
         try {
             await api.put(`/api/admin/approve/${paymentId}`);
             setSuccess("Payment approved!");
-            fetchPending();
-        } catch (err) { setError(err.message); }
+        } catch (err) { 
+            setError(err.message); 
+            removedIdsRef.current.delete(paymentId); // Untrack on failure
+            fetchPending(); // Revert on error
+        }
         finally { setActionLoading(null); }
     };
 
     const handleReject = async (paymentId) => {
         setActionLoading(paymentId);
         setError("");
+
+        // Register to ignore future stale network reads
+        removedIdsRef.current.add(paymentId);
+
+        // Optimistic UI Update
+        setPending(prev => {
+            const updated = prev.filter(p => p.id !== paymentId);
+            setCache(cacheKeyPending, updated);
+            return updated;
+        });
+
         try {
             await api.put(`/api/admin/reject/${paymentId}`);
             setSuccess("Payment rejected.");
-            fetchPending();
-        } catch (err) { setError(err.message); }
+        } catch (err) { 
+            setError(err.message); 
+            removedIdsRef.current.delete(paymentId); // Untrack on failure
+            fetchPending(); // Revert on error
+        }
         finally { setActionLoading(null); }
     };
 

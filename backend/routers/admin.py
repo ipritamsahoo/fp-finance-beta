@@ -910,6 +910,9 @@ def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role("admi
     created = 0
     skipped = 0
 
+    batch_cache = {}
+    notified_students = []
+
     for s in student_list:
         student = s.to_dict()
         student_id = s.id
@@ -936,8 +939,10 @@ def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role("admi
         if student_custom_fee is not None:
             final_amount = student_custom_fee
         elif student_batch_id:
-            batch_doc = db.collection("batches").document(student_batch_id).get()
-            batch_fee = batch_doc.to_dict().get("batch_fee") if batch_doc.exists else None
+            if student_batch_id not in batch_cache:
+                batch_doc = db.collection("batches").document(student_batch_id).get()
+                batch_cache[student_batch_id] = batch_doc.to_dict().get("batch_fee") if batch_doc.exists else None
+            batch_fee = batch_cache[student_batch_id]
             final_amount = batch_fee if batch_fee is not None else fallback_amount
         else:
             final_amount = fallback_amount
@@ -958,6 +963,12 @@ def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role("admi
         }
         db.collection("payments").add(payment_data)
         created += 1
+        
+        # Track for notifications using already fetched data
+        notified_students.append({
+            "uid": student_id,
+            "tokens": student.get("fcm_tokens", [])
+        })
 
     batch_label = ""
     if req.batch_id:
@@ -966,32 +977,20 @@ def admin_generate_monthly(req: GenerateMonthly, user=Depends(require_role("admi
             batch_label = f" for batch '{batch_doc.to_dict().get('batch_name', '')}'"
 
     # Notify students who got new bills
-    if created > 0:
+    if notified_students:
         MONTHS_NOTIF = [
             "January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December",
         ]
         month_name = MONTHS_NOTIF[req.month - 1] if 1 <= req.month <= 12 else str(req.month)
-        # Collect student IDs who actually got a payment created
-        notified_ids = []
-        for s in student_list:
-            sid = s.id
-            # Only notify if we didn't skip them (check if payment was created)
-            existing_check = db.collection("payments") \
-                .where("student_id", "==", sid) \
-                .where("month", "==", req.month) \
-                .where("year", "==", req.year) \
-                .limit(1).stream()
-            for p in existing_check:
-                p_data = p.to_dict()
-                if p_data.get("status") == "Unpaid":
-                    notified_ids.append(sid)
-                break
-        if notified_ids:
-            notify_users(
-                notified_ids,
+        
+        from notifications import notify_user
+        for ns in notified_students:
+            notify_user(
+                ns["uid"],
                 f"Your fee for {month_name} {req.year} has been generated.",
                 "bill_generated",
+                tokens=ns["tokens"]
             )
 
     # Update generated_months on the affected batch document(s)
