@@ -27,7 +27,7 @@ function BatchesContent() {
 
     const fetchData = useCallback(async () => {
         if (!getCache("admin_batches") || !getCache("admin_teachers")) {
-            if (!loading) setLoading(true);
+            setLoading(true);
         }
         
         try {
@@ -47,9 +47,9 @@ function BatchesContent() {
         } catch (err) {
             setError(err.message);
         } finally {
-            if (loading) setLoading(false);
+            setLoading(false);
         }
-    }, [loading]);
+    }, []); // Stable reference to prevent infinite loops
 
     useEffect(() => {
         fetchData();

@@ -288,16 +288,17 @@ function StudentPaymentsContent() {
         setError("");
         try {
             const data = await api.get("/api/student/payments");
-            if (JSON.stringify(getCache(cacheKey)) !== JSON.stringify(data)) {
+            const currentCache = getCache(cacheKey);
+            if (JSON.stringify(currentCache) !== JSON.stringify(data)) {
                 setPayments(data);
                 setCache(cacheKey, data);
             }
         } catch (err) {
             setError(err.message);
         } finally {
-            if (loading) setLoading(false);
+            setLoading(false);
         }
-    }, [cacheKey, loading]);
+    }, [cacheKey]); // Stable dependencies (loading removed)
 
     useEffect(() => {
         fetchPayments();
@@ -331,7 +332,9 @@ function StudentPaymentsContent() {
             await apiFetch(`/api/student/payments/${paymentId}/upload`, { method: "POST", body: formData });
             setSuccess("Verification request sent successfully! 🎉");
             closePayModal();
-            fetchPayments();
+            // Note: No explicit fetchPayments() here.
+            // onSnapshot listener fires automatically when backend updates
+            // the Firestore payment document, triggering a fresh fetch.
         } catch (err) { setError(err.message); }
     };
 

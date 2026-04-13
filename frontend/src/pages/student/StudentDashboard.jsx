@@ -388,17 +388,18 @@ function StudentDashboardContent() {
         try {
             const data = await api.get("/api/student/payments");
             
-            // Optimization: Update state and cache only if data has changed (prevent unnecessary re-renders)
-            if (cacheKey && JSON.stringify(getCache(cacheKey)) !== JSON.stringify(data)) {
+            // Optimization: Update state and cache only if data has changed
+            const currentCache = getCache(cacheKey);
+            if (JSON.stringify(currentCache) !== JSON.stringify(data)) {
                 setPayments(data);
                 setCache(cacheKey, data);
             }
         } catch (err) {
-            // GlobalErrorModal handles systemic errors automatically via lib/api.js
+            // Handled globally
         } finally {
-            if (loading) setLoading(false);
+            setLoading(false);
         }
-    }, [cacheKey, loading]);
+    }, [cacheKey]); // Stable dependencies (loading removed)
 
     useEffect(() => {
         fetchPayments();
@@ -479,7 +480,9 @@ function StudentDashboardContent() {
             });
             setSuccess("Verification request sent successfully! 🎉");
             closePayModal();
-            fetchPayments();
+            // Note: No explicit fetchPayments() here.
+            // onSnapshot listener fires automatically when backend updates
+            // the Firestore payment document, triggering a fresh fetch.
         } catch (err) {
             setError(err.message);
         }

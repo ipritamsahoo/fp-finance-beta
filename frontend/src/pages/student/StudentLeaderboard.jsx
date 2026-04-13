@@ -113,7 +113,7 @@ function StudentLeaderboardContent() {
         const currentCache = getCache(fetchCacheKey);
         
         setError("");
-        if (!currentCache && !loading) {
+        if (!currentCache) {
             setLoading(true);
         }
         
@@ -126,17 +126,20 @@ function StudentLeaderboardContent() {
                 setCache(fetchCacheKey, result);
             }
             
-            if (!hasInit) {
-                setMonth(result.month);
-                setYear(result.year);
-                setHasInit(true);
-            }
+            setHasInit(prev => {
+                if (!prev) {
+                    setMonth(result.month);
+                    setYear(result.year);
+                    return true;
+                }
+                return prev;
+            });
         } catch (err) {
             setError(err.message);
         } finally {
-            if (loading) setLoading(false);
+            setLoading(false);
         }
-    }, [hasInit, loading]);
+    }, []); // Stable — no volatile state dependencies
 
     useEffect(() => {
         const fetchCacheKey = `student_leaderboard_${month}_${year}`;

@@ -214,23 +214,11 @@ def student_get_leaderboard(
             .get()
         has_bill = len(has_bill_query) > 0
 
-        # ── Available months (unique month/year combos from this student's payments) ──
-        student_payments = db.collection("payments") \
-            .where("student_id", "==", user["uid"]) \
-            .stream()
-        available_months = sorted(
-            set(
-                (sp.to_dict().get("month"), sp.to_dict().get("year"))
-                for sp in student_payments
-                if sp.to_dict().get("month") and sp.to_dict().get("year")
-            ),
-            key=lambda x: (x[1], x[0]),
-            reverse=True,
-        )
-
         # ── Compute cohort progress percentage ──
         cohort_progress = round((total_paid / total_students * 100)) if total_students > 0 else 0
 
+        # Note: available_months removed — frontend uses hardcoded month/year dropdowns
+        # and does not consume this field. Removing saves N Firestore reads per call.
         return {
             "month": month,
             "year": year,
@@ -241,7 +229,6 @@ def student_get_leaderboard(
             "total_paid": total_paid,
             "total_students": total_students,
             "cohort_progress": cohort_progress,
-            "available_months": [{"month": m, "year": y} for m, y in available_months],
         }
 
     except Exception as e:

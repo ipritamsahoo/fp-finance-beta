@@ -45,7 +45,7 @@ function FeeOverrideContent() {
         const cKeyBatches = "admin_fee_override_batches";
         
         if (!getCache(cKeyStudents) || !getCache(cKeyBatches)) {
-            if (!loading) setLoading(true);
+            setLoading(true);
         }
         
         try {
@@ -65,9 +65,9 @@ function FeeOverrideContent() {
         } catch (err) {
             setError(err.message);
         } finally {
-            if (loading) setLoading(false);
+            setLoading(false);
         }
-    }, [filterBatch, loading]);
+    }, [filterBatch]); // Stable reference to prevent infinite loops (depends on filterBatch only)
 
     useEffect(() => {
         fetchStudents();

@@ -109,13 +109,14 @@ function TeacherDashboardContent() {
                 setBatches(data);
                 setCache(cacheKeyBatches, data);
             }
-            if (data.length > 0 && !selectedBatch) {
-                setSelectedBatch(data[0].id);
+            // Auto-select first batch if none selected yet
+            if (data.length > 0) {
+                setSelectedBatch(prev => prev || data[0].id);
             }
         } catch (err) {
             // Handled globally
         }
-    }, [selectedBatch]); // Removing setLoading(false) here, relying on fetchPayments to do it.
+    }, []); // Empty dependencies for stability
 
     const fetchPayments = useCallback(async () => {
         if (!selectedBatch) return;

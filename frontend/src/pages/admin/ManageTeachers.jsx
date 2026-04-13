@@ -32,7 +32,7 @@ function TeachersContent() {
 
     const fetchData = useCallback(async () => {
         if (!getCache("admin_teachers") || !getCache("admin_teacher_batches")) {
-            if (!loading) setLoading(true);
+            setLoading(true);
         }
         
         try {
@@ -52,9 +52,9 @@ function TeachersContent() {
         } catch (err) {
             setError(err.message);
         } finally {
-            if (loading) setLoading(false);
+            setLoading(false);
         }
-    }, [loading]);
+    }, []); // Empty dependencies to ensure stable function reference
 
     useEffect(() => {
         fetchData();

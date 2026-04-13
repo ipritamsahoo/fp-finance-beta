@@ -85,7 +85,7 @@ function TeacherDistributionContent() {
     const fetchDistribution = useCallback(async () => {
         const cacheKeyCall = `teacher_distribution_${month}_${year}_${batchFilter || 'init'}`;
         const currentCache = getCache(cacheKeyCall);
-        if (!currentCache && !loading) {
+        if (!currentCache) {
             setLoading(true);
         }
         
@@ -102,15 +102,16 @@ function TeacherDistributionContent() {
                 if (!batchFilter) setCache(`teacher_distribution_${month}_${year}_init`, res);
             }
             
+            // Auto-select first batch if none selected yet
             if (!batchFilter && res.batches && res.batches.length > 0) {
                 setBatchFilter(res.batches[0].id);
             }
         } catch (err) {
             setError(err.message);
         } finally {
-            if (loading) setLoading(false);
+            setLoading(false);
         }
-    }, [month, year, batchFilter, loading]);
+    }, [month, year, batchFilter]); // Only depend on filters, not loading state or internal changes
 
     useEffect(() => {
         fetchDistribution();

@@ -36,8 +36,9 @@ function ApprovalContent() {
     const removedIdsRef = useRef(new Set());
 
     const fetchPending = useCallback(async () => {
+        // Only show loading spinner if we have nothing cached yet
         if (!getCache("admin_pending_approvals") || !getCache("admin_approval_batches")) {
-            if (!loading) setLoading(true);
+            setLoading(true);
         }
         
         try {
@@ -61,11 +62,11 @@ function ApprovalContent() {
         } catch (err) {
             setError(err.message);
         } finally {
-            if (loading) setLoading(false);
+            setLoading(false);
         }
-    }, [loading]);
+    }, []); // ← No `loading` in deps — this prevents the re-render loop
 
-    // Initial fetch
+    // Initial fetch — runs exactly ONCE on mount
     useEffect(() => { fetchPending(); }, [fetchPending]);
 
     // Real-time listener (Only fetch when NEW payments arrive)
