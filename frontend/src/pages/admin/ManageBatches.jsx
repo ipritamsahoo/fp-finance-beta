@@ -138,7 +138,7 @@ function BatchesContent() {
                     </h1>
                 </div>
                 <button
-                    onClick={() => { setShowForm(!showForm); setEditId(null); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }}
+                    onClick={() => { setShowForm(!showForm); setEditId(null); setError(""); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }}
                     className="mt-4 md:mt-0 px-6 py-3 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
                     hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(199,153,255,0.15)] cursor-pointer flex items-center justify-center gap-2"
                 >
@@ -149,7 +149,7 @@ function BatchesContent() {
                 </button>
             </div>
 
-            {error && (
+            {error && !showForm && !deleteModalBatch && (
                 <div className="mb-4 p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#ff6e84]/30 shadow-lg text-[#ff9dac] text-sm flex items-center gap-3">
                     <span className="material-symbols-outlined text-[#ff6e84]">error</span>
                     <span className="flex-1">{error}</span>
@@ -166,7 +166,7 @@ function BatchesContent() {
 
             {/* Form Modal */}
             {showForm && createPortal(
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={() => { setShowForm(false); setEditId(null); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }}>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={() => { setShowForm(false); setEditId(null); setError(""); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }}>
                     <form 
                         onSubmit={handleSubmit} 
                         className="bg-[#0c0e17]/95 backdrop-blur-3xl rounded-[32px] p-6 sm:p-8 w-full max-w-lg border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative animate-modal-in m-auto"
@@ -179,10 +179,16 @@ function BatchesContent() {
                                 </span>
                                 {editId ? "Edit Batch" : "New Batch"}
                             </h3>
-                            <button type="button" onClick={() => { setShowForm(false); setEditId(null); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }} className="text-[#aaaab7] hover:text-white transition-colors cursor-pointer p-2 rounded-full hover:bg-white/5 flex items-center justify-center">
+                            <button type="button" onClick={() => { setShowForm(false); setEditId(null); setError(""); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }} className="text-[#aaaab7] hover:text-white transition-colors cursor-pointer p-2 rounded-full hover:bg-white/5 flex items-center justify-center">
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
+                        {error && (
+                            <div className="mb-6 p-4 rounded-xl bg-[#ff6e84]/10 border border-[#ff6e84]/30 text-[#ff9dac] text-sm flex items-center gap-3">
+                                <span className="material-symbols-outlined text-[#ff6e84]">error</span>
+                                <span className="flex-1 font-medium">{error}</span>
+                            </div>
+                        )}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
                             <div>
                                 <label className="block text-[#aaaab7] text-[11px] font-bold tracking-widest uppercase mb-1.5 ml-1">Batch Name</label>
@@ -231,7 +237,7 @@ function BatchesContent() {
                             </div>
                         </div>
                         <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-white/5">
-                            <button type="button" onClick={() => { setShowForm(false); setEditId(null); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }} className="w-full sm:flex-1 py-3.5 rounded-2xl text-xs font-bold uppercase tracking-widest text-[#aaaab7] bg-white/5 hover:bg-white/10 transition-all cursor-pointer">
+                            <button type="button" onClick={() => { setShowForm(false); setEditId(null); setError(""); setForm({ batch_name: "", teacher_ids: [], batch_fee: "" }); }} className="w-full sm:flex-1 py-3.5 rounded-2xl text-xs font-bold uppercase tracking-widest text-[#aaaab7] bg-white/5 hover:bg-white/10 transition-all cursor-pointer">
                                 Cancel
                             </button>
                             <button
@@ -255,7 +261,7 @@ function BatchesContent() {
 
             {/* Delete Confirmation Modal */}
             {deleteModalBatch && createPortal(
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={() => setDeleteModalBatch(null)}>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={() => { setDeleteModalBatch(null); setError(""); }}>
                     <div 
                         className="bg-[#0c0e17]/60 backdrop-blur-[30px] rounded-[32px] p-6 sm:p-8 w-full max-w-[480px] border border-[#ff4466]/30 shadow-[0_30px_60px_rgba(255,68,102,0.2)] relative animate-modal-in m-auto"
                         onClick={(e) => e.stopPropagation()}
@@ -265,10 +271,16 @@ function BatchesContent() {
                                 <span className="material-symbols-outlined">warning</span>
                                 Delete Batch
                             </h3>
-                            <button onClick={() => setDeleteModalBatch(null)} className="text-[#aaaab7] hover:text-[#ff4466] transition-colors cursor-pointer p-2 rounded-full hover:bg-[#ff4466]/10 flex items-center justify-center">
+                            <button onClick={() => { setDeleteModalBatch(null); setError(""); }} className="text-[#aaaab7] hover:text-[#ff4466] transition-colors cursor-pointer p-2 rounded-full hover:bg-[#ff4466]/10 flex items-center justify-center">
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
+                        {error && (
+                            <div className="mb-6 p-4 rounded-xl bg-[#ff6e84]/10 border border-[#ff6e84]/30 text-[#ff9dac] text-sm flex items-center gap-3">
+                                <span className="material-symbols-outlined text-[#ff6e84]">error</span>
+                                <span className="flex-1 font-medium">{error}</span>
+                            </div>
+                        )}
                         
                         <div className="space-y-4 mb-6 text-[#aaaab7]">
                             <p className="text-sm text-[#f0f0fd] font-medium leading-relaxed">
@@ -313,7 +325,7 @@ function BatchesContent() {
                         </div>
 
                         <div className="flex flex-col-reverse sm:flex-row gap-3 mt-8">
-                            <button onClick={() => setDeleteModalBatch(null)} className="w-full sm:flex-1 py-4 rounded-2xl text-[11px] font-bold uppercase tracking-widest text-[#aaaab7] bg-white/5 hover:bg-white/10 hover:text-white transition-all cursor-pointer border border-white/5">
+                            <button onClick={() => { setDeleteModalBatch(null); setError(""); }} className="w-full sm:flex-1 py-4 rounded-2xl text-[11px] font-bold uppercase tracking-widest text-[#aaaab7] bg-white/5 hover:bg-white/10 hover:text-white transition-all cursor-pointer border border-white/5">
                                 Cancel
                             </button>
                             <button

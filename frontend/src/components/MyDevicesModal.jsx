@@ -4,7 +4,11 @@ import { createPortal } from "react-dom";
 
 export default function MyDevicesModal({ onClose }) {
     const { user } = useAuth();
-    const { theme } = useStudentTheme();
+    const { theme: studentTheme } = useStudentTheme();
+    
+    // For teachers, we force dark theme. For students, we follow their chosen theme.
+    const isTeacher = user?.role === "teacher";
+    const theme = isTeacher ? "dark" : studentTheme;
     const isLight = theme === "light";
 
     // The user object in AuthContext has activeSessions

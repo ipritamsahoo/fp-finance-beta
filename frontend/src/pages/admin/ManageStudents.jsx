@@ -102,6 +102,12 @@ function StudentsContent() {
     // ── Add student ──────────────────────────────────────────────────────
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (!form.batch_id) {
+            setError("Please select a batch for the new student.");
+            return;
+        }
+
         setFormLoading(true);
         setError("");
         setSuccess("");
@@ -281,7 +287,7 @@ function StudentsContent() {
             </div>
 
             {/* ── Messages ────────────────────────────────────────────── */}
-            {error && (
+            {error && !editingStudent && !overrideStudent && !statusModalStudent && (
                 <div className="p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#ff6e84]/30 shadow-lg text-[#ff9dac] text-sm flex items-center gap-3">
                     <span className="material-symbols-outlined text-[#ff6e84]">error</span>
                     <span className="flex-1">{error}</span>
@@ -302,29 +308,30 @@ function StudentsContent() {
             {activeTab === "list" && (
                 <div className="space-y-5">
                     {/* Batch selector row */}
-                    <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-                        <div className="flex-1 max-w-xs">
+                    <div className="flex flex-row gap-2 sm:gap-3 items-stretch sm:items-center">
+                        <div className="w-[65%] sm:w-auto sm:flex-1 sm:max-w-xs">
                             <ModernSelect
                                 value={selectedListBatch}
                                 onChange={(e) => { setSelectedListBatch(e.target.value); setHasLoaded(false); setStudents([]); }}
                                 options={batches}
                                 placeholder="Select Batch"
-                                className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
+                                className="w-full h-full flex items-center justify-between px-3 sm:px-4 py-3 rounded-xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors"
                             />
                         </div>
                         <button
                             onClick={handleViewStudents}
                             disabled={!selectedListBatch || listLoading}
-                            className="px-6 py-3 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
+                            className="w-[35%] sm:w-auto px-2 sm:px-6 py-3 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-xs sm:text-sm font-bold uppercase tracking-widest
                             hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(199,153,255,0.15)]
-                            disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
+                            disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap"
                         >
                             {listLoading ? (
-                                <span className="w-4 h-4 rounded-full border-2 border-[#c799ff]/30 border-t-[#c799ff] animate-spin" />
+                                <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 border-[#c799ff]/30 border-t-[#c799ff] animate-spin" />
                             ) : (
                                 <span className="material-symbols-outlined text-[16px]">search</span>
                             )}
-                            {listLoading ? "Loading..." : "View Students"}
+                            <span className="hidden sm:inline">{listLoading ? "Loading..." : "View Students"}</span>
+                            <span className="sm:hidden">{listLoading ? "WAIT" : "VIEW"}</span>
                         </button>
                     </div>
 
@@ -350,6 +357,9 @@ function StudentsContent() {
                     {/* ── Mobile: Card layout ───────────────────────────── */}
                     {!listLoading && hasLoaded && students.length > 0 && (
                         <>
+                            <div className="mb-4 md:hidden px-2 text-[#aaaab7] text-xs font-bold uppercase tracking-widest">
+                                {students.length} student{students.length !== 1 ? "s" : ""} · {batches.find(b => b.id === selectedListBatch)?.batch_name || ""}
+                            </div>
                             <div className="space-y-4 md:hidden">
                                 {students.map((s) => (
                                     <div key={s.uid || s.id} className={`bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-2xl p-5 transition-all ${s.is_disabled ? "opacity-60 grayscale-[0.3]" : ""}`}>
@@ -538,6 +548,12 @@ function StudentsContent() {
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
+                        {error && (
+                            <div className="mb-6 p-4 rounded-xl bg-[#ff6e84]/10 border border-[#ff6e84]/30 text-[#ff9dac] text-sm flex items-center gap-3">
+                                <span className="material-symbols-outlined text-[#ff6e84]">error</span>
+                                <span className="flex-1 font-medium">{error}</span>
+                            </div>
+                        )}
                         <div className="space-y-5 mb-8">
                             <div>
                                 <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Full Name</label>
@@ -614,6 +630,12 @@ function StudentsContent() {
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
+                        {error && (
+                            <div className="mb-6 p-4 rounded-xl bg-[#ff6e84]/10 border border-[#ff6e84]/30 text-[#ff9dac] text-sm flex items-center gap-3">
+                                <span className="material-symbols-outlined text-[#ff6e84]">error</span>
+                                <span className="flex-1 font-medium">{error}</span>
+                            </div>
+                        )}
                         <div className="flex gap-3 mb-6">
                             <button type="button" onClick={() => setOverrideType("permanent")}
                                 className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-widest border transition-all duration-300 cursor-pointer
@@ -698,6 +720,12 @@ function StudentsContent() {
                                     <span className="material-symbols-outlined">close</span>
                                 </button>
                             </div>
+                            {error && (
+                                <div className="mb-6 p-4 rounded-xl bg-[#ff6e84]/10 border border-[#ff6e84]/30 text-[#ff9dac] text-sm flex items-center gap-3">
+                                    <span className="material-symbols-outlined text-[#ff6e84]">error</span>
+                                    <span className="flex-1 font-medium">{error}</span>
+                                </div>
+                            )}
                             <div className="space-y-4 mb-6 text-[#aaaab7]">
                                 <p className="text-base text-[#f0f0fd] font-medium">Are you sure you want to {actionText} <span className="font-bold text-white">{statusModalStudent.name}</span>?</p>
                                 {isDisabling ? (

@@ -10,6 +10,8 @@ import { auth } from "@/lib/firebase";
 import ProfilePicture from "@/components/ProfilePicture";
 import ProfilePicUpload from "@/components/ProfilePicUpload";
 import MyDevicesModal from "@/components/MyDevicesModal";
+import AboutContent from "@/components/AboutContent";
+import StudentFeedbackModal from "@/components/StudentFeedbackModal";
 
 function StudentSettingsContent() {
     const { user, logout, refreshUser } = useAuth();
@@ -17,6 +19,8 @@ function StudentSettingsContent() {
     const isLight = theme === "light";
     const [picModalOpen, setPicModalOpen] = useState(false);
     const [devicesModalOpen, setDevicesModalOpen] = useState(false);
+    const [aboutModalOpen, setAboutModalOpen] = useState(false);
+    const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
     // Credential modals
     const [usernameModalOpen, setUsernameModalOpen] = useState(false);
@@ -242,6 +246,28 @@ function StudentSettingsContent() {
                     </div>
                 </button>
 
+                {/* About App */}
+                <button
+                    onClick={() => {
+                        if (window.innerWidth >= 768) {
+                            // Desktop: open modal
+                            setAboutModalOpen(true);
+                        } else {
+                            // Mobile: route to AboutPage
+                            window.location.href = "/about";
+                        }
+                    }}
+                    className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors" style={{ backgroundColor: 'var(--st-icon-bg)' }}>
+                            <span className="material-symbols-outlined" style={{ color: accentColor }}>info</span>
+                        </div>
+                        <span className="font-medium" style={{ color: 'var(--st-text-primary)' }}>About App</span>
+                    </div>
+                    <span className="material-symbols-outlined" style={{ color: 'var(--st-text-muted)' }}>chevron_right</span>
+                </button>
+
                 {/* Help & Support */}
                 <a
                     href="https://wa.me/917001637243"
@@ -450,6 +476,70 @@ function StudentSettingsContent() {
             {/* Devices Modal */}
             {devicesModalOpen && (
                 <MyDevicesModal onClose={() => setDevicesModalOpen(false)} />
+            )}
+
+            {/* ── Feedback Modal ── */}
+            <StudentFeedbackModal
+                isOpen={feedbackModalOpen}
+                onClose={() => setFeedbackModalOpen(false)}
+                isLight={isLight}
+                accentColor={accentColor}
+                theme={theme}
+            />
+
+            {/* ── About Modal (Desktop only) ── */}
+            {aboutModalOpen && createPortal(
+                <div
+                    data-theme={theme}
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-6"
+                    onClick={() => setAboutModalOpen(false)}
+                    style={{
+                        backgroundColor: isLight ? 'rgba(238,242,255,0.5)' : 'rgba(0,0,0,0.65)',
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                    }}
+                >
+                    <div
+                        className="w-full max-w-sm rounded-[32px] p-8 animate-modal-in shadow-2xl flex flex-col gap-5"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.02)',
+                            border: `1px solid ${isLight ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.05)'}`,
+                            backdropFilter: 'blur(64px) saturate(2.2)',
+                            WebkitBackdropFilter: 'blur(64px) saturate(2.2)',
+                            transform: "translateZ(0)", isolation: "isolate",
+                        }}
+                    >
+                        {/* Header row */}
+                        <div className="flex justify-between items-center">
+                            <h3 className="font-extrabold text-xl tracking-tight" style={{ fontFamily: "'Manrope', sans-serif", color: 'var(--st-text-primary)' }}>
+                                About
+                            </h3>
+                            <button
+                                onClick={() => setAboutModalOpen(false)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full transition-colors cursor-pointer"
+                                style={{ 
+                                    backgroundColor: isLight ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.05)',
+                                    border: `1px solid ${isLight ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.1)'}`,
+                                    color: 'var(--st-text-muted)' 
+                                }}
+                            >
+                                <span className="material-symbols-outlined text-sm">close</span>
+                            </button>
+                        </div>
+
+                        {/* Shared content */}
+                        <AboutContent 
+                            isLight={isLight} 
+                            accentColor={accentColor} 
+                            onFeedbackClick={() => {
+                                setAboutModalOpen(false);
+                                setFeedbackModalOpen(true);
+                            }} 
+                        />
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

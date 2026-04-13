@@ -124,6 +124,7 @@ function TeachersContent() {
 
     const cancelEdit = () => {
         setEditingTeacher(null);
+        setError("");
         setEditForm({ name: "", username: "", batch_ids: [], password: "" });
     };
 
@@ -168,7 +169,7 @@ function TeachersContent() {
                         </h1>
                     </div>
                     <button
-                        onClick={() => { setShowForm(!showForm); cancelEdit(); }}
+                        onClick={() => { setShowForm(!showForm); cancelEdit(); setError(""); }}
                         className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#c799ff]/10 text-[#c799ff] border border-[#c799ff]/30 text-sm font-bold uppercase tracking-widest
                         hover:bg-[#c799ff]/20 hover:border-[#c799ff]/50 transition-all duration-300 shadow-[0_4px_15px_rgba(199,153,255,0.15)] cursor-pointer flex items-center justify-center gap-2"
                     >
@@ -179,7 +180,7 @@ function TeachersContent() {
                     </button>
                 </div>
 
-                {error && (
+                {error && !showForm && !editingTeacher && !devicesTeacher && (
                     <div className="mb-4 p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#ff6e84]/30 shadow-lg text-[#ff9dac] text-sm flex items-center gap-3">
                         <span className="material-symbols-outlined text-[#ff6e84]">error</span>
                         <span className="flex-1">{error}</span>
@@ -203,6 +204,12 @@ function TeachersContent() {
                             </span>
                             New Teacher
                         </h3>
+                        {error && (
+                            <div className="mb-6 p-4 rounded-xl bg-[#ff6e84]/10 border border-[#ff6e84]/30 text-[#ff9dac] text-sm flex items-center gap-3">
+                                <span className="material-symbols-outlined text-[#ff6e84]">error</span>
+                                <span className="flex-1 font-medium">{error}</span>
+                            </div>
+                        )}
                         <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-5 mb-6">
                             <input placeholder="Full Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required
                                 className="w-full px-4 py-3.5 rounded-2xl bg-[#222532]/50 border border-[#464752]/50 hover:border-[#464752] text-[#f0f0fd] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#c799ff]/50 transition-colors placeholder:text-[#aaaab7]/70" />
@@ -251,6 +258,12 @@ function TeachersContent() {
                                     <span className="material-symbols-outlined">close</span>
                                 </button>
                             </div>
+                            {error && (
+                                <div className="mb-6 p-4 rounded-xl bg-[#ff6e84]/10 border border-[#ff6e84]/30 text-[#ff9dac] text-sm flex items-center gap-3">
+                                    <span className="material-symbols-outlined text-[#ff6e84]">error</span>
+                                    <span className="flex-1 font-medium">{error}</span>
+                                </div>
+                            )}
                             <div className="space-y-5 mb-8">
                                 <div>
                                     <label className="block text-[#aaaab7] text-[13px] font-bold tracking-wide uppercase mb-2">Full Name</label>

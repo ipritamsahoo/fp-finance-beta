@@ -1,9 +1,13 @@
 import uuid
-from typing import Optional
+import asyncio
+import random
+from typing import Optional, List
 from datetime import datetime
 
+import requests
 import cloudinary.uploader
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from pydantic import BaseModel
 
 from config import ADMIN_UPI_VPA, DEFAULT_FEE_AMOUNT
 from database import db
@@ -12,6 +16,121 @@ from utils import ts_now, serialize_doc, IST
 from notifications import notify_user, notify_admins
 
 router = APIRouter(prefix="/api/student", tags=["Student"])
+# ──────────────────────────────────────────────
+# POST /api/student/feedback
+# ──────────────────────────────────────────────
+class FeedbackPayload(BaseModel):
+    rating: int
+    features: List[str]
+    improvements: str
+    has_issues: str           # "Yes" | "No"
+    issue_details: str = ""
+
+
+@router.post("/feedback")
+async def student_submit_feedback(
+    payload: FeedbackPayload,
+    user=Depends(require_role("student")),
+):
+    """
+    Backend proxy: Submits student feedback to Google Forms server-side.
+    This avoids all browser CORS / auth restrictions.
+    """
+    # Resolve batch name for the form
+    batch_id   = user.get("batch_id", "")
+    batch_name = ""
+    if batch_id:
+        batch_doc = db.collection("batches").document(batch_id).get()
+        if batch_doc.exists:
+            batch_name = batch_doc.to_dict().get("batch_name", "")
+
+    FORM_VIEW_URL = (
+        "https://docs.google.com/forms/d/e/"
+        "1FAIpQLSf97GaRIZBQ-zhagQ0IoTM9yPESZN12tmIuNoFwflykOoa8cg/viewform"
+    )
+    FORM_URL = (
+        "https://docs.google.com/forms/d/e/"
+        "1FAIpQLSf97GaRIZBQ-zhagQ0IoTM9yPESZN12tmIuNoFwflykOoa8cg/formResponse"
+    )
+
+    # Build form fields — checkboxes need one tuple per selected value
+    # Google Forms also requires 3 internal hidden fields to accept the POST:
+    #   fvv=1          → form version validator (always 1)
+    #   pageHistory=0  → tracks which page was submitted
+    #   fbzx           → a pseudo-random session token (any large number works)
+    # If the Google Form has multiple pages/sections (e.g., Page 2 for Issue Details),
+    # we must tell Google Forms that we visited Page 2, otherwise it ignores the field.
+    page_history = "0,1" if payload.has_issues.lower() == "yes" else "0"
+
+    fields: list[tuple[str, str]] = [
+        ("fvv",         "1"),
+        ("pageHistory", page_history),
+        ("fbzx",        str(random.randint(-9_000_000_000_000_000_000, -1_000_000_000_000_000_000))),
+        ("entry.384903082", user.get("name", "")),
+        ("entry.694818161", batch_name),
+        ("entry.1975545119", str(payload.rating)),
+        ("entry.130196905", payload.improvements),
+        ("entry.733110544", payload.has_issues.lower()),   # form uses lowercase yes/no
+    ]
+    for feature in payload.features:
+        fields.append(("entry.577196034", feature))
+    if payload.has_issues.lower() == "yes" and payload.issue_details:
+        fields.append(("entry.260043703", payload.issue_details))
+
+    BROWSER_HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    try:
+        def _submit():
+            session = requests.Session()
+
+            # Step 1: GET the form to obtain Google session cookies
+            session.get(FORM_VIEW_URL, headers=BROWSER_HEADERS, timeout=15)
+
+            # Step 2: POST with the same session (carries cookies) + browser-like headers
+            return session.post(
+                FORM_URL,
+                data=fields,
+                headers={
+                    **BROWSER_HEADERS,
+                    "Referer":      FORM_VIEW_URL,
+                    "Origin":       "https://docs.google.com",
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                allow_redirects=True,
+                timeout=15,
+            )
+
+        resp = await asyncio.to_thread(_submit)
+
+        # Google Forms returns 200 (after following redirects) on success
+        if resp.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Google Forms returned {resp.status_code}.")
+    except requests.RequestException as exc:
+        raise HTTPException(status_code=502, detail=f"Network error: {exc}")
+
+    return {"success": True}
+
+
+@router.get("/batch-info")
+def student_get_batch_info(user=Depends(require_role("student"))):
+    """Return the batch name for the logged-in student (used for feedback form pre-fill)."""
+    batch_id = user.get("batch_id")
+    if not batch_id:
+        return {"batch_id": None, "batch_name": ""}
+
+    batch_doc = db.collection("batches").document(batch_id).get()
+    if not batch_doc.exists:
+        return {"batch_id": batch_id, "batch_name": ""}
+
+    batch_name = batch_doc.to_dict().get("batch_name", "")
+    return {"batch_id": batch_id, "batch_name": batch_name}
 
 
 # ──────────────────────────────────────────────

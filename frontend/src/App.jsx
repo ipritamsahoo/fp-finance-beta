@@ -25,6 +25,7 @@ import TeacherPayments from "@/pages/teacher/TeacherPayments";
 import TeacherDistribution from "@/pages/teacher/TeacherDistribution";
 import TeacherSettings from "@/pages/teacher/TeacherSettings";
 import NotificationsPage from "@/pages/NotificationsPage";
+import AboutPage from "@/pages/AboutPage";
 
 export default function App() {
     return (
@@ -56,6 +57,7 @@ export default function App() {
                             <Route path="/teacher/distribution" element={<TeacherDistribution />} />
                             <Route path="/teacher/settings" element={<TeacherSettings />} />
                             <Route path="/notifications" element={<NotificationsPage />} />
+                            <Route path="/about" element={<AboutPage />} />
                         </Routes>
                     </NotificationProvider>
                 </ErrorProvider>

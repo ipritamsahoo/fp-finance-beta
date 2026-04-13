@@ -3,7 +3,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
 import { api } from "@/lib/api";
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, getDoc } from "firebase/firestore";
 import ModernSelect from "@/components/ModernSelect";
 import { StudentAvatarFallback } from "@/components/CachedAvatar";
 import { getCache, setCache } from "@/lib/memoryCache";
@@ -69,26 +69,106 @@ function ApprovalContent() {
     // Initial fetch — runs exactly ONCE on mount
     useEffect(() => { fetchPending(); }, [fetchPending]);
 
-    // Real-time listener — only refetch when a genuinely NEW pending payment arrives
+    // Real-time listener: Hydrate and inject only newly added pending payments individually
     useEffect(() => {
-        let isFirstSnapshot = true; // Skip the initial snapshot (all docs appear as "added")
+        let isFirstSnapshot = true;
         const q = query(
             collection(db, "payments"),
             where("status", "==", "Pending_Verification")
         );
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        
+        const unsubscribe = onSnapshot(q, async (snapshot) => {
             if (isFirstSnapshot) {
                 isFirstSnapshot = false;
-                return; // Ignore initial snapshot — fetchPending() already called on mount
+                return; // Initial load is handled heavily by fetchPending
             }
-            // Only refetch if a completely new pending payment was added
-            const hasNewDocs = snapshot.docChanges().some(change => change.type === "added");
-            if (hasNewDocs) {
-                fetchPending();
+            
+            const toUpsert = [];
+            const toRemove = [];
+
+            for (const change of snapshot.docChanges()) {
+                const paymentId = change.doc.id;
+                
+                if (change.type === "removed") {
+                    toRemove.push(paymentId);
+                    continue;
+                }
+
+                const data = change.doc.data();
+                
+                // ── KEY FIX ──
+                // If a previously rejected payment is re-submitted as Pending_Verification,
+                // it comes back as "added" in this query's scope.
+                // We MUST clear it from removedIdsRef so it shows up again.
+                if (data.status === "Pending_Verification" && removedIdsRef.current.has(paymentId)) {
+                    removedIdsRef.current.delete(paymentId);
+                }
+                
+                // Skip if still tracked as locally removed
+                if (removedIdsRef.current.has(paymentId)) continue;
+                
+                // Fetch student and batch softly
+                let studentName = data.student_name || "Unknown Student";
+                let profilePicUrl = data.profile_pic_url || null;
+                
+                // If the backend didn't attach student info (e.g. online payloads), fetch manually via secure backend API
+                // Offline payments have student_name but no profile_pic_url — so we always fetch when pic is missing
+                if ((!data.student_name || !data.profile_pic_url) && data.student_id) {
+                    try {
+                        const userProfile = await api.get(`/api/admin/users/${data.student_id}`);
+                        studentName = userProfile.name || studentName;
+                        profilePicUrl = userProfile.profile_pic_url || null;
+                    } catch (e) {
+                        console.error("Failed to fetch user profile via API:", e);
+                    }
+                }
+
+                let batchName = data.batch_name || "Unknown Batch";
+                if (!data.batch_name && data.batch_id) {
+                     const matchBatch = batches.find(b => b.id === data.batch_id);
+                     if (matchBatch) batchName = matchBatch.batch_name;
+                }
+                
+                toUpsert.push({
+                    id: paymentId,
+                    ...data,
+                    student_name: studentName,
+                    profile_pic_url: profilePicUrl,
+                    batch_name: batchName,
+                    teacher_name: data.teacher_name || "Instructor"
+                });
+            }
+            
+            if (toUpsert.length > 0 || toRemove.length > 0) {
+                setPending(prev => {
+                    let updated = [...prev];
+                    
+                    // 1. Process Removals
+                    if (toRemove.length > 0) {
+                        const removeSet = new Set(toRemove);
+                        updated = updated.filter(p => !removeSet.has(p.id));
+                    }
+                    
+                    // 2. Process Upserts (Additions/Modifications)
+                    for (const item of toUpsert) {
+                        const idx = updated.findIndex(p => p.id === item.id);
+                        if (idx !== -1) {
+                            // Already exists in view: overwrite it
+                            updated[idx] = { ...updated[idx], ...item };
+                        } else {
+                            // Newly entered the pending queue: pop to the top
+                            updated.unshift(item);
+                        }
+                    }
+                    
+                    setCache(cacheKeyPending, updated);
+                    return updated;
+                });
             }
         });
+        
         return () => unsubscribe();
-    }, [fetchPending]);
+    }, [batches]);
 
     const filtered = filterBatch
         ? pending.filter((p) => p.batch_id === filterBatch)

@@ -248,6 +248,24 @@ def admin_reject(payment_id: str, user=Depends(require_role("admin"))):
 
 
 # ══════════════════════════════════════════════
+#  USER PROFILE HELPER
+# ══════════════════════════════════════════════
+
+@router.get("/users/{user_id}")
+def admin_get_user_profile(user_id: str, user=Depends(require_role("admin"))):
+    """Fetch specific user's basic profile details securely, bypassing frontend Firestore rules."""
+    user_doc = db.collection("users").document(user_id).get()
+    if not user_doc.exists:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    d = user_doc.to_dict()
+    return {
+        "name": d.get("name", "Unknown"),
+        "profile_pic_url": d.get("profile_pic_url"),
+        "pic_version": d.get("pic_version")
+    }
+
+# ══════════════════════════════════════════════
 #  PROFILE PIC (ADMIN)
 # ══════════════════════════════════════════════
 
@@ -327,15 +345,22 @@ def admin_list_batches(user=Depends(require_role("admin"))):
 @router.post("/batches")
 def admin_create_batch(req: BatchCreate, user=Depends(require_role("admin"))):
     """Create a new batch."""
+    batch_name_clean = req.batch_name.strip()
+    
+    # Check for duplicate
+    existing = db.collection("batches").where("batch_name", "==", batch_name_clean).limit(1).stream()
+    if any(existing):
+        raise HTTPException(status_code=400, detail=f"A batch named '{batch_name_clean}' already exists.")
+
     batch_data = {
-        "batch_name": req.batch_name,
+        "batch_name": batch_name_clean,
         "teacher_ids": req.teacher_ids,
         "created_at": ts_now(),
     }
     if req.batch_fee is not None:
         batch_data["batch_fee"] = req.batch_fee
     _, doc_ref = db.collection("batches").add(batch_data)
-    return {"id": doc_ref.id, "message": f"Batch '{req.batch_name}' created"}
+    return {"id": doc_ref.id, "message": f"Batch '{batch_name_clean}' created"}
 
 
 @router.put("/batches/{batch_id}")
@@ -345,8 +370,16 @@ def admin_update_batch(batch_id: str, req: BatchCreate, user=Depends(require_rol
     if not batch_ref.get().exists:
         raise HTTPException(status_code=404, detail="Batch not found")
 
+    batch_name_clean = req.batch_name.strip()
+
+    # Check for duplicate
+    existing = db.collection("batches").where("batch_name", "==", batch_name_clean).limit(2).stream()
+    for b in existing:
+        if b.id != batch_id:
+            raise HTTPException(status_code=400, detail=f"A batch named '{batch_name_clean}' already exists.")
+
     update_data = {
-        "batch_name": req.batch_name,
+        "batch_name": batch_name_clean,
         "teacher_ids": req.teacher_ids,
     }
     if req.batch_fee is not None:
@@ -354,7 +387,7 @@ def admin_update_batch(batch_id: str, req: BatchCreate, user=Depends(require_rol
     else:
         update_data["batch_fee"] = firestore.DELETE_FIELD
     batch_ref.update(update_data)
-    return {"message": f"Batch '{req.batch_name}' updated"}
+    return {"message": f"Batch '{batch_name_clean}' updated"}
 
 
 @router.delete("/batches/{batch_id}")
@@ -538,7 +571,7 @@ def admin_add_student(req: StudentCreate, user=Depends(require_role("admin"))):
             display_name=req.name,
         )
     except firebase_auth.EmailAlreadyExistsError:
-        raise HTTPException(status_code=400, detail="Username already registered")
+        raise HTTPException(status_code=400, detail="This username or mobile number is already in use.")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -649,6 +682,8 @@ def admin_update_student(uid: str, req: StudentUpdate, user=Depends(require_role
     if auth_updates:
         try:
             firebase_auth.update_user(uid, **auth_updates)
+        except firebase_auth.EmailAlreadyExistsError:
+            raise HTTPException(status_code=400, detail="This username or mobile number is already in use.")
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Firebase Auth update failed: {e}")
 
@@ -730,7 +765,7 @@ def admin_add_teacher(req: TeacherCreate, user=Depends(require_role("admin"))):
             display_name=req.name,
         )
     except firebase_auth.EmailAlreadyExistsError:
-        raise HTTPException(status_code=400, detail="Username already registered")
+        raise HTTPException(status_code=400, detail="This username or mobile number is already in use.")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -814,6 +849,8 @@ def admin_update_teacher(uid: str, req: TeacherUpdate, user=Depends(require_role
     if auth_updates:
         try:
             firebase_auth.update_user(uid, **auth_updates)
+        except firebase_auth.EmailAlreadyExistsError:
+            raise HTTPException(status_code=400, detail="This username or mobile number is already in use.")
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Firebase Auth update failed: {e}")
 

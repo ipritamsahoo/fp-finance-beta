@@ -11,7 +11,6 @@ import { db } from "@/lib/firebase";
 import { getYearOptions } from "@/lib/yearOptions";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import ModernSelect from "@/components/ModernSelect";
-import { getCache, setCache, clearCache } from "@/lib/memoryCache";
 import { TeacherDashboardSkeleton } from "@/components/Skeletons";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -82,50 +81,35 @@ let GLOBAL_FETCHING_BATCHES = false;
 function TeacherDashboardContent() {
     const { user } = useAuth();
     
-    // In-memory caching keys and initial resolution
-    const cacheKeyBatches = `teacher_batches`;
-    const cachedBatches = getCache(cacheKeyBatches);
-    const initialBatch = cachedBatches?.[0]?.id || "";
-
     const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
     const [filterYear, setFilterYear] = useState(new Date().getFullYear());
 
-    const cacheKeyPayments = `teacher_payments_${initialBatch}_${filterYear}_${filterMonth}`;
-    const cachedPayments = initialBatch ? getCache(cacheKeyPayments) : null;
-
-    const [batches, setBatches] = useState(cachedBatches || []);
-    const [selectedBatch, setSelectedBatch] = useState(initialBatch);
-    const [payments, setPayments] = useState(cachedPayments || []);
+    const [batches, setBatches] = useState([]);
+    const [selectedBatch, setSelectedBatch] = useState("");
+    const [payments, setPayments] = useState([]);
+    const paymentsRef = useRef([]); // Mirror of payments state for reading in snapshot callbacks
     
     // Loading state for batches (on mount) and payments (on button click)
     const [loading, setLoading] = useState(false);
-    const [batchesLoading, setBatchesLoading] = useState(!cachedBatches);
+    const [batchesLoading, setBatchesLoading] = useState(true);
     
     const [error, setError] = useState("");
     const [offlineLoading, setOfflineLoading] = useState(null);
     const [warningModalData, setWarningModalData] = useState(null);
     const [warningConfirmText, setWarningConfirmText] = useState("");
-    const [counts, setCounts] = useState({ total_students: 0, paid_count: 0, unpaid_sum: 0 });
+    const [counts, setCounts] = useState({ total_students: 0, paid_count: 0, unpaid_count: 0 });
     const [hasLoaded, setHasLoaded] = useState(false);
+
+    // Keep paymentsRef in sync so snapshot callbacks always see latest state
+    useEffect(() => { paymentsRef.current = payments; }, [payments]);
 
     const fetchBatches = useCallback(async () => {
         if (GLOBAL_FETCHING_BATCHES) return;
         
-        // Prevent redundant calls if we already have data in memory
-        const cached = getCache(cacheKeyBatches);
-        if (cached && cached.length > 0) {
-            setBatches(cached);
-            if (!selectedBatch) setSelectedBatch(cached[0].id);
-            return; 
-        }
-
         GLOBAL_FETCHING_BATCHES = true;
         try {
             const data = await api.get("/api/teacher/batches");
-            if (JSON.stringify(getCache(cacheKeyBatches)) !== JSON.stringify(data)) {
-                setBatches(data);
-                setCache(cacheKeyBatches, data);
-            }
+            setBatches(data);
             if (data.length > 0) {
                 setSelectedBatch(prev => prev || data[0].id);
             }
@@ -139,10 +123,6 @@ function TeacherDashboardContent() {
 
     const fetchPayments = useCallback(async () => {
         if (!selectedBatch) return;
-        
-        // Show loading spinner ONLY if there is no cached data 
-        const currentCacheKey = `teacher_payments_${selectedBatch}_${filterYear}_${filterMonth}`;
-        const currentCache = getCache(currentCacheKey);
         
         setLoading(true);
         setError("");
@@ -165,8 +145,6 @@ function TeacherDashboardContent() {
                     unpaid_sum: data.filter(p => p.status !== "Paid").length
                 });
             }
-
-            setCache(currentCacheKey, data);
         } catch (err) {
             setError(err.message || "Failed to fetch payments");
         } finally {
@@ -195,27 +173,76 @@ function TeacherDashboardContent() {
         setHasLoaded(true);
     };
 
-    // We still keep the online listener for manual refresh, but primary fetch is now manual
+    // ── Granular Real-Time Listener ──
+    // Tracks active specific query visually without heavy network refetches
     useEffect(() => {
-        if (!selectedBatch) return;
-        const currentCacheKey = `teacher_payments_${selectedBatch}_${filterYear}_${filterMonth}`;
-        const cached = getCache(currentCacheKey);
-        if (cached) {
-            if (cached.summary) {
-                setCounts(cached.summary);
-                setPayments(cached.records || []);
-            } else {
-                setPayments(cached);
-                setCounts({
-                    total_students: cached.length,
-                    paid_count: cached.filter(p => p.status === "Paid").length,
-                    unpaid_sum: cached.filter(p => p.status !== "Paid").length
-                });
+        if (!selectedBatch || !hasLoaded) return;
+        
+        let isFirstSnapshot = true;
+        const q = query(
+            collection(db, "payments"),
+            where("batch_id", "==", selectedBatch),
+            where("month", "==", filterMonth),
+            where("year", "==", filterYear)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (isFirstSnapshot) {
+                isFirstSnapshot = false;
+                return;
             }
-            setLoading(false);
-            setHasLoaded(true);
-        }
-    }, [selectedBatch, filterYear, filterMonth]);
+            
+            const changedDocs = [];
+            for (const change of snapshot.docChanges()) {
+                if (change.type === "modified" || change.type === "added") {
+                    changedDocs.push({ id: change.doc.id, ...change.doc.data() });
+                }
+            }
+            
+            if (changedDocs.length === 0) return;
+
+            // Read from paymentsRef (always latest)
+            const currentPayments = paymentsRef.current;
+            const updatedPayments = [...currentPayments];
+            let changed = false;
+            let paidDelta = 0;
+
+            for (const mod of changedDocs) {
+                // Match by ID, OR by student_id to catch "virtual" Unpaid rows that don't have a real Firestore ID yet
+                const idx = updatedPayments.findIndex(p => p.id === mod.id || p.student_id === mod.student_id);
+                if (idx !== -1) {
+                    const oldStatus = updatedPayments[idx].status;
+                    const newStatus = mod.status;
+                    if (oldStatus !== newStatus) {
+                        if (newStatus === "Paid") {
+                            // Remove from teacher list instantly — payment is done!
+                            updatedPayments.splice(idx, 1);
+                            paidDelta += 1;
+                        } else {
+                            // Update status in-place (e.g. Unpaid → Pending)
+                            updatedPayments[idx] = { ...updatedPayments[idx], status: newStatus, mode: mod.mode };
+                        }
+                        changed = true;
+                    }
+                }
+            }
+
+            if (!changed) return;
+
+            // unpaid_count: count directly from array (most reliable — no delta math)
+            const newUnpaidCount = updatedPayments.filter(p => p.status === "Unpaid").length;
+
+            setPayments(updatedPayments);
+
+            setCounts(c => ({
+                ...c,
+                unpaid_count: newUnpaidCount,
+                paid_count: (c.paid_count || 0) + paidDelta,
+            }));
+        });
+
+        return () => unsubscribe();
+    }, [selectedBatch, filterMonth, filterYear, hasLoaded]);
 
     const handlePreOfflineClick = async (payment) => {
         setOfflineLoading(payment.id);
@@ -247,17 +274,6 @@ function TeacherDashboardContent() {
     const handleOfflineRequest = async (payment) => {
         setOfflineLoading(payment.id);
         setError("");
-        
-        // Optimistic UI Update (Instant Feedback)
-        setPayments(prev => {
-            const updated = prev.map(p => 
-                p.id === payment.id ? { ...p, status: "Pending_Verification", mode: "offline" } : p
-            );
-            // Update cache so switching tabs doesn't instantly revert
-            const currentCacheKey = `teacher_payments_${selectedBatch}_${filterYear}_${filterMonth}`;
-            setCache(currentCacheKey, updated);
-            return updated;
-        });
 
         try {
             await api.post("/api/teacher/offline-request", {
@@ -267,13 +283,11 @@ function TeacherDashboardContent() {
                 batch_name: selectedBatchName,
                 amount: payment.amount,
             });
-            // We consciously DO NOT call fetchPayments() here to save 100+ DB reads per click. 
-            // The optimistic UI is already perfectly synced.
+            // ── No Optimistic UI here! ──
+            // We rely completely on onSnapshot. The API call updates the DB,
+            // the listener fetches the exact delta, updates the payments array with the REAL Firestore ID,
+            // and mathematically updates unpaid_count perfectly in sync.
         } catch (err) {
-            // Revert Optimistic UI if failed
-            setPayments(prev => prev.map(p => 
-                p.id === payment.id ? { ...p, status: payment.status } : p
-            ));
             const msg = typeof err.message === "string" ? err.message : JSON.stringify(err.message);
             setError(msg);
         } finally {
@@ -309,34 +323,43 @@ function TeacherDashboardContent() {
             <section>
                 <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-end">
                     <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <ModernSelect
-                            icon="calendar_month"
-                            value={filterMonth}
-                            options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
-                            onChange={(e) => { setFilterMonth(e.target.value); setHasLoaded(false); setPayments([]); }}
-                            className="w-full"
-                        />
+                        {/* Batch - First on mobile */}
+                        <div className="col-span-2 md:order-3 md:col-span-2">
+                            <ModernSelect
+                                icon="school"
+                                value={selectedBatch}
+                                options={batches}
+                                onChange={(e) => { setSelectedBatch(e.target.value); setHasLoaded(false); setPayments([]); }}
+                                className="w-full"
+                            />
+                        </div>
 
-                        <ModernSelect
-                            icon="event"
-                            value={filterYear}
-                            options={getYearOptions()}
-                            onChange={(e) => { setFilterYear(parseInt(e.target.value)); setHasLoaded(false); setPayments([]); }}
-                            className="w-full"
-                        />
+                        {/* Month */}
+                        <div className="col-span-1 md:order-1">
+                            <ModernSelect
+                                icon="calendar_month"
+                                value={filterMonth}
+                                options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
+                                onChange={(e) => { setFilterMonth(e.target.value); setHasLoaded(false); setPayments([]); }}
+                                className="w-full"
+                            />
+                        </div>
 
-                        <ModernSelect
-                            icon="school"
-                            value={selectedBatch}
-                            options={batches}
-                            onChange={(e) => { setSelectedBatch(e.target.value); setHasLoaded(false); setPayments([]); }}
-                            className="w-full md:col-span-2"
-                        />
+                        {/* Year */}
+                        <div className="col-span-1 md:order-2">
+                            <ModernSelect
+                                icon="event"
+                                value={filterYear}
+                                options={getYearOptions()}
+                                onChange={(e) => { setFilterYear(parseInt(e.target.value)); setHasLoaded(false); setPayments([]); }}
+                                className="w-full"
+                            />
+                        </div>
                     </div>
                     <button
                         onClick={handleView}
                         disabled={!selectedBatch || loading}
-                        className="px-8 py-3 rounded-2xl bg-[#3b82f6] text-white text-sm font-bold uppercase tracking-widest hover:bg-[#2563eb] transition-all shadow-[0_4px_20px_rgba(59,130,246,0.3)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 h-[52px]"
+                        className="px-8 py-3 rounded-2xl bg-[#4af8e3]/10 backdrop-blur-md border border-[#4af8e3]/30 text-[#4af8e3] text-sm font-bold uppercase tracking-widest hover:bg-[#4af8e3]/20 transition-all shadow-[0_4px_20px_rgba(74,248,227,0.1)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 h-[52px]"
                     >
                         {loading ? (
                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -422,11 +445,9 @@ function TeacherDashboardContent() {
                 /* ── Empty State: Not loaded yet ── */
                 <section className="mt-8">
                     <GlassCard className="p-16 flex flex-col items-center justify-center text-center gap-4">
-                        <div className="w-20 h-20 rounded-full bg-[#3b82f6]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[#3b82f6] text-4xl">search_check</span>
-                        </div>
-                        <h3 className="text-[#f0f0fd] font-bold text-lg" style={{ fontFamily: "'Manrope', sans-serif" }}>Ready to view payments?</h3>
-                        <p className="text-[#aaaab7] text-sm max-w-xs">Select your filters above and click <b>View</b> to load student records from the database.</p>
+                        <span className="material-symbols-outlined text-5xl text-[#464752]">payments</span>
+                        <h3 className="text-[#f0f0fd] font-bold text-lg" style={{ fontFamily: "'Manrope', sans-serif" }}>Select filters and click View</h3>
+                        <p className="text-[#aaaab7] text-sm max-w-xs">No data is loaded until you click the View button.</p>
                     </GlassCard>
                 </section>
             ) : (

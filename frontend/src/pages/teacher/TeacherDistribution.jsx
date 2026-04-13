@@ -85,10 +85,15 @@ function TeacherDistributionContent() {
     const fetchDistribution = useCallback(async () => {
         const cacheKeyCall = `teacher_distribution_${month}_${year}_${batchFilter || 'init'}`;
         const currentCache = getCache(cacheKeyCall);
-        if (!currentCache) {
+
+        if (currentCache) {
+            setData(prev => JSON.stringify(prev) !== JSON.stringify(currentCache) ? currentCache : prev);
+            setLoading(false);
+        } else {
+            setData(null);
             setLoading(true);
         }
-        
+
         setError("");
         try {
             let url = `/api/teacher/distribution?month=${month}&year=${year}`;
@@ -111,7 +116,7 @@ function TeacherDistributionContent() {
         } finally {
             setLoading(false);
         }
-    }, [month, year, batchFilter]); // Only depend on filters, not loading state or internal changes
+    }, [month, year, batchFilter]);
 
     useEffect(() => {
         fetchDistribution();
@@ -119,11 +124,13 @@ function TeacherDistributionContent() {
 
     const yearOptions = getYearOptions();
 
+    const sortedDates = data?.dates ? [...data.dates].sort((a, b) => b.date.localeCompare(a.date)) : [];
+
     // Collect unique teacher names for the ledger
     const allTeachers = (() => {
-        if (!data || !data.dates) return [];
+        if (sortedDates.length === 0) return [];
         const map = new Map();
-        for (const d of data.dates) {
+        for (const d of sortedDates) {
             for (const t of d.teachers) {
                 if (!map.has(t.uid)) map.set(t.uid, t.name);
             }
@@ -266,9 +273,9 @@ function TeacherDistributionContent() {
                                     Distribution History
                                 </h2>
                             </div>
-                            {data.dates && data.dates.length > 0 ? (
+                            {sortedDates.length > 0 ? (
                                 <div className="space-y-4">
-                                    {data.dates.map((dist, distIdx) => {
+                                    {sortedDates.map((dist, distIdx) => {
                                         const isExpanded = expandedDate === dist.date;
                                         const formattedDate = formatDateStr(dist.date);
                                         return (
@@ -370,7 +377,7 @@ function TeacherDistributionContent() {
                                                         Monthly Total
                                                     </th>
                                                     {allTeachers.map((t) => {
-                                                        const teacherTotal = data.dates.reduce((s, d) => {
+                                                        const teacherTotal = sortedDates.reduce((s, d) => {
                                                             const found = d.teachers.find((x) => x.uid === t.uid);
                                                             return s + (found ? found.amount : 0);
                                                         }, 0);
@@ -397,7 +404,7 @@ function TeacherDistributionContent() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {data.dates.map((dist) => {
+                                                {sortedDates.map((dist) => {
                                                     const formattedDate = formatDateStr(dist.date);
                                                     const teacherMap = {};
                                                     for (const t of dist.teachers) teacherMap[t.uid] = t.amount;

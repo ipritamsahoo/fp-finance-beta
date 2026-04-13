@@ -272,6 +272,8 @@ def update_own_credentials(req: SelfUpdateCredentials, user=Depends(get_current_
     # Update Firebase Auth
     try:
         firebase_auth.update_user(uid, **auth_updates)
+    except firebase_auth.EmailAlreadyExistsError:
+        raise HTTPException(status_code=400, detail="This username or mobile number is already in use.")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Update failed: {e}")
 

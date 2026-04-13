@@ -27,7 +27,7 @@ messaging.onBackgroundMessage((payload) => {
     const options = {
         body: data.body || "You have a new notification",
         icon: "/pwa-192x192.png", // Must be PNG for Android
-        badge: "/badge-icon.svg",
+        badge: "/fp-badge-icon.png",
         tag: `fpfinance-${Date.now()}`,
         renotify: true,
         data: data,

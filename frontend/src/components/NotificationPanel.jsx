@@ -1,6 +1,7 @@
 import { useRef, useEffect } from "react";
 import { useNotifications } from "@/context/NotificationContext";
 import { useStudentTheme } from "@/context/StudentThemeContext";
+import { useAuth } from "@/context/AuthContext";
 
 /**
  * Notification type → icon & color mapping.
@@ -15,7 +16,7 @@ const TYPE_CONFIG = {
 };
 
 function getConfig(type) {
-    return TYPE_CONFIG[type] || { icon: "🔔", accent: "text-[#8a8f98]", bg: "bg-[#1a1f2e]/30", label: "Alert" };
+    return TYPE_CONFIG[type] || { icon: "🔔", accent: "text-[var(--st-text-muted)]", bg: "bg-[var(--st-icon-bg)]", label: "Alert" };
 }
 
 /**
@@ -43,10 +44,12 @@ function timeAgo(dateStr) {
  */
 export default function NotificationPanel({ isOpen, onClose }) {
     const { notifications, unreadCount, markRead, markAllRead, dismiss, clearAll } = useNotifications();
+    const { user } = useAuth();
     const studentThemeContext = useStudentTheme();
     
-    // Safely get theme, default to dark if not in student context
-    const theme = studentThemeContext?.theme || "dark";
+    // For teachers, we force dark theme. For students, we follow their context/preference.
+    const isTeacher = user?.role === "teacher";
+    const theme = isTeacher ? "dark" : (studentThemeContext?.theme || "dark");
     const isLight = theme === "light";
     
     const panelRef = useRef(null);
@@ -138,7 +141,7 @@ export default function NotificationPanel({ isOpen, onClose }) {
                                 {!n.is_read && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#3861fb]" />}
 
                                 {/* Icon */}
-                                <div className={`mt-0.5 w-10 h-10 rounded-[14px] ${cfg.bg} flex items-center justify-center text-lg shrink-0 border border-current opacity-80`} style={{ color: cfg.accent.replace('text-', '') }}>
+                                <div className={`mt-0.5 w-10 h-10 rounded-[14px] ${cfg.bg} ${cfg.accent} flex items-center justify-center text-lg shrink-0 border border-current opacity-80`}>
                                     {cfg.icon}
                                 </div>
 

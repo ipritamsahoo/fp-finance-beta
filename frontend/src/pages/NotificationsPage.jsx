@@ -16,7 +16,7 @@ const TYPE_CONFIG = {
 };
 
 function getConfig(type) {
-    return TYPE_CONFIG[type] || { icon: "🔔", accent: "text-[#8a8f98]", bg: "bg-[#1a1f2e]/30", label: "Alert" };
+    return TYPE_CONFIG[type] || { icon: "🔔", accent: "text-[var(--st-text-muted)]", bg: "bg-[var(--st-icon-bg)]", label: "Alert" };
 }
 
 /**
@@ -44,14 +44,14 @@ export default function NotificationsPage() {
     const { user } = useAuth();
     
     // Determine theme based on user role and local storage since this page is outside the main layout provider
-    const [theme, setTheme] = useState("dark");
+    const [theme, setTheme] = useState("light");
     useEffect(() => {
         if (user?.role === "student") {
             try {
-                const savedTheme = localStorage.getItem("fp_student_theme") || "dark";
+                const savedTheme = localStorage.getItem("fp_student_theme_v2") || "light";
                 setTheme(savedTheme);
             } catch (e) {
-                setTheme("dark");
+                setTheme("light");
             }
         } else {
             setTheme("dark");
@@ -147,7 +147,7 @@ export default function NotificationsPage() {
                                 {!n.is_read && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#3861fb]" />}
 
                                 {/* Icon */}
-                                <div className={`mt-0.5 w-12 h-12 rounded-2xl ${cfg.bg} flex items-center justify-center text-xl shrink-0 border border-current opacity-80`} style={{ color: cfg.accent.replace('text-', '') }}>
+                                <div className={`mt-0.5 w-12 h-12 rounded-2xl ${cfg.bg} ${cfg.accent} flex items-center justify-center text-xl shrink-0 border border-current opacity-80`}>
                                     {cfg.icon}
                                 </div>
 

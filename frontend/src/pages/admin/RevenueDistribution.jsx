@@ -116,10 +116,12 @@ function DistributionContent() {
     const yearOptions = getYearOptions();
 
     // Collect unique teacher names from all dates for the ledger table
+    const sortedDates = data?.dates ? [...data.dates].sort((a, b) => b.date.localeCompare(a.date)) : [];
+
     const allTeachers = (() => {
-        if (!data || !data.dates) return [];
+        if (sortedDates.length === 0) return [];
         const map = new Map();
-        for (const d of data.dates) {
+        for (const d of sortedDates) {
             for (const t of d.teachers) {
                 if (!map.has(t.uid)) map.set(t.uid, t.name);
             }
@@ -217,10 +219,10 @@ function DistributionContent() {
                     {/* ═══ Tab 1: Date-wise Distribution ═══ */}
                     {activeTab === "datewise" && (
                         <>
-                            {data.dates && data.dates.length > 0 ? (
+                            {sortedDates.length > 0 ? (
                                 <div>
                                     <div className="space-y-4">
-                                        {data.dates.map((dist) => {
+                                        {sortedDates.map((dist) => {
                                             const isExpanded = expandedDate === dist.date;
                                             const formattedDate = (() => {
                                                 try {
@@ -363,7 +365,7 @@ function DistributionContent() {
                     {/* ═══ Tab 2: Teacher Earnings Ledger ═══ */}
                     {activeTab === "earnings" && (
                         <div>
-                            {data.dates && data.dates.length > 0 && allTeachers.length > 0 ? (
+                            {sortedDates.length > 0 && allTeachers.length > 0 ? (
                                 <>
                                     {/* Ledger table (scrollable on mobile) */}
                                     <div className="bg-[#171924]/60 backdrop-blur-[20px] border border-[#737580]/10 rounded-3xl overflow-hidden shadow-xl" style={{ maxHeight: "calc(100vh - 380px)", display: "flex", flexDirection: "column" }}>
@@ -376,7 +378,7 @@ function DistributionContent() {
                                                             Total Distributed
                                                         </th>
                                                         {allTeachers.map((t) => {
-                                                            const teacherTotal = data.dates.reduce((s, d) => {
+                                                            const teacherTotal = sortedDates.reduce((s, d) => {
                                                                 const found = d.teachers.find((x) => x.uid === t.uid);
                                                                 return s + (found ? found.amount : 0);
                                                             }, 0);
@@ -404,7 +406,7 @@ function DistributionContent() {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {data.dates.map((dist) => {
+                                                    {sortedDates.map((dist) => {
                                                         const formattedDate = (() => {
                                                             try {
                                                                 const d = new Date(dist.date + "T00:00:00");

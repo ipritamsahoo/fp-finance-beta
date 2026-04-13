@@ -130,23 +130,26 @@ function PaymentsContent() {
                             className="w-full"
                         />
                     </div>
-                    {/* Year */}
-                    <div className="relative flex-1 md:flex-none md:w-[140px] z-20">
-                        <ModernSelect
-                            value={filterYear}
-                            onChange={(e) => { setFilterYear(Number(e.target.value)); setHasLoaded(false); setPayments([]); }}
-                            options={yearOptions}
-                            className="w-full"
-                        />
-                    </div>
-                    {/* Month */}
-                    <div className="relative flex-1 md:flex-none md:w-[160px] z-10">
-                        <ModernSelect
-                            value={filterMonth}
-                            onChange={(e) => { setFilterMonth(Number(e.target.value)); setHasLoaded(false); setPayments([]); }}
-                            options={MONTHS.map(m => ({ id: m.value, batch_name: m.label }))}
-                            className="w-full"
-                        />
+                    {/* Year & Month group */}
+                    <div className="flex flex-row gap-3 flex-1 md:flex-none">
+                        {/* Year */}
+                        <div className="relative flex-1 md:w-[140px] z-20">
+                            <ModernSelect
+                                value={filterYear}
+                                onChange={(e) => { setFilterYear(Number(e.target.value)); setHasLoaded(false); setPayments([]); }}
+                                options={yearOptions}
+                                className="w-full"
+                            />
+                        </div>
+                        {/* Month */}
+                        <div className="relative flex-1 md:w-[160px] z-10">
+                            <ModernSelect
+                                value={filterMonth}
+                                onChange={(e) => { setFilterMonth(Number(e.target.value)); setHasLoaded(false); setPayments([]); }}
+                                options={MONTHS.map(m => ({ id: m.value, batch_name: m.label }))}
+                                className="w-full"
+                            />
+                        </div>
                     </div>
                     {/* View button */}
                     <button

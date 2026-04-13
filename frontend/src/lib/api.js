@@ -51,14 +51,14 @@ export async function apiFetch(endpoint, options = {}) {
     if (!res.ok) {
         let errorType = "SERVER_ERROR";
         if (res.status === 401 || res.status === 403) errorType = "AUTH_ERROR";
-        if (res.status === 422) errorType = "VALIDATION_ERROR";
+        if (res.status === 400 || res.status === 422) errorType = "VALIDATION_ERROR";
         
         const errData = await res.json().catch(() => ({ detail: "Request failed" }));
         const errorMessage = errData.detail || `HTTP ${res.status}`;
 
         if (globalErrorHandler) {
             // Only trigger global modal for systemic failures (401, 500, etc.)
-            // Validation errors (422) are often better handled inline
+            // Validation errors (400, 422) are often better handled inline
             if (errorType !== "VALIDATION_ERROR") {
                 globalErrorHandler(errorType, { message: errorMessage });
             }

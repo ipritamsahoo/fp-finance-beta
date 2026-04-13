@@ -17,7 +17,7 @@ export default defineConfig({
             filename: "sw.js",
             registerType: "autoUpdate",
             injectRegister: "auto",
-            includeAssets: ["favicon.png", "logo.png"],
+            includeAssets: ["favicon.png", "logo.png", "fp-badge-icon.png"],
             manifest: {
                 name: "FP Finance",
                 short_name: "FP Finance",
