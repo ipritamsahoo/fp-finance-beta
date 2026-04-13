@@ -69,15 +69,19 @@ function ApprovalContent() {
     // Initial fetch — runs exactly ONCE on mount
     useEffect(() => { fetchPending(); }, [fetchPending]);
 
-    // Real-time listener (Only fetch when NEW payments arrive)
+    // Real-time listener — only refetch when a genuinely NEW pending payment arrives
     useEffect(() => {
+        let isFirstSnapshot = true; // Skip the initial snapshot (all docs appear as "added")
         const q = query(
             collection(db, "payments"),
             where("status", "==", "Pending_Verification")
         );
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            // Ignore removals/modifications since Optimistic UI handles them.
-            // Only refetch if a completely new pending payment was added.
+            if (isFirstSnapshot) {
+                isFirstSnapshot = false;
+                return; // Ignore initial snapshot — fetchPending() already called on mount
+            }
+            // Only refetch if a completely new pending payment was added
             const hasNewDocs = snapshot.docChanges().some(change => change.type === "added");
             if (hasNewDocs) {
                 fetchPending();

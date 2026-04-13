@@ -301,16 +301,26 @@ function StudentPaymentsContent() {
     }, [cacheKey]); // Stable dependencies (loading removed)
 
     useEffect(() => {
-        fetchPayments();
-        const handleOnline = () => { setError(""); fetchPayments(); };
+        if (user?.uid) {
+            // Only fetch if memory cache is empty to save redundant reads when transitioning from Dashboard
+            const cached = getCache(cacheKey);
+            if (!cached || cached.length === 0) {
+                fetchPayments();
+            }
+        }
+        const handleOnline = () => { setError(""); if (user?.uid) fetchPayments(); };
         window.addEventListener("online", handleOnline);
         return () => window.removeEventListener("online", handleOnline);
-    }, [fetchPayments]);
+    }, [user?.uid, fetchPayments, cacheKey]);
 
     useEffect(() => {
         if (!user?.uid) return;
+        let isFirstSnapshot = true; // Skip initial snapshot — fetchPayments() already called on mount
         const q = query(collection(db, "payments"), where("student_id", "==", user.uid));
-        const unsubscribe = onSnapshot(q, () => fetchPayments());
+        const unsubscribe = onSnapshot(q, () => {
+            if (isFirstSnapshot) { isFirstSnapshot = false; return; }
+            fetchPayments();
+        });
         return () => unsubscribe();
     }, [user?.uid, fetchPayments]);
 

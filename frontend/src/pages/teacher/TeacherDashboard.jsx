@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import TeacherLayout from "@/components/TeacherLayout";
@@ -75,6 +75,9 @@ function GlassCard({ children, className = "", style = {} }) {
 
 
 
+// Global fetch lock to prevent StrictMode or concurrent duplicate calls
+let GLOBAL_FETCHING_BATCHES = false;
+
 // ── Main Content ──
 function TeacherDashboardContent() {
     const { user } = useAuth();
@@ -94,27 +97,43 @@ function TeacherDashboardContent() {
     const [selectedBatch, setSelectedBatch] = useState(initialBatch);
     const [payments, setPayments] = useState(cachedPayments || []);
     
-    // If either cache is missing, trigger the skeleton
-    const [loading, setLoading] = useState(!cachedBatches || !cachedPayments);
+    // Loading state for batches (on mount) and payments (on button click)
+    const [loading, setLoading] = useState(false);
+    const [batchesLoading, setBatchesLoading] = useState(!cachedBatches);
     
     const [error, setError] = useState("");
     const [offlineLoading, setOfflineLoading] = useState(null);
     const [warningModalData, setWarningModalData] = useState(null);
     const [warningConfirmText, setWarningConfirmText] = useState("");
+    const [counts, setCounts] = useState({ total_students: 0, paid_count: 0, unpaid_sum: 0 });
+    const [hasLoaded, setHasLoaded] = useState(false);
 
     const fetchBatches = useCallback(async () => {
+        if (GLOBAL_FETCHING_BATCHES) return;
+        
+        // Prevent redundant calls if we already have data in memory
+        const cached = getCache(cacheKeyBatches);
+        if (cached && cached.length > 0) {
+            setBatches(cached);
+            if (!selectedBatch) setSelectedBatch(cached[0].id);
+            return; 
+        }
+
+        GLOBAL_FETCHING_BATCHES = true;
         try {
             const data = await api.get("/api/teacher/batches");
             if (JSON.stringify(getCache(cacheKeyBatches)) !== JSON.stringify(data)) {
                 setBatches(data);
                 setCache(cacheKeyBatches, data);
             }
-            // Auto-select first batch if none selected yet
             if (data.length > 0) {
                 setSelectedBatch(prev => prev || data[0].id);
             }
         } catch (err) {
             // Handled globally
+        } finally {
+            GLOBAL_FETCHING_BATCHES = false;
+            setBatchesLoading(false);
         }
     }, []); // Empty dependencies for stability
 
@@ -125,50 +144,78 @@ function TeacherDashboardContent() {
         const currentCacheKey = `teacher_payments_${selectedBatch}_${filterYear}_${filterMonth}`;
         const currentCache = getCache(currentCacheKey);
         
-        setLoading(prev => {
-            if (!currentCache && !prev) return true;
-            return prev;
-        });
-
+        setLoading(true);
+        setError("");
         try {
             let url = `/api/teacher/payments?batch_id=${selectedBatch}&year=${filterYear}`;
             if (filterMonth) url += `&month=${filterMonth}`;
-            const data = await api.get(url);
+            const response = await api.get(url);
             
-            if (JSON.stringify(currentCache) !== JSON.stringify(data)) {
+            // Handle the new response structure { summary, records }
+            const data = response.data || response;
+            if (data.summary) {
+                setCounts(data.summary);
+                setPayments(data.records || []);
+            } else {
+                // Fallback for old API just in case (though we just updated it)
                 setPayments(data);
-                setCache(currentCacheKey, data);
+                setCounts({
+                    total_students: data.length,
+                    paid_count: data.filter(p => p.status === "Paid").length,
+                    unpaid_sum: data.filter(p => p.status !== "Paid").length
+                });
             }
+
+            setCache(currentCacheKey, data);
         } catch (err) {
-            // Handled globally
+            setError(err.message || "Failed to fetch payments");
         } finally {
             setLoading(false);
         }
     }, [selectedBatch, filterMonth, filterYear]);
 
+    // Initial fetch for batches only — NO automatic payment fetch anymore
     useEffect(() => {
-        fetchBatches();
-        const handleOnline = () => {
+        if (user?.uid) {
             fetchBatches();
-            if (selectedBatch) fetchPayments();
+        }
+        const handleOnline = () => {
+            if (user?.uid) fetchBatches();
         };
         window.addEventListener("online", handleOnline);
         return () => window.removeEventListener("online", handleOnline);
-    }, [fetchBatches, fetchPayments, selectedBatch]);
+    }, [user?.uid, fetchBatches]);
 
+    // Track if the user has explicitly clicked View at least once for current filters
+
+    const handleView = async () => {
+        if (!selectedBatch) return;
+        setHasLoaded(false);
+        await fetchPayments();
+        setHasLoaded(true);
+    };
+
+    // We still keep the online listener for manual refresh, but primary fetch is now manual
     useEffect(() => {
         if (!selectedBatch) return;
         const currentCacheKey = `teacher_payments_${selectedBatch}_${filterYear}_${filterMonth}`;
         const cached = getCache(currentCacheKey);
         if (cached) {
-            setPayments(cached);
+            if (cached.summary) {
+                setCounts(cached.summary);
+                setPayments(cached.records || []);
+            } else {
+                setPayments(cached);
+                setCounts({
+                    total_students: cached.length,
+                    paid_count: cached.filter(p => p.status === "Paid").length,
+                    unpaid_sum: cached.filter(p => p.status !== "Paid").length
+                });
+            }
             setLoading(false);
-        } else {
-            setPayments([]);
-            setLoading(true);
+            setHasLoaded(true);
         }
-        fetchPayments();
-    }, [selectedBatch, filterYear, filterMonth, fetchPayments]);
+    }, [selectedBatch, filterYear, filterMonth]);
 
     const handlePreOfflineClick = async (payment) => {
         setOfflineLoading(payment.id);
@@ -217,6 +264,7 @@ function TeacherDashboardContent() {
                 student_id: payment.student_id,
                 month: payment.month || filterMonth,
                 year: payment.year || filterYear,
+                batch_name: selectedBatchName,
                 amount: payment.amount,
             });
             // We consciously DO NOT call fetchPayments() here to save 100+ DB reads per click. 
@@ -234,20 +282,14 @@ function TeacherDashboardContent() {
     };
 
     // Summary stats
-    const totalStudents = payments.length;
-    const paidCount = payments.filter((p) => p.status === "Paid").length;
-    const unpaidCount = payments.filter((p) => p.status === "Unpaid").length;
-    const pendingCount = payments.filter((p) => p.status === "Pending_Verification").length;
+    const { total_students: totalStudents, paid_count: paidCount, unpaid_count: unpaidCount } = counts;
 
     const statusLabel = (s) => (s === "Pending_Verification" ? "Pending" : s || "—");
-    const filteredPayments = payments.filter(p => p.status !== "Paid");
-    const formatDate = (dateStr) => {
-        if (!dateStr) return "";
-        try {
-            const d = new Date(dateStr);
-            return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
-        } catch { return ""; }
-    };
+    const filteredPayments = payments; // Now filtered on the backend!
+
+    if (batchesLoading) {
+        return <div className="p-6"><TeacherDashboardSkeleton /></div>;
+    }
 
     const selectedBatchName = batches.find(b => b.id === selectedBatch)?.batch_name || "Select Batch";
 
@@ -263,82 +305,101 @@ function TeacherDashboardContent() {
                 </h1>
             </div>
 
+            {/* ── Current Filter ── */}
+            <section>
+                <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-end">
+                    <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <ModernSelect
+                            icon="calendar_month"
+                            value={filterMonth}
+                            options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
+                            onChange={(e) => { setFilterMonth(e.target.value); setHasLoaded(false); setPayments([]); }}
+                            className="w-full"
+                        />
+
+                        <ModernSelect
+                            icon="event"
+                            value={filterYear}
+                            options={getYearOptions()}
+                            onChange={(e) => { setFilterYear(parseInt(e.target.value)); setHasLoaded(false); setPayments([]); }}
+                            className="w-full"
+                        />
+
+                        <ModernSelect
+                            icon="school"
+                            value={selectedBatch}
+                            options={batches}
+                            onChange={(e) => { setSelectedBatch(e.target.value); setHasLoaded(false); setPayments([]); }}
+                            className="w-full md:col-span-2"
+                        />
+                    </div>
+                    <button
+                        onClick={handleView}
+                        disabled={!selectedBatch || loading}
+                        className="px-8 py-3 rounded-2xl bg-[#3b82f6] text-white text-sm font-bold uppercase tracking-widest hover:bg-[#2563eb] transition-all shadow-[0_4px_20px_rgba(59,130,246,0.3)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 h-[52px]"
+                    >
+                        {loading ? (
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            <span className="material-symbols-outlined text-lg">search</span>
+                        )}
+                        View
+                    </button>
+                </div>
+            </section>
+
             {/* ── Summary Cards ── */}
-            <section className="space-y-4">
-                {/* Total Students — Full Width */}
-                <GlassCard className="p-6 relative overflow-hidden group">
+            <section className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {/* Total Students - Full width on mobile, 1 col on desktop */}
+                <GlassCard className="col-span-2 md:col-span-1 p-6 relative overflow-hidden group">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-[10px] uppercase tracking-widest text-[#aaaab7] font-bold mb-2">
-                                Total Students
+                            <p className="text-[10px] uppercase tracking-widest text-[#aaaab7] font-bold mb-1">
+                                Total
                             </p>
-                            <p className="text-4xl font-extrabold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                            <p className="text-3xl font-extrabold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                                 {totalStudents}
                             </p>
                         </div>
-                        <div className="w-14 h-14 rounded-2xl bg-[#3b82f6]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[#3b82f6] text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                group
-                            </span>
+                        <div className="w-12 h-12 rounded-xl bg-[#3b82f6]/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[#3b82f6] text-2xl">group</span>
                         </div>
                     </div>
                 </GlassCard>
 
-                {/* Paid + Unpaid — 2 Columns */}
-                <div className="grid grid-cols-2 gap-4">
-                    <GlassCard className="p-5">
-                        <div className="flex items-center gap-2 mb-3">
-                            <div className="w-8 h-8 rounded-full bg-[#4af8e3]/10 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-[#4af8e3] text-lg">check_circle</span>
-                            </div>
-                            <span className="text-xs font-bold uppercase tracking-wider text-[#4af8e3]">Paid</span>
+                {/* Paid - Side by side on mobile */}
+                <GlassCard className="col-span-1 p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] uppercase tracking-widest text-[#4af8e3] font-bold mb-1">
+                                Paid
+                            </p>
+                            <p className="text-3xl font-extrabold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                {paidCount}
+                            </p>
                         </div>
-                        <p className="text-3xl font-extrabold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                            {paidCount}
-                        </p>
-                    </GlassCard>
-
-                    <GlassCard className="p-5">
-                        <div className="flex items-center gap-2 mb-3">
-                            <div className="w-8 h-8 rounded-full bg-[#ff6e84]/10 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-[#ff6e84] text-lg">cancel</span>
-                            </div>
-                            <span className="text-xs font-bold uppercase tracking-wider text-[#ff6e84]">Unpaid</span>
+                        <div className="w-12 h-12 rounded-xl bg-[#4af8e3]/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[#4af8e3] text-2xl">check_circle</span>
                         </div>
-                        <p className="text-3xl font-extrabold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                            {unpaidCount}
-                        </p>
-                    </GlassCard>
-                </div>
-            </section>
+                    </div>
+                </GlassCard>
 
-            {/* ── Current Filter ── */}
-            <section>
-                <div className="flex flex-col md:grid md:grid-cols-4 gap-3">
-                    <ModernSelect
-                        icon="calendar_month"
-                        value={filterMonth}
-                        options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
-                        onChange={(e) => setFilterMonth(e.target.value)}
-                        className="w-full"
-                    />
-
-                    <ModernSelect
-                        icon="event"
-                        value={filterYear}
-                        options={getYearOptions()}
-                        onChange={(e) => setFilterYear(parseInt(e.target.value))}
-                        className="w-full"
-                    />
-
-                    <ModernSelect
-                        icon="school"
-                        value={selectedBatch}
-                        options={batches}
-                        onChange={(e) => setSelectedBatch(e.target.value)}
-                        className="w-full md:col-span-2"
-                    />
-                </div>
+                {/* Unpaid - Side by side on mobile */}
+                <GlassCard className="col-span-1 p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] uppercase tracking-widest text-[#ff6e84] font-bold mb-1">
+                                Unpaid
+                            </p>
+                            <p className="text-3xl font-extrabold text-[#f0f0fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                {unpaidCount}
+                            </p>
+                        </div>
+                        <div className="w-12 h-12 rounded-xl bg-[#ff6e84]/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[#ff6e84] text-2xl">cancel</span>
+                        </div>
+                    </div>
+                </GlassCard>
             </section>
 
             {/* ── Alerts ── */}
@@ -357,6 +418,17 @@ function TeacherDashboardContent() {
                 <div className="mt-6">
                     <TeacherDashboardSkeleton />
                 </div>
+            ) : !hasLoaded ? (
+                /* ── Empty State: Not loaded yet ── */
+                <section className="mt-8">
+                    <GlassCard className="p-16 flex flex-col items-center justify-center text-center gap-4">
+                        <div className="w-20 h-20 rounded-full bg-[#3b82f6]/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[#3b82f6] text-4xl">search_check</span>
+                        </div>
+                        <h3 className="text-[#f0f0fd] font-bold text-lg" style={{ fontFamily: "'Manrope', sans-serif" }}>Ready to view payments?</h3>
+                        <p className="text-[#aaaab7] text-sm max-w-xs">Select your filters above and click <b>View</b> to load student records from the database.</p>
+                    </GlassCard>
+                </section>
             ) : (
                 /* ── SINGLE MONTH — Card Layout ── */
                 <section>

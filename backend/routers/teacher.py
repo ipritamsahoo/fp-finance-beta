@@ -39,6 +39,8 @@ def teacher_get_batches(user=Depends(require_role("teacher"))):
 # ──────────────────────────────────────────────
 # GET /api/teacher/payments
 # ──────────────────────────────────────────────
+from google.cloud.firestore_v1.base_query import FieldFilter
+
 @router.get("/payments")
 def teacher_get_payments(
     batch_id: str,
@@ -46,7 +48,7 @@ def teacher_get_payments(
     year: Optional[int] = None,
     user=Depends(require_role("teacher")),
 ):
-    """Get payment records for a batch, optionally filtered by month/year."""
+    """Get payment records and optimized summary for a batch."""
     # Verify teacher is assigned to this batch
     batch_doc = db.collection("batches").document(batch_id).get()
     if not batch_doc.exists:
@@ -56,17 +58,31 @@ def teacher_get_payments(
     if user["uid"] not in batch_data.get("teacher_ids", []):
         raise HTTPException(status_code=403, detail="Not assigned to this batch")
 
-    # Build query
-    query = db.collection("payments").where("batch_id", "==", batch_id)
+    # Base query for this batch/period
+    base_query = db.collection("payments").where(filter=FieldFilter("batch_id", "==", batch_id))
     if month:
-        query = query.where("month", "==", month)
+        base_query = base_query.where(filter=FieldFilter("month", "==", month))
     if year:
-        query = query.where("year", "==", year)
+        base_query = base_query.where(filter=FieldFilter("year", "==", year))
 
-    payments = query.stream()
-    results = [serialize_doc(p) for p in payments]
+    # 1. Get summary counts using optimized count() queries
+    total_count = base_query.count().get()[0][0].value
+    paid_count = base_query.where(filter=FieldFilter("status", "==", "Paid")).count().get()[0][0].value
+    unpaid_count = base_query.where(filter=FieldFilter("status", "==", "Unpaid")).count().get()[0][0].value
+    
+    # 2. Optimized Fetch: Only read documents for students who need action (Unpaid, Pending, Rejected)
+    # We avoid base_query.stream() (which reads everyone) and use specific equality queries.
+    # Firestore can often merge-join these without a manual composite index.
+    pending_statuses = ["Unpaid", "Pending_Verification", "Rejected"]
+    results = []
+    
+    # We fetch each non-paid status separately to minimize document reads
+    for status in pending_statuses:
+        status_docs = base_query.where(filter=FieldFilter("status", "==", status)).stream()
+        for doc in status_docs:
+            results.append(serialize_doc(doc))
 
-    # Dynamically inject the latest student details
+    # 3. Inject student details for non-paid records ONLY
     student_ids = {p.get("student_id") for p in results if p.get("student_id")}
     if student_ids:
         user_refs = [db.collection("users").document(sid) for sid in student_ids]
@@ -90,7 +106,14 @@ def teacher_get_payments(
 
     results.sort(key=lambda x: x.get("student_name", "").lower())
 
-    return results
+    return {
+        "summary": {
+            "total_students": total_count,
+            "paid_count": paid_count,
+            "unpaid_count": unpaid_count
+        },
+        "records": results
+    }
 
 
 # ──────────────────────────────────────────────
@@ -141,8 +164,8 @@ def teacher_student_dues(
 ):
     """Get unpaid previous dues for a single student to check before offline approval."""
     query = db.collection("payments") \
-        .where("student_id", "==", student_id) \
-        .where("status", "in", ["Unpaid", "Rejected"])
+        .where(filter=FieldFilter("student_id", "==", student_id)) \
+        .where(filter=FieldFilter("status", "in", ["Unpaid", "Rejected"]))
 
     dues = query.stream()
     result = []
@@ -178,9 +201,9 @@ def teacher_offline_request(
 
     # Check if payment record already exists for this month
     existing = db.collection("payments") \
-        .where("student_id", "==", req.student_id) \
-        .where("month", "==", req.month) \
-        .where("year", "==", req.year) \
+        .where(filter=FieldFilter("student_id", "==", req.student_id)) \
+        .where(filter=FieldFilter("month", "==", req.month)) \
+        .where(filter=FieldFilter("year", "==", req.year)) \
         .limit(1) \
         .stream()
 
@@ -193,15 +216,10 @@ def teacher_offline_request(
         if current["status"] == "Paid":
             raise HTTPException(status_code=400, detail="Payment already verified for this month")
 
-        # Get teacher and batch names for denormalization
+        # Use batch_name from request for optimization (0 reads)
         teacher_name = user.get("name", "Teacher")
         student_name = student.get("name", "Student")
-        batch_name = "Unknown"
-        batch_id = student.get("batch_id")
-        if batch_id:
-            batch_doc = db.collection("batches").document(batch_id).get()
-            if batch_doc.exists:
-                batch_name = batch_doc.to_dict().get("batch_name", "Unknown")
+        batch_name = req.batch_name or "Unknown"
 
         payment_ref.update({
             "status": "Pending_Verification",

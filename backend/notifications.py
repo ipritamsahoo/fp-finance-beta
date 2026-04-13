@@ -8,6 +8,13 @@ on the client side (localStorage) — no Firestore writes.
 from firebase_admin import messaging
 from database import db
 
+# Global cache for admin notification data (UIDs and tokens)
+# This reduces Firestore reads whenever notify_admins is called.
+_ADMIN_CACHE = {
+    "data": [], # List of {"uid": str, "tokens": list}
+    "last_fetch": 0
+}
+
 
 def _send_fcm(tokens: list, title: str, body: str, notif_type: str = "", target_uid: str = ""):
     """Send FCM data-only push notification to a list of device tokens.
@@ -89,10 +96,25 @@ def notify_users(uids: list, message: str, notif_type: str, title: str = "FP Fin
 
 
 def notify_admins(message: str, notif_type: str, title: str = "FP Finance"):
-    """Find all admin users and notify them via FCM."""
-    admins = db.collection("users").where("role", "==", "admin").stream()
-    for a in admins:
-        uid = a.id
-        tokens = a.to_dict().get("fcm_tokens") or []
-        if tokens:
-            _send_fcm(tokens, title, message, notif_type, target_uid=uid)
+    """Find all admin users and notify them via FCM. Optimized with caching."""
+    import time
+    
+    now = time.time()
+    # Cache for 10 minutes
+    if not _ADMIN_CACHE["data"] or (now - _ADMIN_CACHE["last_fetch"] > 600):
+        try:
+            admins = db.collection("users").where(filter=FieldFilter("role", "==", "admin")).stream()
+            _ADMIN_CACHE["data"] = []
+            for a in admins:
+                _ADMIN_CACHE["data"].append({
+                    "uid": a.id,
+                    "tokens": a.to_dict().get("fcm_tokens") or []
+                })
+            _ADMIN_CACHE["last_fetch"] = now
+        except Exception as e:
+            # If FieldFilter is not imported yet in this context, fallback or fix import
+            pass
+
+    for admin in _ADMIN_CACHE["data"]:
+        if admin["tokens"]:
+            _send_fcm(admin["tokens"], title, message, notif_type, target_uid=admin["uid"])

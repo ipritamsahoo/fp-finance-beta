@@ -56,6 +56,7 @@ class OfflineRequest(BaseModel):
     month: int
     year: int
     amount: Optional[float] = None
+    batch_name: Optional[str] = None
 
 
 class StudentUpdate(BaseModel):

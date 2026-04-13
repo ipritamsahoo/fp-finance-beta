@@ -33,7 +33,7 @@ function ReportExportContent() {
 
     const yearOptions = getYearOptions();
 
-    // Fetch batches
+    // Fetch batches — runs once on mount
     useEffect(() => {
         api.get("/api/admin/batches")
             .then((data) => {
@@ -46,10 +46,8 @@ function ReportExportContent() {
                 }
             })
             .catch((err) => setError(err.message))
-            .finally(() => {
-                if (loading) setLoading(false);
-            });
-    }, [batchId, loading]);
+            .finally(() => setLoading(false));
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const toggleMonth = (m) => {
         setSelectedMonths((prev) =>

@@ -402,22 +402,26 @@ function StudentDashboardContent() {
     }, [cacheKey]); // Stable dependencies (loading removed)
 
     useEffect(() => {
-        fetchPayments();
-        const handleOnline = () => {
+        if (user?.uid) {
             fetchPayments();
+        }
+        const handleOnline = () => {
+            if (user?.uid) fetchPayments();
         };
         window.addEventListener("online", handleOnline);
         return () => window.removeEventListener("online", handleOnline);
-    }, [fetchPayments]);
+    }, [user?.uid, fetchPayments]);
 
     // Real-time: auto-refresh when payment status changes in Firestore
     useEffect(() => {
         if (!user?.uid) return;
+        let isFirstSnapshot = true; // Skip initial snapshot — fetchPayments() already called on mount
         const q = query(
             collection(db, "payments"),
             where("student_id", "==", user.uid)
         );
         const unsubscribe = onSnapshot(q, () => {
+            if (isFirstSnapshot) { isFirstSnapshot = false; return; }
             fetchPayments();
         });
         return () => unsubscribe();
