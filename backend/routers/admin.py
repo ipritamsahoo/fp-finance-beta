@@ -1247,20 +1247,20 @@ def admin_distribution(
     # 1. Query paid payments for this fee month/year (+ optional batch filter)
     # This is used for the individual date/payment listings
     query = db.collection("payments") \
-        .where("status", "==", "Paid") \
-        .where("month", "==", month) \
-        .where("year", "==", year)
+        .where(filter=FieldFilter("status", "==", "Paid")) \
+        .where(filter=FieldFilter("month", "==", month)) \
+        .where(filter=FieldFilter("year", "==", year))
     if batch_id:
-        query = query.where("batch_id", "==", batch_id)
+        query = query.where(filter=FieldFilter("batch_id", "==", batch_id))
 
     matching_payments = [serialize_doc(p) for p in query.stream()]
 
     # 2. Fetch settlement snapshots for summary aggregation
     snapshot_query = db.collection("distribution_snapshots") \
-        .where("month", "==", month) \
-        .where("year", "==", year)
+        .where(filter=FieldFilter("month", "==", month)) \
+        .where(filter=FieldFilter("year", "==", year))
     if batch_id:
-        snapshot_query = snapshot_query.where("batch_id", "==", batch_id)
+        snapshot_query = snapshot_query.where(filter=FieldFilter("batch_id", "==", batch_id))
 
     settled_dates = {}
     snapshots_list = []
@@ -1354,25 +1354,35 @@ def admin_distribution(
 def admin_settle_distribution(req: SettleDistribution, user=Depends(require_role("admin"))):
     """Freeze a date's distribution as a permanent snapshot.
     Once settled, teacher changes won't affect this date's records."""
+    from datetime import datetime
+    from utils import IST
+    
+    # 1. Date Validation: Block same-day settlements
+    today_str = datetime.now(IST).strftime("%Y-%m-%d")
+    if req.date >= today_str:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot settle revenue for today or future dates ({req.date}). Please wait until tomorrow to ensure no late evening payments are missed."
+        )
 
     # Check if already settled
     existing = db.collection("distribution_snapshots") \
-        .where("date", "==", req.date) \
-        .where("month", "==", req.month) \
-        .where("year", "==", req.year)
+        .where(filter=FieldFilter("date", "==", req.date)) \
+        .where(filter=FieldFilter("month", "==", req.month)) \
+        .where(filter=FieldFilter("year", "==", req.year))
     if req.batch_id:
-        existing = existing.where("batch_id", "==", req.batch_id)
+        existing = existing.where(filter=FieldFilter("batch_id", "==", req.batch_id))
 
     if list(existing.limit(1).stream()):
         raise HTTPException(status_code=400, detail="This date is already settled.")
 
     # Re-calculate distribution for this specific date
     query = db.collection("payments") \
-        .where("status", "==", "Paid") \
-        .where("month", "==", req.month) \
-        .where("year", "==", req.year)
+        .where(filter=FieldFilter("status", "==", "Paid")) \
+        .where(filter=FieldFilter("month", "==", req.month)) \
+        .where(filter=FieldFilter("year", "==", req.year))
     if req.batch_id:
-        query = query.where("batch_id", "==", req.batch_id)
+        query = query.where(filter=FieldFilter("batch_id", "==", req.batch_id))
 
     all_payments = [serialize_doc(p) for p in query.stream()]
 
@@ -1393,27 +1403,40 @@ def admin_settle_distribution(req: SettleDistribution, user=Depends(require_role
 
     date_total = sum(p.get("amount", 0) for p in date_payments)
     teacher_earnings = {}
+    
+    # Request-level cache to prevent duplicate reads for the same teacher or batch
+    cache_batches = {}
+    cache_users = {}
 
     for bid, bp in date_by_batch.items():
         bt = sum(x.get("amount", 0) for x in bp)
         tids = []
         if bid != "unassigned":
-            batch_doc = db.collection("batches").document(bid).get()
-            if batch_doc.exists:
-                tids = batch_doc.to_dict().get("teacher_ids", [])
+            if bid not in cache_batches:
+                b_doc = db.collection("batches").document(bid).get()
+                cache_batches[bid] = b_doc.to_dict() if b_doc.exists else {}
+                
+            tids = cache_batches[bid].get("teacher_ids", [])
+            
         tc = len(tids)
         pt = round(bt / tc, 2) if tc > 0 else 0
+        
         for tid in tids:
-            t_doc = db.collection("users").document(tid).get()
-            t_name = t_doc.to_dict().get("name", "Unknown") if t_doc.exists else "Unknown"
+            if tid not in cache_users:
+                t_doc = db.collection("users").document(tid).get()
+                cache_users[tid] = t_doc.to_dict() if t_doc.exists else {}
+                
+            t_name = cache_users[tid].get("name", "Unknown")
+            t_tokens = cache_users[tid].get("fcm_tokens", [])
+            
             if tid not in teacher_earnings:
-                teacher_earnings[tid] = {"name": t_name, "total": 0}
+                teacher_earnings[tid] = {"name": t_name, "total": 0, "tokens": t_tokens}
             teacher_earnings[tid]["total"] = round(
                 teacher_earnings[tid]["total"] + pt, 2
             )
 
     teachers_snapshot = [
-        {"uid": uid, "name": info["name"], "amount": info["total"]}
+        {"uid": uid, "name": info["name"], "amount": info["total"], "tokens": info["tokens"]}
         for uid, info in teacher_earnings.items()
     ]
     teachers_snapshot.sort(key=lambda t: t["amount"], reverse=True)
@@ -1439,11 +1462,15 @@ def admin_settle_distribution(req: SettleDistribution, user=Depends(require_role
     formatted_date = f"{parts[2]}.{parts[1]}.{parts[0]}" if len(parts) == 3 else req.date
     for t in teachers_snapshot:
         tid = t.get("uid")
-        if tid:
-            notify_user(
-                tid,
-                f"The distribution for {formatted_date} has been successfully settled.",
+        tokens = t.get("tokens", [])
+        if tid and tokens:
+            from notifications import _send_fcm
+            _send_fcm(
+                tokens, 
+                "FP Finance", 
+                f"The distribution for {formatted_date} has been successfully settled.", 
                 "distribution_settled",
+                target_uid=tid
             )
 
     return {
