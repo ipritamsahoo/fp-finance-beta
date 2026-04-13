@@ -17,6 +17,7 @@ from firebase_admin import auth as firebase_auth
 from config import DEFAULT_FEE_AMOUNT
 from database import db
 from firebase_admin import firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 from schemas import (
     RegisterRequest, BatchCreate, StudentCreate, TeacherCreate,
     StudentUpdate, TeacherUpdate, GenerateMonthly, UndoMonthly, FeeOverride,
@@ -1362,7 +1363,7 @@ def admin_settle_distribution(req: SettleDistribution, user=Depends(require_role
     if req.date >= today_str:
         raise HTTPException(
             status_code=400, 
-            detail=f"Cannot settle revenue for today or future dates ({req.date}). Please wait until tomorrow to ensure no late evening payments are missed."
+            detail=f"Cannot settle revenue for today ({req.date}). Please wait until tomorrow."
         )
 
     # Check if already settled
@@ -1376,21 +1377,22 @@ def admin_settle_distribution(req: SettleDistribution, user=Depends(require_role
     if list(existing.limit(1).stream()):
         raise HTTPException(status_code=400, detail="This date is already settled.")
 
-    # Re-calculate distribution for this specific date
+    # Re-calculate distribution for this specific date using updated_at range
+    # This drastically reduces reads by only bringing in today's payments.
+    # It requires a Firebase Composite Index: Collection 'payments' -> 'status' (Asc) + 'updated_at' (Asc)
     query = db.collection("payments") \
         .where(filter=FieldFilter("status", "==", "Paid")) \
-        .where(filter=FieldFilter("month", "==", req.month)) \
-        .where(filter=FieldFilter("year", "==", req.year))
-    if req.batch_id:
-        query = query.where(filter=FieldFilter("batch_id", "==", req.batch_id))
-
-    all_payments = [serialize_doc(p) for p in query.stream()]
-
-    # Filter to only this date's payments
-    date_payments = [
-        p for p in all_payments
-        if str(p.get("updated_at", ""))[:10] == req.date
-    ]
+        .where(filter=FieldFilter("updated_at", ">=", req.date)) \
+        .where(filter=FieldFilter("updated_at", "<=", f"{req.date}T23:59:59"))
+        
+    all_selected_payments = [serialize_doc(p) for p in query.stream()]
+    
+    # Filter by batch_id in memory (to avoid creating a second complex index just for batches)
+    date_payments = []
+    for p in all_selected_payments:
+        if req.batch_id and p.get("batch_id") != req.batch_id:
+            continue
+        date_payments.append(p)
 
     if not date_payments:
         raise HTTPException(status_code=404, detail="No payments found for this date.")

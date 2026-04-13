@@ -170,13 +170,7 @@ function DistributionContent() {
                 </div>
             </div>
 
-            {error && (
-                <div className="mb-4 p-4 rounded-xl bg-[#171924]/80 backdrop-blur-[20px] border border-[#ff6e84]/30 shadow-lg text-[#ff9dac] text-sm flex items-center gap-3">
-                    <span className="material-symbols-outlined text-[#ff6e84]">error</span>
-                    <span className="flex-1">{error}</span>
-                    <button onClick={() => setError("")} className="ml-2 hover:text-white transition-colors cursor-pointer">✕</button>
-                </div>
-            )}
+            {/* Inline error banner removed to prevent duplicate messages (handled by modal logic) */}
 
             {loading ? (
                 <div className="p-6">
