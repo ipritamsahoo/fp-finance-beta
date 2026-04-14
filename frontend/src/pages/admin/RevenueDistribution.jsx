@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
-import { api } from "@/lib/api";
+import { api, isSystemicError } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import ModernSelect from "@/components/ModernSelect";
 import { getCache, setCache } from "@/lib/memoryCache";
@@ -57,7 +57,9 @@ function DistributionContent() {
             });
             fetchDistribution();
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setSettleLoading(null);
         }
@@ -103,7 +105,9 @@ function DistributionContent() {
                 setData(prev => JSON.stringify(prev) !== JSON.stringify(res) ? res : prev);
             }
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setLoading(false);
         }

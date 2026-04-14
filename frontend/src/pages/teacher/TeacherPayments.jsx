@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import TeacherLayout from "@/components/TeacherLayout";
-import { api } from "@/lib/api";
+import { api, isSystemicError } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import ModernSelect from "@/components/ModernSelect";
 import { getCache, setCache } from "@/lib/memoryCache";
@@ -61,7 +61,9 @@ function PaymentsContent() {
             setPayments(res);
             setHasLoaded(true);
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setLoading(false);
         }

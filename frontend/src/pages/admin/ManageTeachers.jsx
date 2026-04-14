@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
 import UserDevicesModal from "@/components/UserDevicesModal";
-import { api } from "@/lib/api";
+import { api, isSystemicError } from "@/lib/api";
 import { getCache, setCache } from "@/lib/memoryCache";
 import { GenericListSkeleton } from "@/components/Skeletons";
 
@@ -50,7 +50,9 @@ function TeachersContent() {
                 setCache("admin_teacher_batches", b);
             }
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setLoading(false);
         }
@@ -71,7 +73,9 @@ function TeachersContent() {
             setShowForm(false);
             fetchData();
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setFormLoading(false);
         }
@@ -85,7 +89,9 @@ function TeachersContent() {
             setSuccess("Teacher removed.");
             fetchData();
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setDeleting(null);
         }
@@ -144,7 +150,9 @@ function TeachersContent() {
             cancelEdit();
             fetchData();
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setEditLoading(false);
         }

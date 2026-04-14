@@ -71,6 +71,15 @@ export async function apiFetch(endpoint, options = {}) {
 }
 
 /**
+ * Check if an error message represents a systemic error 
+ * handled by the GlobalErrorModal (Network, Auth, Server 500).
+ */
+export function isSystemicError(errorMsg) {
+    const systemic = ["NETWORK_ERROR", "AUTH_ERROR", "SERVER_ERROR"];
+    return systemic.includes(errorMsg);
+}
+
+/**
  * Shorthand helpers
  */
 export const api = {

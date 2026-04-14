@@ -28,8 +28,8 @@ export async function generateReceiptPDF(payment, user) {
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 20;
 
-    // --- Header ---
-    doc.setFillColor(79, 70, 229); // Indigo-600
+    // --- Header (Lite touch of Navy Blue) ---
+    doc.setFillColor(241, 245, 249); // Very light blue-grey tint
     doc.rect(0, 0, pageWidth, 40, "F");
 
     try {
@@ -39,10 +39,10 @@ export async function generateReceiptPDF(payment, user) {
         console.error("Could not load logo for PDF", e);
     }
 
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(0, 0, 0); // Black text
     doc.setFontSize(28);
     doc.setFont("helvetica", "bold");
-    doc.text("FP Finance", margin + 25, 25);
+    doc.text("Future Point", margin + 25, 25);
 
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
@@ -69,7 +69,7 @@ export async function generateReceiptPDF(payment, user) {
     doc.setFont("helvetica", "normal");
 
     // Receipt No
-    doc.text(`Receipt No: RCT-${payment.id.substring(0, 8).toUpperCase()}`, rightColX, startY + 10);
+    doc.text(`Receipt No: ${payment.id}`, rightColX, startY + 10);
 
     // Date of payment approval
     let approvalDate = "N/A";
@@ -88,8 +88,9 @@ export async function generateReceiptPDF(payment, user) {
     doc.text(`Mode of Payment: ${mode}`, rightColX, startY + 26);
 
     // If offline, show teacher name
-    if (payment.mode === "offline" && payment.offline_teacher_name) {
-        doc.text(`Received by: ${payment.offline_teacher_name}`, rightColX, startY + 34);
+    const tName = payment.teacher_name || payment.offline_teacher_name;
+    if (payment.mode === "offline" && tName) {
+        doc.text(`Received by: ${tName}`, rightColX, startY + 34);
     }
 
     // ─── Fee Table ───
@@ -102,15 +103,20 @@ export async function generateReceiptPDF(payment, user) {
         body: [
             ["Tuition Fee", `${monthName} ${payment.year}`, `Rs. ${payment.amount}`],
         ],
-        theme: "striped",
+        theme: "grid",
         headStyles: {
-            fillColor: [79, 70, 229],
-            textColor: 255,
+            fillColor: [241, 245, 249],
+            textColor: [15, 23, 42], // Navy blue text for head
             fontStyle: "bold",
+            lineWidth: 0.1,
+            lineColor: [15, 23, 42], // Navy blue border
         },
         styles: {
             fontSize: 11,
             cellPadding: 6,
+            textColor: [50, 50, 50],
+            lineColor: [15, 23, 42], // Navy blue border for body
+            lineWidth: 0.1,
         },
         columnStyles: {
             0: { cellWidth: "auto" },

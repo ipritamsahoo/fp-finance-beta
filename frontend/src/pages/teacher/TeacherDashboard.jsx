@@ -5,7 +5,7 @@ import TeacherLayout from "@/components/TeacherLayout";
 import ProfilePicture from "@/components/ProfilePicture";
 import AnimatedGreeting from "@/components/AnimatedGreeting";
 import CachedAvatar from "@/components/CachedAvatar";
-import { api } from "@/lib/api";
+import { api, isSystemicError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { getYearOptions } from "@/lib/yearOptions";
@@ -146,7 +146,9 @@ function TeacherDashboardContent() {
                 });
             }
         } catch (err) {
-            setError(err.message || "Failed to fetch payments");
+            if (!isSystemicError(err.message)) {
+                setError(err.message || "Failed to fetch payments");
+            }
         } finally {
             setLoading(false);
         }
@@ -266,7 +268,9 @@ function TeacherDashboardContent() {
             // No dues found, proceed
             handleOfflineRequest(payment);
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
             setOfflineLoading(null);
         }
     };
@@ -289,7 +293,9 @@ function TeacherDashboardContent() {
             // and mathematically updates unpaid_count perfectly in sync.
         } catch (err) {
             const msg = typeof err.message === "string" ? err.message : JSON.stringify(err.message);
-            setError(msg);
+            if (!isSystemicError(msg)) {
+                setError(msg);
+            }
         } finally {
             setOfflineLoading(null);
         }

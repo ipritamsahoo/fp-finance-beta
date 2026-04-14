@@ -141,3 +141,10 @@ registerRoute(
         ],
     })
 );
+
+// Allow the PWA plugin to force skipWaiting when auto-updating
+self.addEventListener("message", (event) => {
+    if (event.data && event.data.type === "SKIP_WAITING") {
+        self.skipWaiting();
+    }
+});

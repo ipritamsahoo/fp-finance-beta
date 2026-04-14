@@ -8,21 +8,29 @@ export default function AboutPage() {
     const navigate = useNavigate();
     const { user } = useAuth();
 
-    const [theme, setTheme] = useState("dark");
+    const [theme, setTheme] = useState(() => {
+        try {
+            return localStorage.getItem("fp_student_theme_v2") || "dark";
+        } catch {
+            return "dark";
+        }
+    });
     const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
     useEffect(() => {
-        if (user?.role === "student") {
-            try {
-                const saved = localStorage.getItem("fp_student_theme_v2") || "dark";
-                setTheme(saved);
-            } catch {
+        if (user) {
+            if (user.role === "student") {
+                try {
+                    const saved = localStorage.getItem("fp_student_theme_v2") || "dark";
+                    setTheme(saved);
+                } catch {
+                    setTheme("dark");
+                }
+            } else {
                 setTheme("dark");
             }
-        } else {
-            setTheme("dark");
         }
-    }, [user?.role]);
+    }, [user]);
 
     const isLight = theme === "light";
     const accentColor = isLight ? "#0d9488" : "#3b82f6";
@@ -71,10 +79,10 @@ export default function AboutPage() {
                 <header
                     className="sticky top-0 z-40 border-b"
                     style={{
-                        backgroundColor: isLight ? "rgba(255, 255, 255, 0.2)" : "rgba(15, 17, 23, 0.4)",
-                        borderColor: isLight ? "rgba(255, 255, 255, 0.5)" : "rgba(255, 255, 255, 0.1)",
-                        backdropFilter: "blur(32px) saturate(1.8)",
-                        WebkitBackdropFilter: "blur(32px) saturate(1.8)",
+                        backgroundColor: isLight ? "rgba(255, 255, 255, 0.2)" : "rgba(15, 17, 23, 0.25)",
+                        borderColor: isLight ? "rgba(255, 255, 255, 0.5)" : "rgba(255, 255, 255, 0.08)",
+                        backdropFilter: "blur(48px) saturate(2.0)",
+                        WebkitBackdropFilter: "blur(48px) saturate(2.0)",
                         transform: "translateZ(0)",
                         isolation: "isolate",
                     }}
@@ -104,7 +112,13 @@ export default function AboutPage() {
                     <AboutContent 
                         isLight={isLight} 
                         accentColor={accentColor} 
-                        onFeedbackClick={() => setFeedbackModalOpen(true)} 
+                        onFeedbackClick={() => {
+                            if (window.innerWidth < 768) {
+                                navigate("/feedback");
+                            } else {
+                                setFeedbackModalOpen(true);
+                            }
+                        }} 
                     />
                 </div>
             </div>
@@ -140,7 +154,13 @@ export default function AboutPage() {
                 <AboutContent 
                     isLight={isLight} 
                     accentColor={accentColor} 
-                    onFeedbackClick={() => setFeedbackModalOpen(true)} 
+                    onFeedbackClick={() => {
+                        if (window.innerWidth < 768) {
+                            navigate("/feedback");
+                        } else {
+                            setFeedbackModalOpen(true);
+                        }
+                    }} 
                 />
             </div>
 

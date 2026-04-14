@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
 import AnimatedGreeting from "@/components/AnimatedGreeting";
-import { api } from "@/lib/api";
+import { api, isSystemicError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { getYearOptions } from "@/lib/yearOptions";
@@ -111,7 +111,9 @@ function AdminDashboardContent() {
             setMessage(data.message);
             fetchStats();
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setGenerating(false);
         }
@@ -130,7 +132,9 @@ function AdminDashboardContent() {
             setMessage(data.message);
             fetchStats();
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setUndoing(false);
         }

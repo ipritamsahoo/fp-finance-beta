@@ -211,7 +211,7 @@ function TeacherSettingsContent() {
             </section>
 
             {/* ── Footer ── */}
-            <footer className="mt-4 md:mt-8 flex flex-col items-center gap-6">
+            <footer className="mt-4 md:mt-12 flex flex-col items-center gap-6">
                 <button
                     onClick={logout}
                     className="group flex items-center gap-3 px-8 py-3 bg-[#a70138]/20 hover:bg-[#a70138]/30 transition-all rounded-full ring-1 ring-[#ff6e84]/20 active:scale-95 cursor-pointer"

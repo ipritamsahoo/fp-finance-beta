@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
-import { api } from "@/lib/api";
+import { api, isSystemicError } from "@/lib/api";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, doc, getDoc } from "firebase/firestore";
 import ModernSelect from "@/components/ModernSelect";
@@ -60,7 +60,9 @@ function ApprovalContent() {
                 setCache("admin_pending_approvals", filteredPending);
             }
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setLoading(false);
         }
@@ -192,7 +194,9 @@ function ApprovalContent() {
             await api.put(`/api/admin/approve/${paymentId}`);
             setSuccess("Payment approved!");
         } catch (err) { 
-            setError(err.message); 
+            if (!isSystemicError(err.message)) {
+                setError(err.message); 
+            }
             removedIdsRef.current.delete(paymentId); // Untrack on failure
             fetchPending(); // Revert on error
         }
@@ -217,7 +221,9 @@ function ApprovalContent() {
             await api.put(`/api/admin/reject/${paymentId}`);
             setSuccess("Payment rejected.");
         } catch (err) { 
-            setError(err.message); 
+            if (!isSystemicError(err.message)) {
+                setError(err.message); 
+            }
             removedIdsRef.current.delete(paymentId); // Untrack on failure
             fetchPending(); // Revert on error
         }

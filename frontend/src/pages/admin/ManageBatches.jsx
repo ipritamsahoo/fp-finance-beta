@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
-import { api } from "@/lib/api";
+import { api, isSystemicError } from "@/lib/api";
 import { getCache, setCache } from "@/lib/memoryCache";
 import { GenericListSkeleton } from "@/components/Skeletons";
 
@@ -45,7 +45,9 @@ function BatchesContent() {
                 setCache("admin_teachers", t);
             }
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setLoading(false);
         }
@@ -77,7 +79,9 @@ function BatchesContent() {
             setEditId(null);
             fetchData();
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setFormLoading(false);
         }
@@ -104,7 +108,9 @@ function BatchesContent() {
             setSuccess("Batch deleted.");
             fetchData();
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setDeleting(null);
         }

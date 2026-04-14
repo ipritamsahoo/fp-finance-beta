@@ -98,6 +98,7 @@ def notify_users(uids: list, message: str, notif_type: str, title: str = "FP Fin
 def notify_admins(message: str, notif_type: str, title: str = "FP Finance"):
     """Find all admin users and notify them via FCM. Optimized with caching."""
     import time
+    from google.cloud.firestore_v1.base_query import FieldFilter
     
     now = time.time()
     # Cache for 10 minutes
@@ -112,8 +113,7 @@ def notify_admins(message: str, notif_type: str, title: str = "FP Finance"):
                 })
             _ADMIN_CACHE["last_fetch"] = now
         except Exception as e:
-            # If FieldFilter is not imported yet in this context, fallback or fix import
-            pass
+            print(f"Error fetching admins for FCM: {e}")
 
     for admin in _ADMIN_CACHE["data"]:
         if admin["tokens"]:

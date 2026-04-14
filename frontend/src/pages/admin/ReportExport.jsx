@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
-import { api, apiFetch } from "@/lib/api";
+import { api, apiFetch, isSystemicError } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import { auth } from "@/lib/firebase";
 import ModernSelect from "@/components/ModernSelect";
@@ -45,7 +45,11 @@ function ReportExportContent() {
                     }
                 }
             })
-            .catch((err) => setError(err.message))
+            .catch((err) => {
+                if (!isSystemicError(err.message)) {
+                    setError(err.message);
+                }
+            })
             .finally(() => setLoading(false));
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -116,7 +120,9 @@ function ReportExportContent() {
             const monthNames = selectedMonths.map((m) => MONTHS[m - 1]).join(", ");
             setSuccess(`Report exported: ${batchName} — ${monthNames} ${year}`);
         } catch (err) {
-            setError(err.message || "Failed to export report.");
+            if (!isSystemicError(err.message)) {
+                setError(err.message || "Failed to export report.");
+            }
         } finally {
             setExporting(false);
         }

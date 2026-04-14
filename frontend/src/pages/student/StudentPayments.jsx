@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import StudentLayout from "@/components/StudentLayout";
-import { api, apiFetch } from "@/lib/api";
+import { api, apiFetch, isSystemicError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useStudentTheme } from "@/context/StudentThemeContext";
 import { db } from "@/lib/firebase";
@@ -294,7 +294,9 @@ function StudentPaymentsContent() {
                 setCache(cacheKey, data);
             }
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setLoading(false);
         }
@@ -330,7 +332,11 @@ function StudentPaymentsContent() {
         try {
             const data = await api.get(`/api/student/upi-link?amount=${payment.amount}&month=${payment.month}&year=${payment.year}`);
             setPayModalUpi(data);
-        } catch (err) { setError(err.message); }
+        } catch (err) { 
+            if (!isSystemicError(err.message)) {
+                setError(err.message); 
+            }
+        }
     };
 
     const closePayModal = () => { setPayModalPayment(null); setPayModalUpi(null); };
@@ -345,7 +351,11 @@ function StudentPaymentsContent() {
             // Note: No explicit fetchPayments() here.
             // onSnapshot listener fires automatically when backend updates
             // the Firestore payment document, triggering a fresh fetch.
-        } catch (err) { setError(err.message); }
+        } catch (err) { 
+            if (!isSystemicError(err.message)) {
+                setError(err.message); 
+            }
+        }
     };
 
     if (loading) {

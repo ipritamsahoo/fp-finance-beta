@@ -107,12 +107,6 @@ class SettleDistribution(BaseModel):
     batch_id: Optional[str] = None
 
 
-class AdminUpdate(BaseModel):
-    name: Optional[str] = None
-    email: Optional[str] = None
-    password: Optional[str] = None
-
-
 class AdminSeed(BaseModel):
     username: str
     password: str
@@ -128,3 +122,7 @@ class SessionRegisterRequest(BaseModel):
     session_id: str
     device_name: str
     platform: str
+
+
+class EmergencyReset(BaseModel):
+    master_key: str

@@ -6,7 +6,7 @@ import StudentLayout from "@/components/StudentLayout";
 import AnimatedGreeting from "@/components/AnimatedGreeting";
 import PaymentProgressTracker from "@/components/PaymentProgressTracker";
 import BadgeCelebrationOverlay from "@/components/BadgeCelebrationOverlay";
-import { api, apiFetch } from "@/lib/api";
+import { api, apiFetch, isSystemicError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useStudentTheme } from "@/context/StudentThemeContext";
 import { db } from "@/lib/firebase";
@@ -29,6 +29,7 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
     const [preview, setPreview] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [upiNotice, setUpiNotice] = useState(payment?.status === "Rejected");
+    const [upiAppUnavailable, setUpiAppUnavailable] = useState(false);
     const [showPreviewModal, setShowPreviewModal] = useState(false);
     const { theme } = useStudentTheme();
     const isLight = theme === "light";
@@ -158,19 +159,40 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                     )}
 
                     {isMobile() && upiData && (
-                        <button
-                            onClick={() => setUpiNotice(true)}
-                            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl text-sm font-medium transition-all mb-2 cursor-pointer"
-                            style={{
-                                backgroundColor: 'var(--st-blue-bg)',
-                                borderWidth: 1, borderStyle: 'solid',
-                                borderColor: isLight ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.2)',
-                                color: 'var(--st-blue)',
-                            }}
-                        >
-                            <span className="material-symbols-outlined text-lg">credit_card</span>
-                            Open UPI App
-                        </button>
+                        <>
+                            <button
+                                onClick={() => setUpiAppUnavailable(true)}
+                                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl text-sm font-medium transition-all mb-2 cursor-pointer"
+                                style={{
+                                    backgroundColor: 'var(--st-blue-bg)',
+                                    borderWidth: 1, borderStyle: 'solid',
+                                    borderColor: isLight ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.2)',
+                                    color: 'var(--st-blue)',
+                                }}
+                            >
+                                <span className="material-symbols-outlined text-lg">credit_card</span>
+                                Open UPI App
+                            </button>
+
+                            {upiAppUnavailable && (
+                                <div
+                                    className="mb-4 mt-1 p-3 rounded-2xl text-xs leading-relaxed relative"
+                                    style={{
+                                        backgroundColor: isLight ? 'rgba(245,158,11,0.08)' : 'rgba(251,191,36,0.1)',
+                                        border: `1px solid ${isLight ? 'rgba(245,158,11,0.2)' : 'rgba(251,191,36,0.2)'}`,
+                                        color: isLight ? '#b45309' : '#fde68a'
+                                    }}
+                                >
+                                    <span className="font-bold flex items-center gap-1 mb-1" style={{ color: isLight ? '#d97706' : '#fbbf24' }}>
+                                        <span className="material-symbols-outlined text-sm">info</span> Service Unavailable
+                                    </span>
+                                    This service is currently unavailable. Please pay either by scanning the QR code displayed on your screen, or by paying Mr. Soumya Sengupta directly via your UPI app, and then submit the screenshot here.
+                                    <button onClick={() => setUpiAppUnavailable(false)} className="absolute top-2 right-2 cursor-pointer w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/5" style={{ color: isLight ? '#d97706' : '#fbbf24' }}>
+                                        <span className="material-symbols-outlined text-sm font-bold">close</span>
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {upiNotice && (
@@ -265,9 +287,16 @@ function PayNowModal({ payment, upiData, onClose, onProceed }) {
                     <button
                         onClick={handleSubmit}
                         disabled={!file || submitting}
-                        className="w-full py-3 rounded-full bg-[#3b82f6] text-white font-bold text-sm
-                            hover:bg-[#2563eb] transition-all shadow-[0_4px_20px_rgba(59,130,246,0.4)]
-                            disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer active:scale-95"
+                        className={`w-full py-3 rounded-full font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer active:scale-95 border shadow-lg ${
+                            isLight
+                                ? 'bg-[#0d9488]/10 border-[#0d9488]/30 text-[#0d9488] hover:bg-[#0d9488]/20'
+                                : 'bg-[#4af8e3]/10 border-[#4af8e3]/30 text-[#4af8e3] hover:bg-[#4af8e3]/20'
+                        }`}
+                        style={{
+                            backdropFilter: 'blur(24px) saturate(2)',
+                            WebkitBackdropFilter: 'blur(24px) saturate(2)',
+                            transform: "translateZ(0)", isolation: "isolate"
+                        }}
                     >
                         {submitting ? (
                             <span className="flex items-center justify-center gap-2">
@@ -395,7 +424,9 @@ function StudentDashboardContent() {
                 setCache(cacheKey, data);
             }
         } catch (err) {
-            // Handled globally
+            if (!isSystemicError(err.message)) {
+                // Handled globally for systemic, but we could set error here if needed
+            }
         } finally {
             setLoading(false);
         }
@@ -465,7 +496,9 @@ function StudentDashboardContent() {
             const data = await api.get(`/api/student/upi-link?amount=${payment.amount}&month=${payment.month}&year=${payment.year}`);
             setPayModalUpi(data);
         } catch (err) {
-            // Handled globally
+            if (!isSystemicError(err.message)) {
+                // Handled globally
+            }
         }
     };
 
@@ -488,7 +521,9 @@ function StudentDashboardContent() {
             // onSnapshot listener fires automatically when backend updates
             // the Firestore payment document, triggering a fresh fetch.
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         }
     };
 

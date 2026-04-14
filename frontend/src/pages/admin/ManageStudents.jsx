@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
 import UserDevicesModal from "@/components/UserDevicesModal";
-import { api } from "@/lib/api";
+import { api, isSystemicError } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import ModernSelect from "@/components/ModernSelect";
 import { getCache, setCache } from "@/lib/memoryCache";
@@ -72,7 +72,9 @@ function StudentsContent() {
             setBatches(b);
             setCache(cacheKeyBatches, b);
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setBatchesLoading(false);
         }
@@ -89,7 +91,9 @@ function StudentsContent() {
             setStudents(s);
             setHasLoaded(true);
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setListLoading(false);
         }
@@ -116,7 +120,9 @@ function StudentsContent() {
             setSuccess("Student added successfully!");
             setForm({ name: "", username: "", password: "", batch_id: "" });
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setFormLoading(false);
         }
@@ -164,7 +170,9 @@ function StudentsContent() {
             
             cancelEdit();
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setEditLoading(false);
         }
@@ -217,7 +225,9 @@ function StudentsContent() {
             }
             cancelOverride();
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setOverrideLoading(false);
         }
@@ -244,7 +254,9 @@ function StudentsContent() {
                 (s.uid || s.id) === uid ? { ...s, is_disabled: newStatus } : s
             ));
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setTogglingStatus(null);
         }

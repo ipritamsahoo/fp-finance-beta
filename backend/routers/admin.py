@@ -22,6 +22,7 @@ from schemas import (
     RegisterRequest, BatchCreate, StudentCreate, TeacherCreate,
     StudentUpdate, TeacherUpdate, GenerateMonthly, UndoMonthly, FeeOverride,
     SettleDistribution, AdminSeed, to_firebase_email, StudentStatusUpdate,
+    EmergencyReset,
 )
 from dependencies import require_role
 from utils import ts_now, serialize_doc
@@ -136,11 +137,13 @@ def admin_approve(payment_id: str, user=Depends(require_role("admin"))):
             print(f"Cloudinary delete failed (approve): {e}")
 
     # ── Calculate Achievement Badge ──
+    # Badge tier is determined by how quickly the student paid after the fee was generated:
+    # Prime  → paid within 24 hours
+    # Golden → paid within 5 days
+    # Silver → paid after 5 days
     badge_tier = None
     created_at_raw = payment.get("created_at")
     requested_at_raw = payment.get("requested_at")
-    print(f"[BADGE DEBUG] created_at raw = {created_at_raw!r} (type={type(created_at_raw).__name__})")
-    print(f"[BADGE DEBUG] requested_at raw = {requested_at_raw!r} (type={type(requested_at_raw).__name__})")
     if created_at_raw and requested_at_raw:
         try:
             # Parse created_at (T1)
@@ -159,28 +162,21 @@ def admin_approve(payment_id: str, user=Depends(require_role("admin"))):
             else:
                 t2 = datetime.fromisoformat(str(requested_at_raw))
 
-            print(f"[BADGE DEBUG] t1 = {t1}, t2 = {t2}")
-            diff_seconds = (t2 - t1).total_seconds()
-            diff_minutes = diff_seconds / 60
-            print(f"[BADGE DEBUG] diff_seconds = {diff_seconds}, diff_minutes = {diff_minutes:.2f}")
+            diff_minutes = (t2 - t1).total_seconds() / 60
 
-            if diff_minutes < 1440:          # within 24 hours → Prime
+            if diff_minutes < 1440:      # within 24 hours → Prime
                 badge_tier = "prime"
-            elif diff_minutes < 7200:         # within 5 days → Golden
+            elif diff_minutes < 7200:    # within 5 days → Golden
                 badge_tier = "golden"
-            else:                             # after 5 days → Silver
+            else:                        # after 5 days → Silver
                 badge_tier = "silver"
-            print(f"[BADGE DEBUG] Calculated badge_tier = {badge_tier}")
         except Exception as e:
             import traceback
-            print(f"[BADGE DEBUG] ERROR: {e}")
             traceback.print_exc()
-    else:
-        print(f"[BADGE DEBUG] SKIPPED — missing created_at or requested_at")
+
     # Fallback: if badge calculation failed for any reason, award silver
     if not badge_tier:
         badge_tier = "silver"
-        print(f"[BADGE DEBUG] Fallback: badge_tier set to 'silver'")
 
     payment_ref.update({
         "status": "Paid",
@@ -200,7 +196,6 @@ def admin_approve(payment_id: str, user=Depends(require_role("admin"))):
                 "badge_year": payment.get("year"),
                 "badge_animation_pending": True,
             })
-            print(f"[BADGE DEBUG] ✅ Set badge_animation_pending=True for student {student_id}")
         except Exception as e:
             print(f"Badge save to user doc failed: {e}")
 
@@ -1424,10 +1419,16 @@ def admin_settle_distribution(req: SettleDistribution, user=Depends(require_role
         
     all_selected_payments = [serialize_doc(p) for p in query.stream()]
     
-    # Filter by batch_id in memory (to avoid creating a second complex index just for batches)
+    # Filter by batch_id AND month/year in memory.
+    # month+year filter is critical: the updated_at range query fetches ALL payments
+    # approved on that date regardless of fee month. Without this filter, settling
+    # April 13 while viewing "March 2026" would incorrectly include April 2026 fee
+    # payments also approved that day — causing totals to conflict across months.
     date_payments = []
     for p in all_selected_payments:
         if req.batch_id and p.get("batch_id") != req.batch_id:
+            continue
+        if p.get("month") != req.month or p.get("year") != req.year:
             continue
         date_payments.append(p)
 
@@ -1466,16 +1467,15 @@ def admin_settle_distribution(req: SettleDistribution, user=Depends(require_role
                 cache_users[tid] = t_doc.to_dict() if t_doc.exists else {}
                 
             t_name = cache_users[tid].get("name", "Unknown")
-            t_tokens = cache_users[tid].get("fcm_tokens", [])
             
             if tid not in teacher_earnings:
-                teacher_earnings[tid] = {"name": t_name, "total": 0, "tokens": t_tokens}
+                teacher_earnings[tid] = {"name": t_name, "total": 0}
             teacher_earnings[tid]["total"] = round(
                 teacher_earnings[tid]["total"] + pt, 2
             )
 
     teachers_snapshot = [
-        {"uid": uid, "name": info["name"], "amount": info["total"], "tokens": info["tokens"]}
+        {"uid": uid, "name": info["name"], "amount": info["total"]}
         for uid, info in teacher_earnings.items()
     ]
     teachers_snapshot.sort(key=lambda t: t["amount"], reverse=True)
@@ -1501,7 +1501,8 @@ def admin_settle_distribution(req: SettleDistribution, user=Depends(require_role
     formatted_date = f"{parts[2]}.{parts[1]}.{parts[0]}" if len(parts) == 3 else req.date
     for t in teachers_snapshot:
         tid = t.get("uid")
-        tokens = t.get("tokens", [])
+        # Fetch tokens from request-scoped cache — never stored in Firestore
+        tokens = cache_users.get(tid, {}).get("fcm_tokens", [])
         if tid and tokens:
             from notifications import _send_fcm
             _send_fcm(
@@ -2303,4 +2304,32 @@ def seed_default_admin(req: AdminSeed):
         "message": "Admin account created",
         "admin": {"uid": fb_user.uid, "username": req.username.strip().lower(), "new": True},
     }
+
+
+# ══════════════════════════════════════════════
+#  ADMIN EMERGENCY RESET
+# ══════════════════════════════════════════════
+
+@router.post("/emergency-reset")
+def reset_admin_account(req: EmergencyReset):
+    """Emergency reset: Deletes all existing admins if the master key is correct. 
+    Does not require authentication."""
+    if req.master_key != "fpfinance-master-2026-ps-sm":
+        raise HTTPException(status_code=403, detail="Invalid master key")
+        
+    existing_admins = list(db.collection("users").where("role", "==", "admin").stream())
+    if not existing_admins:
+        return {"message": "No admins found in the system to delete."}
+        
+    deleted_count = 0
+    for ad in existing_admins:
+        uid = ad.id
+        try:
+            firebase_auth.delete_user(uid)
+        except Exception:
+            pass # Just in case it was already deleted in auth
+        db.collection("users").document(uid).delete()
+        deleted_count += 1
+        
+    return {"message": f"Successfully deleted {deleted_count} admin accounts. The system is ready to be seeded again."}
 

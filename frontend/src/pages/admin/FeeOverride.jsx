@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
-import { api } from "@/lib/api";
+import { api, isSystemicError } from "@/lib/api";
 import { getYearOptions } from "@/lib/yearOptions";
 import ModernSelect from "@/components/ModernSelect";
 import { getCache, setCache } from "@/lib/memoryCache";
@@ -63,7 +63,9 @@ function FeeOverrideContent() {
                 setCache(cKeyBatches, b);
             }
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setLoading(false);
         }
@@ -102,7 +104,9 @@ function FeeOverrideContent() {
             setSuccess(res.message || "Fee override applied successfully!");
             fetchStudents(); // refresh student data
         } catch (err) {
-            setError(err.message);
+            if (!isSystemicError(err.message)) {
+                setError(err.message);
+            }
         } finally {
             setSubmitting(false);
         }

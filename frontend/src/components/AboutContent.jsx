@@ -98,21 +98,25 @@ export default function AboutContent({ isLight, accentColor, onFeedbackClick }) 
                 </p>
                 <div className="flex flex-col gap-5 md:gap-2.5">
                     <div className="flex items-center gap-4 md:gap-3">
-                        <div className="w-11 h-11 md:w-8 md:h-8 rounded-full bg-gradient-to-tr from-teal-400 to-emerald-500 flex items-center justify-center text-white font-extrabold text-sm md:text-xs shadow-lg shrink-0">
-                            S
-                        </div>
+                        <img 
+                            src="/suman.png" 
+                            alt="Suman Maji" 
+                            className="w-11 h-11 md:w-8 md:h-8 rounded-full object-cover shadow-lg shrink-0 border border-white/10"
+                        />
                         <div>
-                            <p className="font-extrabold text-lg md:text-sm" style={{ color: "var(--st-text-primary)" }}>Suman</p>
-                            <p className="text-xs md:text-[10px]" style={{ color: "var(--st-text-muted)" }}>Co-Developer</p>
+                            <p className="font-extrabold text-lg md:text-sm" style={{ color: "var(--st-text-primary)" }}>Suman Maji</p>
+                            <p className="text-xs md:text-[10px]" style={{ color: "var(--st-text-muted)" }}>Co-Developer • COSH 2023–2027</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4 md:gap-3">
-                        <div className="w-11 h-11 md:w-8 md:h-8 rounded-full bg-gradient-to-tr from-blue-400 to-indigo-500 flex items-center justify-center text-white font-extrabold text-sm md:text-xs shadow-lg shrink-0">
-                            P
-                        </div>
+                        <img 
+                            src="/pritam.png" 
+                            alt="Pritam Sahoo" 
+                            className="w-11 h-11 md:w-8 md:h-8 rounded-full object-cover shadow-lg shrink-0 border border-white/10"
+                        />
                         <div>
-                            <p className="font-extrabold text-lg md:text-sm" style={{ color: "var(--st-text-primary)" }}>Pritam</p>
-                            <p className="text-xs md:text-[10px]" style={{ color: "var(--st-text-muted)" }}>Co-Developer</p>
+                            <p className="font-extrabold text-lg md:text-sm" style={{ color: "var(--st-text-primary)" }}>Pritam Sahoo</p>
+                            <p className="text-xs md:text-[10px]" style={{ color: "var(--st-text-muted)" }}>Co-Developer • COSH 2023–2027</p>
                         </div>
                     </div>
                 </div>

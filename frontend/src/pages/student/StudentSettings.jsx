@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import StudentLayout from "@/components/StudentLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -14,6 +15,7 @@ import AboutContent from "@/components/AboutContent";
 import StudentFeedbackModal from "@/components/StudentFeedbackModal";
 
 function StudentSettingsContent() {
+    const navigate = useNavigate();
     const { user, logout, refreshUser } = useAuth();
     const { theme, toggleTheme } = useStudentTheme();
     const isLight = theme === "light";
@@ -28,6 +30,8 @@ function StudentSettingsContent() {
     const [newUsername, setNewUsername] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [credLoading, setCredLoading] = useState(false);
     const [credError, setCredError] = useState("");
     const [credSuccess, setCredSuccess] = useState("");
@@ -40,6 +44,8 @@ function StudentSettingsContent() {
         setNewUsername("");
         setNewPassword("");
         setConfirmPassword("");
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
     };
 
     const handleUsernameSubmit = async (e) => {
@@ -246,28 +252,6 @@ function StudentSettingsContent() {
                     </div>
                 </button>
 
-                {/* About App */}
-                <button
-                    onClick={() => {
-                        if (window.innerWidth >= 768) {
-                            // Desktop: open modal
-                            setAboutModalOpen(true);
-                        } else {
-                            // Mobile: route to AboutPage
-                            window.location.href = "/about";
-                        }
-                    }}
-                    className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
-                >
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors" style={{ backgroundColor: 'var(--st-icon-bg)' }}>
-                            <span className="material-symbols-outlined" style={{ color: accentColor }}>info</span>
-                        </div>
-                        <span className="font-medium" style={{ color: 'var(--st-text-primary)' }}>About App</span>
-                    </div>
-                    <span className="material-symbols-outlined" style={{ color: 'var(--st-text-muted)' }}>chevron_right</span>
-                </button>
-
                 {/* Help & Support */}
                 <a
                     href="https://wa.me/917001637243"
@@ -283,10 +267,32 @@ function StudentSettingsContent() {
                     </div>
                     <span className="material-symbols-outlined" style={{ color: 'var(--st-text-muted)' }}>chevron_right</span>
                 </a>
+
+                {/* About App */}
+                <button
+                    onClick={() => {
+                        if (window.innerWidth >= 768) {
+                            // Desktop: open modal
+                            setAboutModalOpen(true);
+                        } else {
+                            // Mobile: route to AboutPage
+                            navigate("/about");
+                        }
+                    }}
+                    className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors" style={{ backgroundColor: 'var(--st-icon-bg)' }}>
+                            <span className="material-symbols-outlined" style={{ color: accentColor }}>info</span>
+                        </div>
+                        <span className="font-medium" style={{ color: 'var(--st-text-primary)' }}>About App</span>
+                    </div>
+                    <span className="material-symbols-outlined" style={{ color: 'var(--st-text-muted)' }}>chevron_right</span>
+                </button>
             </section>
 
             {/* ── Footer ── */}
-            <footer className="mt-12 flex flex-col items-center gap-6">
+            <footer className="mt-4 md:mt-12 flex flex-col items-center gap-6">
                 <button
                     onClick={logout}
                     className="group flex items-center gap-3 px-8 py-3 transition-all rounded-full active:scale-95 cursor-pointer"
@@ -298,9 +304,6 @@ function StudentSettingsContent() {
                     <span className="material-symbols-outlined" style={{ color: isLight ? '#ef4444' : '#ff6e84' }}>logout</span>
                     <span className="font-bold tracking-tight" style={{ fontFamily: "'Manrope', sans-serif", color: isLight ? '#ef4444' : '#ff6e84' }}>Logout</span>
                 </button>
-                <div className="text-center">
-                    <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: 'var(--st-text-secondary)' }}>FP Finance v{__APP_VERSION__}</p>
-                </div>
             </footer>
 
             {/* ══ Modals ══ */}
@@ -315,19 +318,22 @@ function StudentSettingsContent() {
                     className="fixed inset-0 z-[100] flex items-center justify-center p-4" 
                     onClick={closeCredModals}
                     style={{
-                        backgroundColor: isLight ? 'rgba(238,242,255,0.4)' : 'rgba(0,0,0,0.6)',
-                        backdropFilter: 'blur(10px)',
-                        WebkitBackdropFilter: 'blur(10px)'
+                        backgroundColor: isLight ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.5)',
+                        backdropFilter: 'blur(16px) saturate(1.5)',
+                        WebkitBackdropFilter: 'blur(16px) saturate(1.5)'
                     }}
                 >
                     <div
                         className="w-full max-w-sm rounded-[32px] p-8 animate-modal-in shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                         style={{
-                            backgroundColor: isLight ? 'rgba(255,255,255,0.25)' : 'rgba(12,14,23,0.85)',
-                            border: `1px solid ${isLight ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.1)'}`,
-                            backdropFilter: 'blur(40px) saturate(2.0)',
-                            WebkitBackdropFilter: 'blur(40px) saturate(2.0)',
+                            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.01)',
+                            border: `1px solid ${isLight ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.15)'}`,
+                            backdropFilter: 'blur(80px) saturate(2.5)',
+                            WebkitBackdropFilter: 'blur(80px) saturate(2.5)',
+                            boxShadow: isLight
+                                ? '0 32px 64px rgba(0,0,0,0.05), inset 0 0 32px rgba(255,255,255,0.6)'
+                                : '0 32px 64px rgba(0,0,0,0.6), inset 0 0 32px rgba(255,255,255,0.05)',
                             transform: "translateZ(0)", isolation: "isolate"
                         }}
                     >
@@ -377,8 +383,18 @@ function StudentSettingsContent() {
                                     Cancel
                                 </button>
                                 <button type="submit" disabled={credLoading}
-                                    className="flex-1 px-4 py-4 rounded-2xl bg-[#3b82f6] text-white text-sm font-bold hover:bg-[#2563eb] transition-all disabled:opacity-50 cursor-pointer shadow-[0_4px_20px_rgba(59,130,246,0.3)] active:scale-95">
-                                    {credLoading ? "Updating..." : "Update"}
+                                    className={`flex-1 px-4 py-4 rounded-2xl text-sm font-bold transition-all disabled:opacity-40 cursor-pointer active:scale-95 border shadow-lg ${
+                                        isLight
+                                            ? 'bg-[#0d9488]/10 border-[#0d9488]/30 text-[#0d9488] hover:bg-[#0d9488]/20'
+                                            : 'bg-[#3b82f6]/10 border-[#3b82f6]/30 text-[#3b82f6] hover:bg-[#3b82f6]/20'
+                                    }`}
+                                >
+                                    {credLoading ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                                            Updating...
+                                        </span>
+                                    ) : "Update"}
                                 </button>
                             </div>
                         </form>
@@ -394,19 +410,22 @@ function StudentSettingsContent() {
                     className="fixed inset-0 z-[100] flex items-center justify-center p-4" 
                     onClick={closeCredModals}
                     style={{
-                        backgroundColor: isLight ? 'rgba(238,242,255,0.4)' : 'rgba(0,0,0,0.6)',
-                        backdropFilter: 'blur(10px)',
-                        WebkitBackdropFilter: 'blur(10px)'
+                        backgroundColor: isLight ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.5)',
+                        backdropFilter: 'blur(16px) saturate(1.5)',
+                        WebkitBackdropFilter: 'blur(16px) saturate(1.5)'
                     }}
                 >
                     <div
                         className="w-full max-w-sm rounded-[32px] p-8 animate-modal-in shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                         style={{
-                            backgroundColor: isLight ? 'rgba(255,255,255,0.25)' : 'rgba(12,14,23,0.85)',
-                            border: `1px solid ${isLight ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.1)'}`,
-                            backdropFilter: 'blur(40px) saturate(2.0)',
-                            WebkitBackdropFilter: 'blur(40px) saturate(2.0)',
+                            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.01)',
+                            border: `1px solid ${isLight ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.15)'}`,
+                            backdropFilter: 'blur(80px) saturate(2.5)',
+                            WebkitBackdropFilter: 'blur(80px) saturate(2.5)',
+                            boxShadow: isLight
+                                ? '0 32px 64px rgba(0,0,0,0.05), inset 0 0 32px rgba(255,255,255,0.6)'
+                                : '0 32px 64px rgba(0,0,0,0.6), inset 0 0 32px rgba(255,255,255,0.05)',
                             transform: "translateZ(0)", isolation: "isolate"
                         }}
                     >
@@ -438,22 +457,46 @@ function StudentSettingsContent() {
                         <form onSubmit={handlePasswordSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold mb-2 ml-1 uppercase tracking-widest" style={{ color: 'var(--st-text-muted)' }}>New Password</label>
-                                <input
-                                    type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-                                    placeholder="Min 6 characters" required minLength={6}
-                                    className="w-full px-5 py-4 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 transition-all placeholder:text-gray-400"
-                                    style={{ backgroundColor: 'var(--st-icon-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-primary)' }}
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showNewPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                                        placeholder="Min 6 characters" required minLength={6}
+                                        className="w-full pl-5 pr-12 py-4 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 transition-all placeholder:text-gray-400"
+                                        style={{ backgroundColor: 'var(--st-icon-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-primary)' }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-xl transition-colors opacity-70 hover:opacity-100 cursor-pointer"
+                                        style={{ backgroundColor: 'transparent' }}
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]" style={{ color: 'var(--st-text-muted)' }}>
+                                            {showNewPassword ? "visibility" : "visibility_off"}
+                                        </span>
+                                    </button>
+                                </div>
                             </div>
                             
                             <div>
                                 <label className="block text-xs font-bold mb-2 ml-1 uppercase tracking-widest" style={{ color: 'var(--st-text-muted)' }}>Confirm Password</label>
-                                <input
-                                    type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                                    placeholder="Re-enter password" required minLength={6}
-                                    className="w-full px-5 py-4 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 transition-all placeholder:text-gray-400"
-                                    style={{ backgroundColor: 'var(--st-icon-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-primary)' }}
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                                        placeholder="Re-enter password" required minLength={6}
+                                        className="w-full pl-5 pr-12 py-4 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50 transition-all placeholder:text-gray-400"
+                                        style={{ backgroundColor: 'var(--st-icon-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-primary)' }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-xl transition-colors opacity-70 hover:opacity-100 cursor-pointer"
+                                        style={{ backgroundColor: 'transparent' }}
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]" style={{ color: 'var(--st-text-muted)' }}>
+                                            {showConfirmPassword ? "visibility" : "visibility_off"}
+                                        </span>
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="flex gap-3 pt-3">
@@ -463,8 +506,18 @@ function StudentSettingsContent() {
                                     Cancel
                                 </button>
                                 <button type="submit" disabled={credLoading}
-                                    className="flex-1 px-4 py-4 rounded-2xl bg-[#3b82f6] text-white text-sm font-bold hover:bg-[#2563eb] transition-all disabled:opacity-50 cursor-pointer shadow-[0_4px_20px_rgba(59,130,246,0.3)] active:scale-95">
-                                    {credLoading ? "Updating..." : "Update"}
+                                    className={`flex-1 px-4 py-4 rounded-2xl text-sm font-bold transition-all disabled:opacity-40 cursor-pointer active:scale-95 border shadow-lg ${
+                                        isLight
+                                            ? 'bg-[#0d9488]/10 border-[#0d9488]/30 text-[#0d9488] hover:bg-[#0d9488]/20'
+                                            : 'bg-[#3b82f6]/10 border-[#3b82f6]/30 text-[#3b82f6] hover:bg-[#3b82f6]/20'
+                                    }`}
+                                >
+                                    {credLoading ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                                            Updating...
+                                        </span>
+                                    ) : "Update"}
                                 </button>
                             </div>
                         </form>
@@ -481,7 +534,10 @@ function StudentSettingsContent() {
             {/* ── Feedback Modal ── */}
             <StudentFeedbackModal
                 isOpen={feedbackModalOpen}
-                onClose={() => setFeedbackModalOpen(false)}
+                onClose={() => {
+                    setFeedbackModalOpen(false);
+                    setAboutModalOpen(true);
+                }}
                 isLight={isLight}
                 accentColor={accentColor}
                 theme={theme}

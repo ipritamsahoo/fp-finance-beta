@@ -86,10 +86,13 @@ export default function StudentFeedbackModal({ isOpen, onClose, isLight, accentC
                 onClick={(e) => e.stopPropagation()}
                 style={{
                     maxHeight: '92dvh',
-                    backgroundColor: isLight ? 'rgba(255,255,255,0.55)' : 'rgba(18,18,28,0.92)',
-                    border: `1px solid ${isLight ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.08)'}`,
-                    backdropFilter: 'blur(64px) saturate(2)',
-                    WebkitBackdropFilter: 'blur(64px) saturate(2)',
+                    backgroundColor: isLight ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.03)',
+                    border: `1px solid ${isLight ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.08)'}`,
+                    backdropFilter: 'blur(64px) saturate(2.2)',
+                    WebkitBackdropFilter: 'blur(64px) saturate(2.2)',
+                    boxShadow: isLight
+                        ? '0 24px 48px rgba(0,0,0,0.1), inset 0 0 20px rgba(255,255,255,0.5)'
+                        : '0 24px 48px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.03)',
                     transform: "translateZ(0)", isolation: "isolate",
                 }}
             >
@@ -345,37 +348,25 @@ export default function StudentFeedbackModal({ isOpen, onClose, isLight, accentC
                                 </div>
                             )}
 
-                        </div>
-
-                        {/* ── Sticky Submit Footer ── */}
-                        <div
-                            className="sticky bottom-0 px-6 py-4 flex gap-3 shrink-0"
-                            style={{ borderTop: `1px solid var(--st-divider)`, backgroundColor: isLight ? 'rgba(255,255,255,0.7)' : 'rgba(18,18,28,0.85)', backdropFilter: 'blur(16px)' }}
-                        >
-                            <button
-                                type="button"
-                                onClick={handleClose}
-                                className="flex-1 py-3.5 rounded-2xl text-sm font-bold transition-all cursor-pointer active:scale-95"
-                                style={{ backgroundColor: 'var(--st-icon-bg)', border: `1px solid var(--st-input-border)`, color: 'var(--st-text-secondary)' }}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={feedbackSubmitting || fbRating === 0 || !fbHasIssues || fbFeatures.length === 0 || !fbImprovements.trim() || (fbHasIssues === "yes" && !fbIssueDetails.trim())}
-                                className={`flex-1 py-3.5 rounded-2xl text-sm font-bold transition-all disabled:opacity-40 cursor-pointer active:scale-95 backdrop-blur-md border ${
-                                    isLight
-                                        ? 'bg-[#0d9488]/10 border-[#0d9488]/30 text-[#0d9488] hover:bg-[#0d9488]/20'
-                                        : 'bg-[#3b82f6]/10 border-[#3b82f6]/30 text-[#3b82f6] hover:bg-[#3b82f6]/20'
-                                }`}
-                            >
-                                {feedbackSubmitting ? (
-                                    <span className="flex items-center justify-center gap-2">
-                                        <span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-                                        Sending...
-                                    </span>
-                                ) : "Submit Feedback"}
-                            </button>
+                            {/* ── Submit Button ── */}
+                            <div className="w-full pt-2 pb-2">
+                                <button
+                                    type="submit"
+                                    disabled={feedbackSubmitting || fbRating === 0 || !fbHasIssues || fbFeatures.length === 0 || !fbImprovements.trim() || (fbHasIssues === "yes" && !fbIssueDetails.trim())}
+                                    className={`w-full py-3.5 rounded-2xl text-sm font-bold transition-all disabled:opacity-40 cursor-pointer active:scale-95 border shadow-lg ${
+                                        isLight
+                                            ? 'bg-[#0d9488]/10 border-[#0d9488]/30 text-[#0d9488] hover:bg-[#0d9488]/20'
+                                            : 'bg-[#3b82f6]/10 border-[#3b82f6]/30 text-[#3b82f6] hover:bg-[#3b82f6]/20'
+                                    }`}
+                                >
+                                    {feedbackSubmitting ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                                            Sending...
+                                        </span>
+                                    ) : "Submit Feedback"}
+                                </button>
+                            </div>
                         </div>
                     </form>
                 )}
