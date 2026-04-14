@@ -128,11 +128,11 @@ function TeacherSettingsContent() {
                     onClick={() => setUsernameModalOpen(true)}
                     className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
                 >
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl group-hover:bg-[#3b82f6]/20 transition-colors">
+                    <div className="flex items-center gap-4 text-left">
+                        <div className="shrink-0 w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl group-hover:bg-[#3b82f6]/20 transition-colors">
                             <span className="material-symbols-outlined text-[#3b82f6]">person</span>
                         </div>
-                        <span className="font-medium text-[#f0f0fd]">Change Username or Mobile</span>
+                        <span className="font-medium text-[#f0f0fd] leading-snug">Change Username or Mobile</span>
                     </div>
                     <span className="material-symbols-outlined text-[#737580]">chevron_right</span>
                 </button>

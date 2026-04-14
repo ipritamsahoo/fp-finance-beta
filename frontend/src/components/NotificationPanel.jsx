@@ -47,9 +47,9 @@ export default function NotificationPanel({ isOpen, onClose }) {
     const { user } = useAuth();
     const studentThemeContext = useStudentTheme();
     
-    // For teachers, we force dark theme. For students, we follow their context/preference.
-    const isTeacher = user?.role === "teacher";
-    const theme = isTeacher ? "dark" : (studentThemeContext?.theme || "dark");
+    // For teachers and admins, we force dark theme. For students, we follow their context/preference.
+    const isStaff = user?.role === "teacher" || user?.role === "admin";
+    const theme = isStaff ? "dark" : (studentThemeContext?.theme || "dark");
     const isLight = theme === "light";
     
     const panelRef = useRef(null);

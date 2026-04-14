@@ -12,7 +12,11 @@ import ProfilePicture from "./ProfilePicture";
  */
 export default function ProfilePicUpload({ isOpen, onClose, mandatory = false }) {
     const { user, updateProfilePic } = useAuth();
-    const { theme } = useStudentTheme();
+    const studentThemeContext = useStudentTheme();
+
+    // For teachers and admins, we force dark theme. For students, we follow their context/preference.
+    const isStaff = user?.role === "teacher" || user?.role === "admin";
+    const theme = isStaff ? "dark" : (studentThemeContext?.theme || "dark");
     const isLight = theme === "light";
 
     // ── Step state ──
@@ -420,7 +424,11 @@ function CropStep({
     handleCrop, onBack,
 }) {
     const [imgLoaded, setImgLoaded] = useState(false);
-    const { theme } = useStudentTheme();
+    const { theme: ctxTheme } = useStudentTheme();
+    const { user } = useAuth();
+    
+    const isStaff = user?.role === "teacher" || user?.role === "admin";
+    const theme = isStaff ? "dark" : (ctxTheme || "dark");
 
     useEffect(() => {
         if (imgLoaded) drawCropCanvas();

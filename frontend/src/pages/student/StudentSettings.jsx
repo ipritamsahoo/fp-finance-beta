@@ -173,11 +173,11 @@ function StudentSettingsContent() {
                     onClick={() => setUsernameModalOpen(true)}
                     className="w-full flex items-center justify-between p-4 glass-card-student rounded-2xl transition-all group cursor-pointer"
                 >
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors" style={{ backgroundColor: 'var(--st-icon-bg)' }}>
+                    <div className="flex items-center gap-4 text-left">
+                        <div className="shrink-0 w-10 h-10 flex items-center justify-center rounded-xl transition-colors" style={{ backgroundColor: 'var(--st-icon-bg)' }}>
                             <span className="material-symbols-outlined" style={{ color: accentColor }}>person</span>
                         </div>
-                        <span className="font-medium" style={{ color: 'var(--st-text-primary)' }}>Change Username or Mobile</span>
+                        <span className="font-medium leading-snug" style={{ color: 'var(--st-text-primary)' }}>Change Username or Mobile</span>
                     </div>
                     <span className="material-symbols-outlined" style={{ color: 'var(--st-text-muted)' }}>chevron_right</span>
                 </button>
@@ -268,7 +268,7 @@ function StudentSettingsContent() {
                     <span className="material-symbols-outlined" style={{ color: 'var(--st-text-muted)' }}>chevron_right</span>
                 </a>
 
-                {/* About App */}
+                {/* About */}
                 <button
                     onClick={() => {
                         if (window.innerWidth >= 768) {
@@ -285,7 +285,7 @@ function StudentSettingsContent() {
                         <div className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors" style={{ backgroundColor: 'var(--st-icon-bg)' }}>
                             <span className="material-symbols-outlined" style={{ color: accentColor }}>info</span>
                         </div>
-                        <span className="font-medium" style={{ color: 'var(--st-text-primary)' }}>About App</span>
+                        <span className="font-medium" style={{ color: 'var(--st-text-primary)' }}>About</span>
                     </div>
                     <span className="material-symbols-outlined" style={{ color: 'var(--st-text-muted)' }}>chevron_right</span>
                 </button>

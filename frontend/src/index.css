@@ -131,6 +131,16 @@ select option {
     will-change: transform, opacity;
 }
 
+/* Shimmer animation for glass buttons */
+@keyframes shimmer {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+    animation: shimmer 2s infinite;
+}
+
 /* Modal scale & fade animation */
 @keyframes modalIn {
     from {

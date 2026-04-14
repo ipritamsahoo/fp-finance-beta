@@ -33,8 +33,6 @@ export default function FeedbackPage() {
     const isLight = theme === "light";
     const accentColor = isLight ? "#0d9488" : "#3b82f6";
 
-    const [batchName, setBatchName] = useState("");
-
     // ── Feedback form state ──
     const [fbRating, setFbRating]                 = useState(0);
     const [fbHovered, setFbHovered]               = useState(0);
@@ -57,14 +55,6 @@ export default function FeedbackPage() {
         setFbFeatures((prev) =>
             prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]
         );
-
-    // Fetch the student's batch name once on mount
-    useEffect(() => {
-        if (!user?.batchId) return;
-        api.get("/api/student/batch-info")
-            .then((data) => setBatchName(data.batch_name || ""))
-            .catch(() => setBatchName(""));
-    }, [user?.batchId]);
 
     const handleFeedbackSubmit = async (e) => {
         e.preventDefault();
@@ -114,38 +104,6 @@ export default function FeedbackPage() {
                         Give Feedback
                     </h3>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--st-text-muted)' }}>Your response goes directly to our team</p>
-                </div>
-
-                {/* ── Locked: Student Name ── */}
-                <div>
-                    <label className="block text-[10px] font-bold mb-2 uppercase tracking-widest" style={{ color: 'var(--st-text-muted)' }}>Student Name</label>
-                    <div className="w-full px-4 py-3 rounded-2xl text-sm flex items-center gap-2"
-                        style={{
-                            backgroundColor: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
-                            border: `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)'}`,
-                            color: 'var(--st-text-secondary)',
-                        }}
-                    >
-                        <span className="material-symbols-outlined text-sm" style={{ color: accentColor }}>person</span>
-                        <span className="font-medium">{user?.name || "—"}</span>
-                        <span className="ml-auto text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)', color: 'var(--st-text-muted)' }}>locked</span>
-                    </div>
-                </div>
-
-                {/* ── Locked: Batch Name ── */}
-                <div>
-                    <label className="block text-[10px] font-bold mb-2 uppercase tracking-widest" style={{ color: 'var(--st-text-muted)' }}>Batch</label>
-                    <div className="w-full px-4 py-3 rounded-2xl text-sm flex items-center gap-2"
-                        style={{
-                            backgroundColor: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
-                            border: `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)'}`,
-                            color: 'var(--st-text-secondary)',
-                        }}
-                    >
-                        <span className="material-symbols-outlined text-sm" style={{ color: accentColor }}>group</span>
-                        <span className="font-medium">{batchName || "—"}</span>
-                        <span className="ml-auto text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)', color: 'var(--st-text-muted)' }}>locked</span>
-                    </div>
                 </div>
 
                 {/* ── Q1: Rating ── */}

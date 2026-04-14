@@ -1,3 +1,5 @@
+import { useAuth } from "@/context/AuthContext";
+
 /**
  * Shared About content — used in both AboutPage (mobile full-page)
  * and StudentSettings desktop modal.
@@ -6,6 +8,8 @@
  * Maximum Glassmorphism for Dark Mode: Ultra-transparent + Ultra-blur.
  */
 export default function AboutContent({ isLight, accentColor, onFeedbackClick }) {
+    const { user } = useAuth();
+
     return (
         <div className="flex flex-col items-center w-full gap-8 md:gap-4 text-center animate-fade-in">
 
@@ -125,7 +129,8 @@ export default function AboutContent({ isLight, accentColor, onFeedbackClick }) 
             {/* Feedback Button */}
             <button
                 onClick={onFeedbackClick}
-                className="w-full flex items-center justify-center gap-3 py-4.5 md:py-3 px-6 md:px-4 rounded-[24px] md:rounded-[14px] font-bold text-base md:text-sm cursor-pointer active:scale-95 transition-all animate-slide-up shadow-xl"
+                disabled={user?.role !== "student"}
+                className={`w-full flex items-center justify-center gap-3 py-4.5 md:py-3 px-6 md:px-4 rounded-[24px] md:rounded-[14px] font-bold text-base md:text-sm transition-all animate-slide-up shadow-xl ${user?.role !== "student" ? "opacity-30 cursor-not-allowed" : "cursor-pointer active:scale-95"}`}
                 style={{
                     backgroundColor: isLight ? "rgba(13, 148, 136, 0.15)" : "rgba(59, 130, 246, 0.12)",
                     border: `1px solid ${accentColor}${isLight ? '40' : '30'}`,

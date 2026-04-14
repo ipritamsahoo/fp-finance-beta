@@ -112,17 +112,18 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-[#3861fb] to-[#2b4fcf] text-white font-semibold
-                hover:from-[#4a73ff] hover:to-[#3861fb] transition-all duration-200 shadow-lg shadow-[#3861fb]/25
-                disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            className="w-full py-2.5 sm:py-3 rounded-xl bg-[#3861fb]/20 backdrop-blur-md border border-white/10 text-white font-semibold
+                hover:bg-[#3861fb]/30 hover:border-white/20 transition-all duration-300 shadow-[0_8px_32px_rgba(56,97,251,0.2)]
+                disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer relative overflow-hidden group"
                         >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-shimmer" />
                             {loading ? (
-                                <span className="flex items-center justify-center gap-2">
+                                <span className="flex items-center justify-center gap-2 relative z-10">
                                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                     Signing in...
                                 </span>
                             ) : (
-                                "Sign In"
+                                <span className="relative z-10">Sign In</span>
                             )}
                         </button>
                     </form>

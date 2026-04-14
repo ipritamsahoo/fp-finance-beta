@@ -27,10 +27,12 @@ import TeacherSettings from "@/pages/teacher/TeacherSettings";
 import NotificationsPage from "@/pages/NotificationsPage";
 import AboutPage from "@/pages/AboutPage";
 import FeedbackPage from "@/pages/FeedbackPage";
+import ScrollToTop from "@/components/ScrollToTop";
 
 export default function App() {
     return (
         <BrowserRouter>
+            <ScrollToTop />
             <AuthProvider>
                 <ErrorProvider>
                     <NotificationProvider>

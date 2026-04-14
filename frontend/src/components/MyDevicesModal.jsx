@@ -6,9 +6,9 @@ export default function MyDevicesModal({ onClose }) {
     const { user } = useAuth();
     const { theme: studentTheme } = useStudentTheme();
     
-    // For teachers, we force dark theme. For students, we follow their chosen theme.
-    const isTeacher = user?.role === "teacher";
-    const theme = isTeacher ? "dark" : studentTheme;
+    // For teachers and admins, we force dark theme. For students, we follow their chosen theme.
+    const isStaff = user?.role === "teacher" || user?.role === "admin";
+    const theme = isStaff ? "dark" : (studentTheme || "dark");
     const isLight = theme === "light";
 
     // The user object in AuthContext has activeSessions
